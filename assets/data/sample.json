@@ -1,0 +1,484 @@
+{
+    "settings": {
+        "date_min_buyer": "custome",
+        "message_checkout": "Hola mundo.",
+        "date_min_buyer_custome": 3,
+        "preorder_secret_key": "d78f14f35b52d96a3d654f7da3f34db4",
+        "sample": {
+            "cart_ticket": {
+                "date_trip": "2025-08-21",
+                "flexible": true,
+                "pax": {
+                    "kid": "0",
+                    "rpm": "0",
+                    "extra": "0",
+                    "standard": "1"
+                }
+            },
+            "key": "98fbf9700d1d0f9607d961e32d4a982a",
+            "product_id": 74,
+            "variation_id": 0,
+            "variation": [],
+            "quantity": 1,
+            "data_hash": "46e429fda7de93d3cca24d71e0370be2",
+            "line_tax_data": {
+                "subtotal": [],
+                "total": []
+            },
+            "line_subtotal": 47,
+            "line_subtotal_tax": 0,
+            "line_total": 47,
+            "line_tax": 0,
+            "data": {
+                "product_type": "operator"
+            }
+        },
+        "operator_file_size": 1,
+        "operator_file_extensions": [
+            ".jpg",
+            ".png"
+        ],
+        "texts_ways": {
+            "one_way": "Ida",
+            "any_way": "Ambos",
+            "double_way": "Ida y vuelta"
+        },
+        "texts_type": {
+            "land": "Bus",
+            "aero": "Avioneta",
+            "marine": "Ferry"
+        },
+        "texts_status": {
+            "pending": "Pendiente",
+            "payment": "Pagado",
+            "partial": "Parcial",
+            "cancel": "Anulado"
+        },
+        "texts_type_link": "category_link"
+    },
+    "entities": {
+        "zones": [
+            {
+                "id": 1,
+                "name":"San Crist\xc3\xb3bal"
+            },
+            {
+                "id": 2,
+                "name": "Santa Cruz"
+            },
+            {
+                "id": 3,
+                "name": "Isabela"
+            }
+        ],
+        "routes": [
+            {
+                "id": 1,
+                "type": "marine",
+                "origin_id": 1,
+                "destiny_id": 2,
+                "distance_km": 100,
+                "duration_trip": "01:00:00",
+                "departure_time": "13:00:00"
+            },
+            {
+                "id": 2,
+                "type": "marine",
+                "origin_id": 2,
+                "destiny_id": 1,
+                "distance_km": 100,
+                "duration_trip": "01:00:00",
+                "departure_time": "07:00:00"
+            }
+        ],
+        "services": [
+            {
+                "id": 1,
+                "icon": "https:\\/\\/cdn-icons-png.flaticon.com\\/512\\/5557\\/5557928.png",
+                "type": "Aire Acondicionado",
+                "price": 200
+            },
+            {
+                "id": 2,
+                "icon": "https:\\/\\/cdn-icons-png.flaticon.com\\/512\\/8718\\/8718405.png",
+                "type": "WiFi",
+                "price": 200
+            },
+            {
+                "id": 3,
+                "icon": "https:\\/\\/cdn-icons-png.flaticon.com\\/512\\/1023\\/1023409.png",
+                "type": "Asientos Reclinables",
+                "price": 200
+            }
+        ],
+        "locations": [
+            {
+                "id": 1,
+                "name": "Pto. Baquerizo M. - Muelle",
+                "zone_id": 1
+            },
+            {
+                "id": 2,
+                "name": "Pto. I. Ayora - Muelle",
+                "zone_id": 2
+            },
+            {
+                "id": 3,
+                "name": "Pto. Villamil - Muelle",
+                "zone_id": 3
+            }
+        ],
+        "transports": [
+            {
+                "id": 1,
+                "type": "marine",
+                "code": "TN-01-01070",
+                "nicename": "GAVIOTA",
+                "routes_ids": [
+                    1,
+                    2
+                ],
+                "services_ids": [
+                    1,
+                    2,
+                    3
+                ],
+                "meta": {
+                    "flexible": false,
+                    "working_days": [
+                        "monday",
+                        "tuesday",
+                        "wednesday",
+                        "thursday",
+                        "friday",
+                        "saturday",
+                        "sunday"
+                    ],
+                    "crew": [],
+                    "capacity": 30
+                }
+            },
+            {
+                "id": 2,
+                "type": "marine",
+                "code": "TN-01-00555",
+                "nicename": "BLESSING",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 3,
+                "type": "marine",
+                "code": "TN-00-01146",
+                "nicename": "ANGEL KELLIE I",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 4,
+                "type": "marine",
+                "code": "TN-01-00283",
+                "nicename": "ANDY",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 5,
+                "type": "marine",
+                "code": "TN-01-00377",
+                "nicename": "ANDY II",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 6,
+                "type": "marine",
+                "code": "TN-01-01154",
+                "nicename": "QUEEN JENNY",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 7,
+                "type": "marine",
+                "code": "TN-01-00140",
+                "nicename": "LA PERLA",
+                "routes_ids": [
+                    1
+                ],
+                "services_ids": [
+                    2
+                ],
+                "meta": {
+                    "flexible": false,
+                    "working_days": [
+                        "monday",
+                        "tuesday"
+                    ],
+                    "crew": [],
+                    "capacity": 30
+                }
+            },
+            {
+                "id": 8,
+                "type": "marine",
+                "code": "TN-01-01024",
+                "nicename": "SIGILOZA",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 9,
+                "type": "marine",
+                "code": "TN-01-00242",
+                "nicename": "GLADEL",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 10,
+                "type": "marine",
+                "code": "TN-01-00433",
+                "nicename": "DESTINY I",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 11,
+                "type": "marine",
+                "code": "TN-01-00553",
+                "nicename": "WOLF",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 12,
+                "type": "marine",
+                "code": "TN-01-01155",
+                "nicename": "LEGENDARY",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 13,
+                "type": "marine",
+                "code": "TN-00-01165",
+                "nicename": "GALAPAGOS OSPREY I",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 14,
+                "type": "marine",
+                "code": "TN-01-01313",
+                "nicename": "CALLY I",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 15,
+                "type": "marine",
+                "code": "TN-01-01312",
+                "nicename": "BRITHANNY I",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 16,
+                "type": "marine",
+                "code": "TN-01-01330",
+                "nicename": "SUSY LOVE",
+                "routes_ids": [],
+                "services_ids": [
+                    1
+                ],
+                "meta": []
+            },
+            {
+                "id": 17,
+                "type": "marine",
+                "code": "TN-01-01026",
+                "nicename": "NEW OCEAN",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 18,
+                "type": "marine",
+                "code": "TN-01-01010",
+                "nicename": "TROPICAL BIRD",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 19,
+                "type": "marine",
+                "code": "TN-01-01032",
+                "nicename": "NEW BRITHANY",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 20,
+                "type": "marine",
+                "code": "TN-01-00973",
+                "nicename": "ARRECIFE",
+                "routes_ids": [],
+                "services_ids": [
+                    2
+                ],
+                "meta": []
+            },
+            {
+                "id": 21,
+                "type": "marine",
+                "code": "TN-01-00985",
+                "nicename": "UNDERTAKE I",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 22,
+                "type": "marine",
+                "code": "TN-01-00400",
+                "nicename": "GEMA",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 23,
+                "type": "marine",
+                "code": "TN-01-01030",
+                "nicename": "ANDREA",
+                "routes_ids": [
+                    2
+                ],
+                "services_ids": [
+                    3
+                ],
+                "meta": {
+                    "flexible": false,
+                    "working_days": [
+                        "monday",
+                        "tuesday",
+                        "wednesday",
+                        "thursday",
+                        "friday",
+                        "saturday",
+                        "sunday"
+                    ],
+                    "crew": [],
+                    "capacity": 30
+                }
+            },
+            {
+                "id": 24,
+                "type": "marine",
+                "code": "TN-01-00428",
+                "nicename": "AMMY I",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            },
+            {
+                "id": 25,
+                "type": "marine",
+                "code": "TN-01-00514",
+                "nicename": "GALAPAGOS PROVILEGIO",
+                "routes_ids": [],
+                "services_ids": [
+                    3
+                ],
+                "meta": []
+            }
+        ]
+    },
+    "products": [
+        {
+            "id": 74,
+            "name":"Entre San Crist\xc3\xb3bal y Santa Cruz",
+            "type": "operator",
+            "type_way": "any_way",
+            "type_transport": "marine",
+            "type_route": "between_zones",
+            "status": "publish",
+            "prices": {
+                "price_kid": "25",
+                "price_rpm": "25",
+                "price_extra": "2",
+                "price_standar": "35",
+                "price_flexible": "10"
+            },
+            "maximums": {
+                "maximum_extra": "4",
+                "maximum_person": "6"
+            },
+            "zones": {
+                "zone_origin": "2",
+                "zone_destiny": "1"
+            },
+            "locations": {
+                "location_origin": "1",
+                "location_destiny": "1"
+            },
+            "enable_bookeable": true,
+            "enable_switch_route": true
+        }
+    ]
+}

@@ -1,0 +1,92 @@
+.pax-number {
+    display: inline-block;
+    font-size: 20pt;
+    font-weight: bold;
+    text-decoration: none !important;
+}
+
+.pax-number-maximum {
+    color: red;
+}
+
+a.git-nav-tab {
+    background-color: #607dff;
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-weight: 500;
+    margin: 10px;
+    color: #fff;
+}
+
+a.git-nav-tab:hover {
+    background-color: #506dcf;
+}
+
+a.git-nav-tab-active {
+    background-color: #0a2085;
+}
+
+a.git-nav-tab:link {
+    text-decoration: none;
+}
+
+.panel-content {
+    margin-top: 20px;
+}
+
+.git-table-operator {
+    border: none;
+}
+
+.git-table-operator td,
+.git-table-operator th {
+    border: none;
+}
+
+.responsive-form {
+    max-width: 500px;
+}
+
+.field-group {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.field-group label {
+    flex: 0 0 140px;
+    font-weight: 500;
+    color: #333;
+}
+
+.field-group .input-wrapper {
+    flex: 1;
+}
+
+
+table {
+    border-collapse: collapse;
+    border: none;
+}
+
+/* Móviles */
+@media (max-width: 768px) {
+    .field-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .field-group label {
+        flex: none;
+        margin-bottom: 0;
+    }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .field-group label {
+        flex: 0 0 120px;
+    }
+}
