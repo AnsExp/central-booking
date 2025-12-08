@@ -5,6 +5,7 @@ final class UserConstants
 {
     public const OPERATOR = 'operator';
     public const CUSTOMER = 'customer';
+    public const MARKETER = 'marketer';
     public const ADMINISTRATOR = 'administrator';
 
     public static function all()
@@ -12,6 +13,7 @@ final class UserConstants
         return [
             self::OPERATOR,
             self::CUSTOMER,
+            self::MARKETER,
             self::ADMINISTRATOR,
         ];
     }

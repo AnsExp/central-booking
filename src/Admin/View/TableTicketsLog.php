@@ -57,7 +57,7 @@ final class TableTicketsLog implements Displayer
                                 if ($log->id_source) {
                                     echo '<div class="row-actions visible">';
                                     echo '<span class="dashicons dashicons-info"></span> ';
-                                    echo '<a target="_blank" href="' . esc_url(admin_url('admin.php?page=git_tickets&id=' . $log->id_source)) . '">Ver registro</a>';
+                                    echo '<a target="_blank" href="' . esc_url(admin_url('admin.php?page=central_tickets&id=' . $log->id_source)) . '">Ver registro</a>';
                                     echo '</div>';
                                 }
                                 ?>

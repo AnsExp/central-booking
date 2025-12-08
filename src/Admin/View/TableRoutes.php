@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormRoute;
 use CentralTickets\Route;
 use CentralTickets\Services\RouteService;
 use CentralTickets\Components\Displayer;
@@ -160,7 +162,7 @@ final class TableRoutes implements Displayer
                                     <span>|</span>
                                     <span class="edit">
                                         <a
-                                            href="<?= add_query_arg(['activity' => 'form', 'id' => $route->id], admin_url('admin.php?page=central_routes')) ?>">Editar</a>
+                                            href="<?= AdminRouter::get_url_for_class(FormRoute::class, ['id' => $route->id]) ?>">Editar</a>
                                     </span>
                                 </div>
                             </td>

@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\Form;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\View\TablePassengers;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Components\InputComponent;
 use CentralTickets\Components\SelectComponent;
@@ -44,7 +46,7 @@ final class FormTransfer implements Displayer
             'gitTransferForm',
             [
                 'hook' => admin_url('admin-ajax.php?action=git_approve_passengers_table'),
-                'successRedirect' => admin_url('admin.php?page=git_passengers'),
+                'successRedirect' => admin_url('admin.php?page=central_passengers'),
             ]
         );
         ob_start();

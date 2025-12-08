@@ -7,6 +7,7 @@ use CentralTickets\Profile\Panes\ProfilePaneNotFound;
 use CentralTickets\Profile\Panes\ProfilePaneCoupon;
 use CentralTickets\Profile\Panes\ProfilePaneInvoice;
 use CentralTickets\Profile\Panes\ProfilePaneOrder;
+use CentralTickets\Profile\Panes\ProfilePanePreorder;
 use CentralTickets\Profile\Panes\ProfilePaneProfile;
 use CentralTickets\Profile\Panes\ProfilePaneTrip;
 use WP_User;
@@ -68,8 +69,13 @@ class ProfileDashboard implements Component
             ],
             'orders' => [
                 'label' => 'Mis Pedidos',
-                'roles' => [UserConstants::CUSTOMER, UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+                'roles' => [UserConstants::CUSTOMER, UserConstants::ADMINISTRATOR],
                 'callback' => [new ProfilePaneOrder(), 'compact']
+            ],
+            'preorders' => [
+                'label' => 'Preordenes',
+                'roles' => [UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+                'callback' => [new ProfilePanePreorder(), 'compact']
             ],
             'coupons' => [
                 'label' => 'Cupones',

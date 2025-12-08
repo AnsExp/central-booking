@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Profile\Forms;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\View\TableTickets;
 use CentralTickets\Components\Component;
 use CentralTickets\Components\Implementation\TicketStatusSelect;
 use CentralTickets\Components\InputComponent;
@@ -107,7 +109,10 @@ class FormEditCouponOperator implements Component
                     <td><b>Número de ticket:</b></td>
                     <?php if (git_current_user_has_role('administrator')): ?>
                         <td>
-                            <a target="_blank" href="<?= admin_url('admin.php?page=git_tickets&id=' . $ticket->id) ?>">
+                            <a target="_blank" href="<?= esc_url(AdminRouter::get_url_for_class(
+                                TableTickets::class,
+                                ['id' => $ticket->id]
+                            )) ?>">
                                 #<?= $ticket->id ?>
                             </a>
                         </td>
@@ -165,7 +170,7 @@ class FormEditCouponOperator implements Component
                             </span>
                         </div>
                         <div class="btn-group">
-                            <a class="btn btn-outline-success" href="<?= $proof_payment['path'] ?>" target="_blank">
+                            <a class="btn btn-outline-success" href="<?= $proof_payment['path'] ?? '#' ?>" target="_blank">
                                 <i class="bi bi-eye"></i> Recupera el comprobante
                             </a>
                             <button id="button_upload_proof_payment" type="button" class="btn btn-outline-primary">

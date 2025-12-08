@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\Form;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\View\TableOperators;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Components\SelectComponent;
 use CentralTickets\Components\Implementation\OperatorSelect;
@@ -42,46 +44,43 @@ final class FormOperatorsExternal implements Displayer
             ]
         );
         ?>
-        <div class="wrap">
-            <form id="<?php echo esc_attr($id_form); ?>">
-                <input type="hidden" name="nonce" value="<?php echo esc_attr($nonce); ?>">
-                <table class="form-table">
-                    <tbody>
-                        <tr>
-                            <th scope="row">
-                                <?php $operator_select->get_label('Operador')->display(); ?>
-                            </th>
-                            <td>
-                                <?php $operator_select->display(); ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <?php $expiration_select->get_label('Tiempo de expiración')->display(); ?>
-                            </th>
-                            <td>
-                                <?php $expiration_select->display(); ?>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" colspan="2">
-                                <button class="button button-primary" type="submit">Generar código</button>
-                            </th>
-                        </tr>
-                        <tr id="row_connector_key" style="display: none;">
-                            <td scope="row" colspan="2">
-                                <h3>Código de operador</h3>
-                                <div id="id_connector_key_container"
-                                    style="word-break: break-all; width: 100%; margin: 12px 0px;">
-                                    <!-- El código generado aparecerá aquí -->
-                                </div>
-                                <button class="button" type="button" id="copy_connector_key">Copiar código</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </form>
-        </div>
+        <form id="<?php echo esc_attr($id_form); ?>">
+            <input type="hidden" name="nonce" value="<?php echo esc_attr($nonce); ?>">
+            <table class="form-table">
+                <tbody>
+                    <tr>
+                        <th scope="row">
+                            <?php $operator_select->get_label('Operador')->display(); ?>
+                        </th>
+                        <td>
+                            <?php $operator_select->display(); ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <?php $expiration_select->get_label('Tiempo de expiración')->display(); ?>
+                        </th>
+                        <td>
+                            <?php $expiration_select->display(); ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" colspan="2">
+                            <button class="button button-primary" type="submit">Generar código</button>
+                        </th>
+                    </tr>
+                    <tr id="row_connector_key" style="display: none;">
+                        <td scope="row" colspan="2">
+                            <h3>Código de operador</h3>
+                            <div id="id_connector_key_container" style="word-break: break-all; width: 100%; margin: 12px 0px;">
+                                <!-- El código generado aparecerá aquí -->
+                            </div>
+                            <button class="button" type="button" id="copy_connector_key">Copiar código</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
         <?php
     }
 }

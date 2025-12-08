@@ -3,9 +3,11 @@ namespace CentralTickets\Admin\Setting;
 
 use CentralTickets\Components\CodeEditorComponent;
 use CentralTickets\Components\Displayer;
+use CentralTickets\Components\InputComponent;
 
 final class SettingsClients implements Displayer
 {
+    private InputComponent $days_without_sale_input;
     private CodeEditorComponent $standard_textarea;
     private CodeEditorComponent $rpm_textarea;
     private CodeEditorComponent $kid_textarea;
@@ -22,6 +24,7 @@ final class SettingsClients implements Displayer
 
     private function init()
     {
+        $this->days_without_sale_input = new InputComponent('days_without_sale', 'number');
         $this->rpm_textarea = new CodeEditorComponent('rpm_message');
         $this->kid_textarea = new CodeEditorComponent('kid_message');
         $this->extra_textarea = new CodeEditorComponent('extra_message');
@@ -30,6 +33,7 @@ final class SettingsClients implements Displayer
         $this->flexible_textarea = new CodeEditorComponent('flexible_message');
         $this->request_seats_textarea = new CodeEditorComponent('request_seats');
         $this->terms_conditions_textarea = new CodeEditorComponent('terms_conditions');
+        $this->days_without_sale_input->set_value(git_get_setting('days_without_sale', 0));
 
         $this->rpm_textarea->set_value(git_get_setting('form_message_rpm', ''));
         $this->kid_textarea->set_value(git_get_setting('form_message_kid', ''));
@@ -39,6 +43,8 @@ final class SettingsClients implements Displayer
         $this->flexible_textarea->set_value(git_get_setting('form_message_flexible', ''));
         $this->request_seats_textarea->set_value(git_get_setting('form_message_request_seats', ''));
         $this->terms_conditions_textarea->set_value(git_get_setting('form_message_terms_conditions', ''));
+        $this->days_without_sale_input->set_attribute('min', -365);
+        $this->days_without_sale_input->set_attribute('max', 365);
 
         foreach ([
             $this->rpm_textarea,
@@ -59,16 +65,35 @@ final class SettingsClients implements Displayer
     public function display()
     {
         ?>
+        <form id="git-settings-form"
+            action="<?= esc_url(add_query_arg(['action' => 'git_settings'], admin_url('admin-ajax.php'))) ?>" method="post">
             <input type="hidden" name="scope" value="clients">
+            <input type="hidden" name="nonce" value="<?= wp_create_nonce('git_settings_nonce') ?>">
             <table class="form-table" role="presentation">
                 <tr>
                     <th colspan="2">
-                        <h2>| Sección Estandar</h2>
+                        <h2>| Configuración de la reserva</h2>
                     </th>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->standard_textarea->get_label('Mensaje para los clientes Estandar')->display() ?>
+                        <?= $this->days_without_sale_input->get_label('Días sin venta')->compact() ?>
+                    </th>
+                    <td>
+                        <?= $this->days_without_sale_input->compact() ?>
+                        <p class="description">
+                            Fecha de viaje >= Fecha actual + Días sin venta.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th colspan="2">
+                        <h2>| Sección Regular</h2>
+                    </th>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <?php $this->standard_textarea->get_label('Mensaje para los clientes regular')->display() ?>
                     </th>
                     <td>
                         <?php $this->standard_textarea->display() ?>
@@ -76,7 +101,7 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->extra_textarea->get_label('Mensaje sobre equipaje extra')->display() ?>
+                        <?php $this->extra_textarea->get_label('Mensaje sobre carga extra')->display() ?>
                     </th>
                     <td>
                         <?php $this->extra_textarea->display() ?>
@@ -84,7 +109,7 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th colspan="2">
-                        <h2>| Sección Reducido</h2>
+                        <h2>| Sección Preferente</h2>
                     </th>
                 </tr>
                 <tr>
@@ -105,7 +130,7 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->kid_textarea->get_label('Mensaje para los clientes menores de edad')->display() ?>
+                        <?php $this->kid_textarea->get_label('Mensaje para los clientes de edad preferente')->display() ?>
                     </th>
                     <td>
                         <?php $this->kid_textarea->display() ?>

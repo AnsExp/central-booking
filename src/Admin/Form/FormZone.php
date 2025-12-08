@@ -17,7 +17,7 @@ final class FormZone implements Displayer
         $input_name = new InputComponent('name', 'text');
         $input_nonce = new InputComponent('nonce', 'hidden');
 
-        $input_id->set_value('0');
+        $input_id->set_value(0);
         $input_nonce->set_value(wp_create_nonce('create_zone'));
         if (isset($_GET['id'])) {
             $repository = new ZoneRepository();

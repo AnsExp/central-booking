@@ -26,22 +26,6 @@ final class FormService implements Displayer
 
     public function display()
     {
-        wp_enqueue_script(
-            'central-tickets-admin-service-form',
-            CENTRAL_BOOKING_URL . '/assets/js/admin/service-form.js',
-            ['jquery'],
-            null,
-            true
-        );
-        wp_localize_script(
-            'central-tickets-admin-service-form',
-            'formService',
-            [
-                'hook' => 'git_service_form',
-                'url' => admin_url('admin-ajax.php'),
-                'successRedirect' => admin_url('admin.php?page=git_services'),
-            ]
-        );
         $this->input_name->set_required(true);
         $this->input_price->set_required(true);
         $this->input_icon->set_required(true);
@@ -61,7 +45,7 @@ final class FormService implements Displayer
         ob_start();
         ?>
         <div id="form-message-container"></div>
-        <form id="form-service" method="post">
+        <form id="form-service" method="post" action="<?= admin_url('admin-ajax.php?action=git_service_form') ?>">
             <?php $this->input_id->display() ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>

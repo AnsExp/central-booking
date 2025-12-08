@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormTransport;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Components\InputComponent;
 use CentralTickets\Components\PaginationComponent;
@@ -63,6 +65,25 @@ final class TableTransports implements Displayer
     }
 
     public function display()
+    {
+        if (empty($this->transports)) {
+            $this->no_content();
+        } else {
+            $this->table_content();
+        }
+    }
+
+    private function no_content()
+    {
+        ?>
+        <div style="text-align: center;">
+            <span class="dashicons dashicons-admin-site"></span>
+            <p>No se encontraron transportes.</p>
+        </div>
+        <?php
+    }
+
+    private function table_content()
     {
         wp_enqueue_script(
             'git-transport-table',
@@ -171,13 +192,8 @@ final class TableTransports implements Displayer
                                     </span>
                                     <span> | </span>
                                     <span class="edit">
-                                        <a href="<?= add_query_arg(
-                                            [
-                                                'action' => 'edit',
-                                                'id' => $transport->id
-                                            ],
-                                            admin_url('admin.php?page=central_transports')
-                                        ) ?>" aria-label="Editar Servicio">Editar</a>
+                                        <a href="<?= esc_url(AdminRouter::get_url_for_class(FormTransport::class, ['id' => $transport->id])) ?>"
+                                            aria-label="Editar Servicio">Editar</a>
                                     </span>
                                 </div>
                             </td>

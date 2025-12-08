@@ -1,21 +1,26 @@
 <?php
 namespace CentralTickets\Profile\Tables;
 
+use CentralTickets\Components\Constants\ButtonStyleConstants;
+use CentralTickets\Components\ModalComponent;
 use CentralTickets\Operator;
 use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Persistence\TicketRepository;
-use CentralTickets\Persistence\TransportRepository;
 use CentralTickets\Components\Component;
+use CentralTickets\Services\Actions\InvoiceInfoPagination;
 use DateTime;
 use WP_Post;
 
 class TableInvoiceOperator implements Component
 {
     private Operator $operator;
-    private int $current_page;
-    private int $items_per_page;
-    private int $total_items;
-    private int $total_pages;
+    private ModalComponent $download_modal;
+    private InvoiceInfoPagination $invoice_pagination;
+
+    public function __construct()
+    {
+        $this->download_modal = new ModalComponent('Descargar información de facturación');
+        $this->init_modal_download();
+    }
 
     private function get_operator()
     {
@@ -24,7 +29,7 @@ class TableInvoiceOperator implements Component
             return new Operator();
         }
 
-        $operator = (new Operator())->find_by(['id' => $operator_id]);
+        $operator = git_get_operator_by_id((int) $operator_id);
         if (!$operator) {
             return new Operator();
         }
@@ -35,6 +40,7 @@ class TableInvoiceOperator implements Component
     public function compact()
     {
         ob_start();
+        $this->download_modal->display();
         ?>
         <table class="table table-striped table-hover">
             <thead>
@@ -72,7 +78,11 @@ class TableInvoiceOperator implements Component
                     ?>
                     <tr class="<?= $saldo !== 0 ? 'table-danger' : '' ?>">
                         <td><?= $ticket->id; ?></td>
-                        <td><?= git_datetime_format($ticket->get_order()->get_date_created()->format('Y-m-d')); ?></td>
+                        <td>
+                            <time datetime="<?= $ticket->get_order()->get_date_created()->format('Y-m-d H:i:s'); ?>">
+                                <?= git_datetime_format($ticket->get_order()->get_date_created()->format('Y-m-d H:i:s')); ?>
+                            </time>
+                        </td>
                         <td><?= $ticket->get_order()->get_id(); ?></td>
                         <td><?= $ticket->get_order()->get_billing_first_name(); ?></td>
                         <td><?= git_currency_format($ticket->total_amount, true); ?></td>
@@ -91,168 +101,138 @@ class TableInvoiceOperator implements Component
         return ob_get_clean();
     }
 
-    private function pagination_invoice()
-    {
-        $this->operator = $this->get_operator();
-        $this->current_page = isset($_GET['page_number']) && is_numeric($_GET['page_number']) ? intval($_GET['page_number']) : 1;
-        $this->items_per_page = 10;
-        $this->total_items = 0;
-        $this->total_pages = 0;
-    }
-
-    private function fetch_transports()
-    {
-        $operator = git_get_operator_by_id($_GET['operator'] ?? 0);
-        if ($operator) {
-            return $operator->get_transports();
-        }
-        return [];
-    }
-
     private function get_limits_from_month()
     {
-        $year = $_GET['invoice_year'] ?? '';
-        $month = $_GET['invoice_month'] ?? '';
-
-        if (empty($year) || !is_numeric($year)) {
-            $year = date('Y');
-        }
-
-        if (empty($month) || !is_numeric($month) || $month < 1 || $month > 12) {
-            $month = date('m');
-        }
-
-        $date = DateTime::createFromFormat('Y-m', $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT));
-
-        if ($date === false) {
-            $current_date = new DateTime();
-            return [
-                'start' => $current_date->format('Y-m-01'),
-                'end' => $current_date->format('Y-m-t')
-            ];
-        }
-
-        $first_day = $date->format('Y-m-01');
-        $last_day = $date->format('Y-m-t');
-
         return [
-            'start' => $first_day,
-            'end' => $last_day,
+            'start' => $_GET['date_start'] ?? date('Y-m-01'),
+            'end' => $_GET['date_end'] ?? date('Y-m-t'),
         ];
+
+        // $year = $_GET['invoice_year'] ?? '';
+        // $month = $_GET['invoice_month'] ?? '';
+
+        // if (empty($year) || !is_numeric($year)) {
+        //     $year = date('Y');
+        // }
+
+        // if (empty($month) || !is_numeric($month) || $month < 1 || $month > 12) {
+        //     $month = date('m');
+        // }
+
+        // $date = DateTime::createFromFormat('Y-m', $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT));
+
+        // if ($date === false) {
+        //     $current_date = new DateTime();
+        //     return [
+        //         'start' => $current_date->format('Y-m-01'),
+        //         'end' => $current_date->format('Y-m-t')
+        //     ];
+        // }
+
+        // $first_day = $date->format('Y-m-01');
+        // $last_day = $date->format('Y-m-t');
+
+        // return [
+        //     'start' => $first_day,
+        //     'end' => $last_day,
+        // ];
     }
 
     public function fetch_tickets()
     {
         $limits = $this->get_limits_from_month();
 
-        $this->pagination_invoice();
+        $coupon = null;
 
-        $transports = $this->fetch_transports();
-        $transport_ids = array_map(fn($transport) => $transport->id, $transports);
-
-        if (empty($transport_ids)) {
-            $this->total_items = 0;
-            $this->total_pages = 1;
-            return [];
-        }
-
-        return $this->get_tickets_by_sql($transport_ids, $limits);
-    }
-
-    private function get_tickets_by_sql($transport_ids, $limits)
-    {
-        global $wpdb;
-
-        $placeholders = implode(',', array_fill(0, count($transport_ids), '%d'));
-
-        $count_sql = "
-        SELECT COUNT(DISTINCT t.id) as total
-        FROM {$wpdb->prefix}git_tickets t
-        INNER JOIN {$wpdb->prefix}git_passengers p ON p.id_ticket = t.id
-        INNER JOIN {$wpdb->prefix}posts po ON po.ID = t.id_order
-        WHERE p.id_transport IN ({$placeholders})
-        AND po.post_date BETWEEN %s AND %s
-        ";
-
-        $this->total_items = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                $count_sql,
-                ...array_merge($transport_ids, [$limits['start'], $limits['end']])
-            )
-        );
-
-        $this->total_pages = ceil($this->total_items / $this->items_per_page);
-
-        if ($this->total_items === 0) {
-            return [];
-        }
-
-        $offset = ($this->current_page - 1) * $this->items_per_page;
-
-        $sql = "
-            SELECT DISTINCT t.id
-            FROM {$wpdb->prefix}git_tickets t
-            INNER JOIN {$wpdb->prefix}git_passengers p ON p.id_ticket = t.id
-            INNER JOIN {$wpdb->prefix}posts po ON po.ID = t.id_order
-            WHERE p.id_transport IN ({$placeholders})
-            AND po.post_date >= %s AND po.post_date <= %s
-            ORDER BY po.post_date DESC
-            LIMIT %d OFFSET %d
-            ";
-        // AND po.post_date BETWEEN %s AND %s
-
-        $ticket_ids = $wpdb->get_col(
-            $wpdb->prepare(
-                $sql,
-                ...array_merge(
-                    $transport_ids,
-                    [$limits['start'], $limits['end'], $this->items_per_page, $offset]
-                )
-            )
-        );
-
-        $tickets = [];
-        $operator = git_get_operator_by_id($_GET['operator'] ?? 0);
-        $coupons = array_map(function (WP_Post $coupon) {
-            return $coupon->ID;
-        }, $operator->get_coupons());
-
-        foreach ($ticket_ids as $ticket_id) {
-            $ticket = git_get_ticket_by_id($ticket_id);
-            if ($ticket) {
-                if ($_GET['coupon'] ?? false) {
-                    $coupon = $ticket->get_coupon();
-                    if ($coupon === null) {
-                        continue;
-                    }
-                    if (in_array($coupon->ID, $coupons)) {
-                        $tickets[] = $ticket;
-                    }
-                } else {
-                    $tickets[] = $ticket;
-                }
+        if (isset($_GET['coupon']) && is_numeric($_GET['coupon']) && $_GET['coupon'] > 0) {
+            $coupon = get_post($_GET['coupon']);
+            if (!$coupon || $coupon->post_type !== 'shop_coupon') {
+                $coupon = null;
             }
         }
 
-        return $tickets;
+        $this->invoice_pagination = new InvoiceInfoPagination(
+            $this->get_operator(),
+            $limits['start'],
+            $limits['end'],
+            $coupon
+        );
+
+        $this->invoice_pagination->current_page = isset($_GET['page_number']) && is_numeric($_GET['page_number']) && $_GET['page_number'] > 0 ? (int) $_GET['page_number'] : 1;
+
+        return $this->invoice_pagination->fetch_tickets();
+    }
+
+    private function init_modal_download()
+    {
+        ob_start();
+        ?>
+        <form method="POST" action="<?= admin_url('admin-post.php') ?>">
+            <h3>Seleccionar columnas para descargar</h3>
+            <?= wp_nonce_field('download_invoice', 'nonce', true, false) ?>
+            <input type="hidden" name="action" value="download_invoice_csv">
+            <input type="hidden" name="operator" value="<?= esc_attr($_GET['operator'] ?? 0) ?>">
+            <input type="hidden" name="date_start" value="<?= esc_attr($_GET['date_start'] ?? '') ?>">
+            <input type="hidden" name="date_end" value="<?= esc_attr($_GET['date_end'] ?? '') ?>">
+            <input type="hidden" name="coupon" value="<?= esc_attr($_GET['coupon'] ?? 0) ?>">
+            <input type="checkbox" name="columns[]" value="ticket_num" id="column_ticket_num" checked>
+            <label for="column_ticket_num">Número de Ticket</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="name" id="column_name" checked>
+            <label for="column_name">Nombre del cliente</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="order_num" id="column_order_num" checked>
+            <label for="column_order_num">Número de Pedido</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="purchase_date" id="column_purchase_date" checked>
+            <label for="column_purchase_date">Fecha de Compra</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="coupon_code" id="column_coupon_code" checked>
+            <label for="column_coupon_code">Código de Cupon</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="ticket_status" id="column_ticket_status" checked>
+            <label for="column_ticket_status">Estado del ticket</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="passengers" id="column_passengers" checked>
+            <label for="column_passengers">Pasajeros</label>
+            <br>
+            <input type="checkbox" name="columns[]" value="total_amount" id="column_total_amount" checked>
+            <label for="column_total_amount">Total</label>
+            <br>
+            <button class="btn btn-warning mt-3" type="submit">Descargar</button>
+        </form>
+        <?php
+        $string = ob_get_clean();
+        $this->download_modal->set_body_component(git_string_to_component($string));
     }
 
     private function render_pagination(): void
     {
         ?>
-        <div class="pagination-controls mt-3">
-            <nav aria-label="Navegación de páginas de facturas">
-                <ul class="pagination">
-                    <?php
-                    for ($i = 1; $i <= $this->total_pages; $i++): ?>
-                        <li class="page-item <?= $i === $this->current_page ? 'active' : '' ?>">
-                            <a class="page-link" href="<?= $this->get_pagination_url($i) ?>">
-                                <?= $i ?>
-                            </a>
-                        </li>
-                    <?php endfor; ?>
-                </ul>
-            </nav>
+        <div class="row">
+            <div class="col">
+                <?php
+                $button = $this->download_modal->create_button_launch(git_string_to_component('Descargar en formato CSV <i class="bi bi-download"></i>'));
+                $button->set_style(ButtonStyleConstants::WARNING);
+                $button->display();
+                ?>
+            </div>
+            <div class="col">
+                <div class="pagination-controls">
+                    <nav aria-label="Navegación de páginas de facturas">
+                        <ul class="pagination justify-content-end">
+                            <?php
+                            for ($i = 1; $i <= $this->invoice_pagination->total_pages; $i++): ?>
+                                <li class="page-item <?= $i === $this->invoice_pagination->current_page ? 'active' : '' ?>">
+                                    <a class="page-link" href="<?= $this->get_pagination_url($i) ?>">
+                                        <?= $i ?>
+                                    </a>
+                                </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
         </div>
         <?php
     }

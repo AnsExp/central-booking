@@ -195,11 +195,11 @@ class FormProductTransport implements Component
             <ul class="nav nav-tabs m-0" id="myTab" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="standard-tab" data-bs-toggle="tab" data-bs-target="#standard-tab-pane"
-                        type="button" role="tab" aria-controls="standard-tab-pane" aria-selected="true">Estándar</button>
+                        type="button" role="tab" aria-controls="standard-tab-pane" aria-selected="true">Regular</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="reduce-tab" data-bs-toggle="tab" data-bs-target="#reduce-tab-pane"
-                        type="button" role="tab" aria-controls="reduce-tab-pane" aria-selected="false">Reducido</button>
+                        type="button" role="tab" aria-controls="reduce-tab-pane" aria-selected="false">Preferente</button>
                 </li>
             </ul>
             <div class="tab-content" id="myTabContent">
@@ -207,12 +207,12 @@ class FormProductTransport implements Component
                     tabindex="0">
                     <?php
                     $this->extra_component(
-                        'Tickets — $' . $prices[PassengerConstants::STANDARD],
+                        'Ticket — $' . $prices[PassengerConstants::STANDARD],
                         PassengerConstants::STANDARD,
                         $counter_standard
                     );
                     $this->extra_component(
-                        'Extras — $' . $prices[PriceExtraConstants::EXTRA],
+                        'Carga Extra — $' . $prices[PriceExtraConstants::EXTRA],
                         PriceExtraConstants::EXTRA,
                         $counter_extra
                     );
@@ -222,7 +222,7 @@ class FormProductTransport implements Component
                     <?php
                     echo git_get_setting('form_message_local', '');
                     $this->extra_component(
-                        'Niño — $' . $prices[PassengerConstants::KID],
+                        'Edad Preferente — $' . $prices[PassengerConstants::KID],
                         PassengerConstants::KID,
                         $counter_kid
                     );

@@ -16,7 +16,9 @@ class FormInvoiceOperator implements Component
     private InputComponent $operator_input;
     private SelectComponent $month_select;
     private SelectComponent $year_select;
-
+    private InputComponent $date_start_input;
+    private InputComponent $date_end_input;
+    
     public function __construct()
     {
         if (git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
@@ -24,6 +26,8 @@ class FormInvoiceOperator implements Component
         } else {
             $this->coupon_select = (new CouponSelect('coupon', get_current_user_id()))->create();
         }
+        $this->date_start_input = new InputComponent('date_start', 'date');
+        $this->date_end_input = new InputComponent('date_end', 'date');
         $this->operator_select = (new OperatorSelect('operator'))->create();
         $this->operator_input = new InputComponent('operator', 'hidden');
         $this->month_select = $this->create_select_month();
@@ -32,14 +36,20 @@ class FormInvoiceOperator implements Component
         $this->coupon_select->set_value($_GET['coupon'] ?? '');
         $this->operator_select->set_value($_GET['operator'] ?? '');
         $this->operator_input->set_value(get_current_user_id());
+        $this->date_start_input->set_value($_GET['date_start'] ?? null);
+        $this->date_end_input->set_value($_GET['date_end'] ?? null);
 
         $this->operator_select->set_required(true);
         $this->month_select->set_required(true);
         $this->year_select->set_required(true);
+        $this->date_start_input->set_required(true);
+        $this->date_end_input->set_required(true);
     }
 
     public function compact()
     {
+        $date_start_floating = new InputFloatingLabelComponent($this->date_start_input, 'Fecha inicio');
+        $date_end_floating = new InputFloatingLabelComponent($this->date_end_input, 'Fecha fin');
         $coupon_floating = new InputFloatingLabelComponent($this->coupon_select, 'Cupón');
         $operator_floating = new InputFloatingLabelComponent($this->operator_select, 'Operador');
         $month_floating = new InputFloatingLabelComponent($this->month_select, 'Mes de facturación');
@@ -66,10 +76,10 @@ class FormInvoiceOperator implements Component
             </div>
             <div class="row mb-3">
                 <div class="col">
-                    <?= $month_floating->compact(); ?>
+                    <?= $date_start_floating->compact(); ?>
                 </div>
                 <div class="col">
-                    <?= $year_floating->compact(); ?>
+                    <?= $date_end_floating->compact(); ?>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary">Buscar</button>

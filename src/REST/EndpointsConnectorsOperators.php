@@ -79,48 +79,61 @@ class EndpointsConnectorsOperators
             return $this->external_ticket($operator, $data);
         } else if ($action === 'check_availability_transport') {
             return $this->external_check_availability_transport($data);
+        } else if ($action === 'check_coupon') {
+            return $this->external_check_coupon($operator, $data);
         } else {
             return new WP_REST_Response(['message' => 'Acción inválida'], 400);
         }
     }
 
+    private function external_check_coupon(Operator $operator, array $data)
+    {
+        $code = $data['code'] ?? null;
+        if ($code === null) {
+            return new WP_REST_Response(['message' => 'Código de cupón vacío'], 400);
+        }
+        $coupons = $operator->get_coupons();
+        if (sizeof($coupons) <= 0) {
+            return new WP_REST_Response(['message' => 'El operador no tiene cupones configurados'], 400);
+        }
+        foreach ($coupons as $coupon) {
+            if ($coupon->post_title === $code) {
+                return new WP_REST_Response(['message' => 'Cupon aprobado.']);
+            }
+        }
+        return new WP_REST_Response(['message' => 'Cupon no encontrado.'], 404);
+    }
+
     private function external_transports_for_booking(Operator $operator, array $data)
     {
-        $repository = git_get_query_persistence()->get_route_repository();
-        $routes = $repository->find_by([
-            'name_zone_origin' => $data['name_zone_origin'] ?? null,
-            'name_zone_destiny' => $data['name_zone_destiny'] ?? null
-        ]);
-        $schedule = $data['schedule'] ?? 'morning';
-        // return new WP_REST_Response($data, 200);
+        $transports = $operator->get_transports();
+        $date_trip = $data['date_trip'] ?? (new DateTime)->format('Y-m-d');
+        $in_morning = isset($data['schedule']) && $data['schedule'] === 'morning';
+        $name_zone_origin = $data['name_zone_origin'] ?? null;
+        $name_zone_destiny = $data['name_zone_destiny'] ?? null;
+        $results = [];
 
-        $routes = array_filter($routes, function (Route $route) use ($schedule) {
-            if ($route->departure_time >= '12:00:00') {
-                return $schedule === 'afternoon';
-            } else if ($route->departure_time < '12:00:00') {
-                return $schedule === 'morning';
-            }
-            return false;
-        });
-
-        $transports = [];
-        foreach ($routes as $route) {
-            foreach ($route->get_transports() as $transport) {
-                if ($transport->get_operator()->ID === $operator->ID) {
-                    $transports[$transport->id] = $transport;
+        foreach ($transports as $transport) {
+            foreach ($transport->get_routes() as $route) {
+                if (
+                    $route->get_origin()->get_zone()->name === $name_zone_origin &&
+                    $route->get_destiny()->get_zone()->name === $name_zone_destiny
+                ) {
+                    if ($transport->is_available($date_trip)) {
+                        if ($in_morning && $route->departure_time < '12:00:00') {
+                            $results[] = $transport;
+                        } else if (!$in_morning && $route->departure_time >= '12:00:00') {
+                            $results[] = $transport;
+                        }
+                    }
                 }
             }
         }
-        $transports = array_values($transports);
 
-        $transports = array_filter(
-            $transports,
-            fn(Transport $t) => $t->is_available($data['date_trip'] ?? '')
-        );
         $array_parser = new TransportArray();
         return new WP_REST_Response(array_map(
             fn(Transport $transport) => $array_parser->get_array($transport),
-            $transports = array_values($transports)
+            $results
         ), 200);
     }
 

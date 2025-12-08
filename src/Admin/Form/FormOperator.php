@@ -12,7 +12,7 @@ final class FormOperator implements Displayer
     private InputComponent $input_firstname;
     private InputComponent $input_lastname;
     private InputComponent $input_phone;
-    private InputComponent $input_logo_sale;
+    private InputComponent $input_brand_media;
     private InputComponent $input_coupons_counter;
     private InputComponent $input_coupons_limit;
     private MultipleSelectComponent $select_coupon;
@@ -23,7 +23,7 @@ final class FormOperator implements Displayer
         $this->input_phone = new InputComponent('phone', 'text');
         $this->input_firstname = new InputComponent('firstname', 'text');
         $this->input_lastname = new InputComponent('lastname', 'text');
-        $this->input_logo_sale = new InputComponent('logo_sale', 'checkbox');
+        $this->input_brand_media = new InputComponent('brand_media');
         $this->input_coupons_counter = new InputComponent('coupons_counter', 'number');
         $this->input_coupons_limit = new InputComponent('coupons_limit', 'number');
         $this->select_coupon = (new CouponSelect('coupons'))->create(true);
@@ -43,39 +43,26 @@ final class FormOperator implements Displayer
         $operator = git_get_operator_by_id($id);
         if ($operator) {
             $this->input_id->set_value($operator->ID);
-            if ($operator->logo_sale) {
-                $this->input_logo_sale->set_attribute('checked', '');
-            }
             $this->input_firstname->set_value($operator->first_name);
             $this->input_phone->set_value(get_user_meta($operator->ID, 'phone_number', true));
+            $this->input_brand_media->set_value(get_user_meta($operator->ID, 'brand_media', true));
             $this->input_lastname->set_value($operator->last_name);
             $this->input_coupons_counter->set_value($operator->get_business_plan()['counter']);
             $this->input_coupons_limit->set_value($operator->get_business_plan()['limit']);
             $this->input_coupons_counter->set_attribute('max', $operator->get_business_plan()['limit']);
-
             foreach ($operator->get_coupons() as $coupon) {
                 $this->select_coupon->set_value($coupon->ID);
             }
         }
-        wp_enqueue_script(
-            'git-operator-form',
-            CENTRAL_BOOKING_URL . '/assets/js/admin/operator-form.js',
-        );
-        wp_localize_script(
-            'git-operator-form',
-            'gitOperatorForm',
-            [
-                'url' => admin_url('admin-ajax.php'),
-                'action' => 'git_modify_operator',
-                'nonce' => wp_create_nonce('git_operator_form_nonce'),
-                'successRedirect' => admin_url('admin.php?page=central_operators'),
-            ]
-        );
         ob_start();
         ?>
         <div id="form-operator-message-container"></div>
-        <form id="form-operator" method="post">
-            <?php $this->input_id->display() ?>
+        <form id="form-operator" method="post"
+            action="<?= add_query_arg(['action' => 'git_update_operator'], admin_url('admin-ajax.php')) ?>">
+            <?php
+            $this->input_id->display();
+            wp_nonce_field('git_operator_form_nonce', 'nonce');
+            ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th colspan="2">
@@ -143,15 +130,23 @@ final class FormOperator implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_logo_sale->get_label('Incluir logo de venta')->display() ?>
+                        <?php $this->input_brand_media->get_label('Medio de marca')->display() ?>
                     </th>
                     <td>
-                        <?php $this->input_logo_sale->display() ?>
+                        <?php $this->input_brand_media->display() ?>
                     </td>
                 </tr>
             </table>
             <?= get_submit_button('Guardar operador'); ?>
         </form>
+        <script>
+            jQuery(document).ready(function ($) {
+                $('#<?= $this->input_coupons_limit->id ?>').on('input', function (e) {
+                    const limit = parseInt($('#<?= $this->input_coupons_limit->id ?>').val());
+                    $('#<?= $this->input_coupons_counter->id ?>').attr('max', limit);
+                });
+            });
+        </script>
         <?php
         echo ob_get_clean();
     }

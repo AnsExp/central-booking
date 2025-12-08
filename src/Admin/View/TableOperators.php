@@ -1,9 +1,10 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormOperator;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Operator;
-use CentralTickets\Services\OperatorService;
 
 final class TableOperators implements Displayer
 {
@@ -14,13 +15,12 @@ final class TableOperators implements Displayer
 
     public function __construct()
     {
-        $this->operators = $this->fetchServices();
+        $this->operators = $this->fetchOperators();
     }
 
-    private function fetchServices(): array
+    private function fetchOperators(): array
     {
-        $service = new OperatorService();
-        return $service->list();
+        return git_get_query_persistence()->get_operator_repository()->find_by();
     }
 
     public function display()
@@ -62,7 +62,7 @@ final class TableOperators implements Displayer
                                     <span>|</span>
                                     <span class="edit">
                                         <a
-                                            href="<?= add_query_arg(['action' => 'edit', 'id' => $operator->ID], admin_url('admin.php?page=central_operators')) ?>">Editar</a>
+                                            href="<?= esc_url(AdminRouter::get_url_for_class(FormOperator::class, ['id' => $operator->ID])) ?>">Editar</a>
                                     </span>
                                 </div>
                             </td>
@@ -92,7 +92,7 @@ final class TableOperators implements Displayer
                                     data-parent="#actions-container-<?= $operator->ID ?>">
                                     <?php foreach ($operator->get_coupons() as $coupon): ?>
                                         <div class="git-item">
-                                            <?= esc_html($coupon->post_name) ?>
+                                            <?= esc_html($coupon->post_title) ?>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>

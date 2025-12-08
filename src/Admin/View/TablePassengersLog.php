@@ -1,6 +1,7 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Components\PaginationComponent;
 use CentralTickets\Constants\LogSourceConstants;
@@ -57,7 +58,7 @@ final class TablePassengersLog implements Displayer
                                 if ($log->id_source) {
                                     echo '<div class="row-actions visible">';
                                     echo '<span class="dashicons dashicons-info"></span> ';
-                                    echo '<a target="_blank" href="' . esc_url(admin_url('admin.php?page=git_passengers&id=' . $log->id_source)) . '">Ver registro</a>';
+                                    echo '<a target="_blank" href="' . esc_url(admin_url('admin.php?page=central_passengers&id=' . $log->id_source)) . '">Ver registro</a>';
                                     echo '</div>';
                                 }
                                 ?>

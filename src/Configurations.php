@@ -39,6 +39,20 @@ class Configurations
         return $value;
     }
 
+    public static function get_map(string $key, mixed $default = null)
+    {
+        $references = explode('.', $key);
+        $map = self::get($references[0]) ?? null;
+        foreach (array_slice($references, 1) as $ref) {
+            if (is_array($map) && isset($map[$ref])) {
+                $map = $map[$ref];
+            } else {
+                return $default;
+            }
+        }
+        return $map;
+    }
+
     /**
      * Set a configuration setting
      *

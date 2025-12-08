@@ -75,7 +75,7 @@
                         const blob = new Blob([jsonString], { type: 'text/plain' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
-                        const filename = 'git-data-export-' + (new Date()).toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.git';
+                        const filename = 'git-data-export-' + (new Date()).toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.json';
                         a.href = url;
                         a.download = filename;
                         document.body.appendChild(a);

@@ -1,419 +1,125 @@
-<!DOCTYPE html>
-<html lang="es">
+<style>
+    .interactive-figure {
+        position: relative;
+        transition: transform 0.2s ease;
+        overflow: hidden;
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galápagos - Mapa Interactivo</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    .interactive-figure:hover {
+        transform: scale(1.02);
+    }
+
+    .figure-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0);
+        cursor: pointer;
+        z-index: 10;
+        transition: background-color 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .figure-overlay:hover {
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-title {
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.3s ease;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        padding: 10px 20px;
+        background-color: rgba(0, 0, 0, 0.6);
+        border-radius: 8px;
+        backdrop-filter: blur(5px);
+    }
+
+    .figure-overlay:hover .overlay-title {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .interactive-figure img {
+        transition: filter 0.3s ease;
+    }
+
+    .interactive-figure:hover img {
+        filter: brightness(0.7);
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4);
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            padding: 20px;
+        70% {
+            box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
+        100% {
+            box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
         }
+    }
 
-        .header {
-            background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+    .interactive-figure:hover {
+        animation: pulse 1.5s infinite;
+    }
+</style>
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
+<script>
+    const figures = document.querySelectorAll('figure');
+    const figuresArray = Array.from(figures);
+    const carrousel = document.querySelector('.elementor-image-carousel');
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.95;
-        }
+    const links = [
+        'https://wreckbay.galapagos.click/wp-content/uploads/pdf/pdf1.pdf',
+        'https://wreckbay.galapagos.click/wp-content/uploads/pdf/pdf2.pdf',
+        'https://wreckbay.galapagos.click/wp-content/uploads/pdf/pdf3.pdf',
+        'https://wreckbay.galapagos.click/wp-content/uploads/pdf/pdf4.pdf',
+    ];
 
-        #map {
-            width: 100%;
-            height: 600px;
-        }
+    const textsOverlays = [
+        'Click: descargue los Tours',
+        'Click: descargue las Excursiones',
+        'Click: descargue el Centro de Buceo',
+        'Click: descargue la guia de transportes',
+    ];
 
-        .info-panel {
-            padding: 30px;
-            background: #f8f9fa;
-        }
+    figuresArray.forEach((figure, index) => {
+        const redirectTo = links[index] || '#';
+        const titleText = textsOverlays[index] || `Download PDF ${index + 1}`;
 
-        .info-panel h2 {
-            color: #0083b0;
-            margin-bottom: 15px;
-        }
+        figure.classList.add('interactive-figure');
 
-        .islands-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
+        const figureOverlay = document.createElement('div');
+        figureOverlay.classList.add('figure-overlay');
 
-        .island-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+        const overlayTitle = document.createElement('div');
+        overlayTitle.classList.add('overlay-title');
+        overlayTitle.textContent = titleText;
 
-        .island-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
+        figureOverlay.appendChild(overlayTitle);
+        figure.appendChild(figureOverlay);
 
-        .island-card h3 {
-            color: #00b4db;
-            margin-bottom: 8px;
-            font-size: 1.2em;
-        }
+        figureOverlay.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (redirectTo !== '#') {
+                window.open(redirectTo, '_blank');
 
-        .island-card p {
-            color: #666;
-            font-size: 0.9em;
-            line-height: 1.5;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 30px;
-            border-radius: 15px;
-            width: 80%;
-            max-width: 500px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            text-align: center;
-        }
-
-        .modal-content h2 {
-            color: #0083b0;
-            margin-bottom: 20px;
-        }
-
-        .modal-content p {
-            margin: 15px 0;
-            font-size: 1.1em;
-            color: #333;
-        }
-
-        .modal-content a {
-            display: inline-block;
-            background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 8px;
-            text-decoration: none;
-            margin-top: 15px;
-            transition: transform 0.3s ease;
-        }
-
-        .modal-content a:hover {
-            transform: scale(1.05);
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 20px;
-        }
-
-        .close:hover {
-            color: #000;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🐢 Islas Galápagos 🐢</h1>
-            <p>Mapa Interactivo de Conexión Interislas - Ferry</p>
-        </div>
-
-        <div id="map"></div>
-
-        <div class="info-panel">
-            <h2>Principales Islas del Archipiélago</h2>
-            <div class="islands-grid">
-                <div class="island-card">
-                    <h3>Isla Isabela</h3>
-                    <p>La isla más grande del archipiélago, famosa por sus volcanes y tortugas gigantes.</p>
-                </div>
-                <div class="island-card">
-                    <h3>Isla Santa Cruz</h3>
-                    <p>Centro turístico con la Estación Científica Charles Darwin.</p>
-                </div>
-                <div class="island-card">
-                    <h3>Isla San Cristóbal</h3>
-                    <p>Capital de Galápagos, hogar de leones marinos y fragatas.</p>
-                </div>
-                <div class="island-card">
-                    <h3>Isla Fernandina</h3>
-                    <p>La más joven y volcánicamente activa del archipiélago.</p>
-                </div>
-                <div class="island-card">
-                    <h3>Isla Española</h3>
-                    <p>Famosa por sus albatros y hermosas playas.</p>
-                </div>
-                <div class="island-card">
-                    <h3>Isla Floreana</h3>
-                    <p>Rica historia de piratas y flamencos rosados.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="ticketModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>🎫 Reserva tu Ferry</h2>
-            <p>Haz clic en el enlace para reservar tu ticket:</p>
-            <a id="git-modal-link" href="#" target="_blank">Ir a Reservas</a>
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script>
-        const map = L.map('map', {
-            minZoom: 1,
-            maxZoom: 10
-        }).setView([-0.7, -90.5], 7);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© Ocean IA Galapagos',
-            maxZoom: 10,
-            minZoom: 1
-        }).addTo(map);
-
-        const islands = [
-            { name: "Isla Isabela - Puerto Villamil", coords: [-0.9574, -90.9658], info: "Muelle Municipal", id: "isabela" },
-            { name: "Isla Santa Cruz - Puerto Ayora", coords: [-0.7419, -90.3127], info: "Muelle Turístico", id: "santacruz" },
-            { name: "Isla San Cristóbal - Puerto Baquerizo Moreno", coords: [-0.9019, -89.6107], info: "Capital de Galápagos", id: "sancristobal" },
-            { name: "Isla Floreana - Puerto Velasco Ibarra", coords: [-1.2856, -90.4688], info: "Muelle Municipal", id: "floreana" }
-        ];
-
-        const boatIcon = L.icon({
-            iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48IS0tIENhc2NvIGRlbCBiYXJjbyAtLT48cGF0aCBkPSJNIDUgMjUgTCAxMCAzMCBMIDE1IDI4IEwgMjAgMzAgTCAyNSAyOCBMIDMwIDMwIEwgMzUgMjUgTCAyMCAxNSBaIiBmaWxsPSIjMDA4M2IwIiBzdHJva2U9IiMwMDRkNzAiIHN0cm9rZS13aWR0aD0iMS41Ii8+PCEtLSBDYWJpbmEgLS0+PHJlY3QgeD0iMTUiIHk9IjEyIiB3aWR0aD0iMTAiIGhlaWdodD0iOCIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjMDA0ZDcwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjEiLz48IS0tIFZlbnRhbmFzIC0tPjxyZWN0IHg9IjE3IiB5PSIxNCIgd2lkdGg9IjIuNSIgaGVpZ2h0PSIyIiBmaWxsPSIjMDBiNGRiIi8+PHJlY3QgeD0iMjAuNSIgeT0iMTQiIHdpZHRoPSIyLjUiIGhlaWdodD0iMiIgZmlsbD0iIzAwYjRkYiIvPjwhLS0gTWFzdGlsIC0tPjxyZWN0IHg9IjE5LjUiIHk9IjQiIHdpZHRoPSIxIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDA0ZDcwIi8+PCEtLSBWZWxhIC0tPjxwYXRoIGQ9Ik0gMjAgNSBMIDE1IDEyIEwgMjAgMTIgWiIgZmlsbD0iI2ZmNjY2NiIgb3BhY2l0eT0iMC45Ii8+PCEtLSBPbGFzIC0tPjxwYXRoIGQ9Ik0gMCAzMiBRIDUgMzAgMTAgMzIgUSAxNSAzNCAyMCAzMiBRIDI1IDMwIDMwIDMyIFEgMzUgMzQgNDAgMzIiIHN0cm9rZT0iIzAwYjRkYiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjYiLz48L3N2Zz4=',
-            iconSize: [40, 40],
-            iconAnchor: [20, 35],
-            popupAnchor: [0, -35]
-        });
-
-        const ticketIcon = L.icon({
-            iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48IS0tIEZvbmRvIGRlbCB0aWNrZXQgLS0+PHJlY3QgeD0iNCIgeT0iOCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iIzMzMzMzMyIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48IS0tIE11ZXNjYXMgLS0+PGNpcmNsZSBjeD0iNCIgY3k9IjE2IiByPSIyLjUiIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSIyOCIgY3k9IjE2IiByPSIyLjUiIGZpbGw9IiNmZmZmZmYiLz48IS0tIExpbmVhIHBlcmZvcmFkYSAtLT48bGluZSB4MT0iMTYiIHkxPSI4IiB4Mj0iMTYiIHkyPSIyNCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMyIvPjwhLS0gVGV4dG8gLS0+PHRleHQgeD0iMTAiIHk9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNiIgZmlsbD0iI2ZmZmZmZiIgZm9udC13ZWlnaHQ9ImJvbGQiPkZFUlJZPC90ZXh0Pjx0ZXh0IHg9IjEwIiB5PSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjUiIGZpbGw9IiNmZmZmZmYiPkdBTMOBUEFHT1M8L3RleHQ+PC9zdmc+',
-            iconSize: [52, 52],
-            iconAnchor: [16, 16],
-            popupAnchor: [0, -16]
-        });
-
-        const markers = {};
-        const circles = {};
-        const lines = {};
-        let ticketMarker = null;
-        let firstIslandSelected = null;
-        let secondIslandSelected = null;
-
-        function clearAll() {
-            Object.keys(markers).forEach(id => {
-                if (markers[id]) {
-                    map.removeLayer(markers[id]);
-                    delete markers[id];
-                }
-            });
-
-            Object.keys(lines).forEach(id => {
-                if (lines[id]) {
-                    map.removeLayer(lines[id]);
-                    delete lines[id];
-                }
-            });
-
-            if (ticketMarker) {
-                map.removeLayer(ticketMarker);
-                ticketMarker = null;
-            }
-
-            firstIslandSelected = null;
-            secondIslandSelected = null;
-        }
-
-        islands.forEach(island => {
-            const circle = L.circle(island.coords, {
-                color: '#4CAF50',
-                fillColor: '#90EE90',
-                fillOpacity: 0.6,
-                weight: 2,
-                radius: 4000
-            }).addTo(map);
-
-            circles[island.id] = circle;
-
-            circle.on('click', function (e) {
-                L.DomEvent.stopPropagation(e);
-
-                if (!firstIslandSelected) {
-                    firstIslandSelected = island.id;
-
-                    const marker = L.marker(island.coords, { icon: boatIcon })
-                        .addTo(map)
-                        .bindPopup(`<b>${island.name}</b><br>${island.info}`);
-
-                    markers[island.id] = marker;
-
-                    if (island.id !== 'santacruz') {
-                        const santaCruzCoords = islands.find(i => i.id === 'santacruz').coords;
-                        const line = L.polyline([island.coords, santaCruzCoords], {
-                            color: '#FF6B6B',
-                            weight: 3,
-                            dashArray: '10, 10',
-                            opacity: 0.8
-                        }).addTo(map);
-
-                        lines[island.id] = line;
-                    }
-                } else if (!secondIslandSelected && island.id !== firstIslandSelected) {
-                    if (island.id === 'santacruz' || firstIslandSelected === 'santacruz') {
-                        secondIslandSelected = island.id;
-
-                        const marker = L.marker(island.coords, { icon: boatIcon })
-                            .addTo(map)
-                            .bindPopup(`<b>${island.name}</b><br>${island.info}`);
-
-                        markers[island.id] = marker;
-
-                        if (island.id !== 'santacruz') {
-                            const santaCruzCoords = islands.find(i => i.id === 'santacruz').coords;
-                            const line = L.polyline([island.coords, santaCruzCoords], {
-                                color: '#FF6B6B',
-                                weight: 3,
-                                dashArray: '10, 10',
-                                opacity: 0.8
-                            }).addTo(map);
-
-                            lines[island.id] = line;
-                        }
-
-                        const firstIsland = islands.find(i => i.id === firstIslandSelected);
-                        const secondIsland = islands.find(i => i.id === secondIslandSelected);
-
-                        if (firstIsland && secondIsland) {
-                            const santaCruz = islands.find(i => i.id === 'santacruz');
-                            let midLat, midLng;
-
-                            if (firstIslandSelected === 'santacruz') {
-                                midLat = (santaCruz.coords[0] + secondIsland.coords[0]) / 2;
-                                midLng = (santaCruz.coords[1] + secondIsland.coords[1]) / 2;
-                            } else {
-                                midLat = (firstIsland.coords[0] + santaCruz.coords[0]) / 2;
-                                midLng = (firstIsland.coords[1] + santaCruz.coords[1]) / 2;
-                            }
-
-                            ticketMarker = L.marker([midLat, midLng], { icon: ticketIcon })
-                                .addTo(map);
-
-                            ticketMarker.on('click', function (e) {
-                                L.DomEvent.stopPropagation(e);
-                                document.getElementById('ticketModal').style.display = 'block';
-                            });
-                        }
-                    }
-                    const img = document.querySelectorAll('img.leaflet-marker-icon');
-                    const link = document.getElementById('git-modal-link');
-                    img[2].addEventListener('click', function () {
-                        console.log(firstIslandSelected, secondIslandSelected);
-                        if (firstIslandSelected === 'santacruz' && secondIslandSelected === 'sancristobal') {
-                            link.href = 'https://supgalapagos.tours/central/producto/ferry-sancristobal-santacruz/';
-                        } else if (firstIslandSelected === 'sancristobal' && secondIslandSelected === 'santacruz') {
-                            link.href = 'https://supgalapagos.tours/central/producto/ferry-sancristobal-santacruz/';
-                        } else if (firstIslandSelected === 'isabela' && secondIslandSelected === 'santacruz') {
-                            link.href = 'https://supgalapagos.tours/central/producto/ferry-isabela-santacruz/';
-                        } else if (firstIslandSelected === 'santacruz' && secondIslandSelected === 'isabela') {
-                            link.href = 'https://supgalapagos.tours/central/producto/ferry-isabela-santacruz/';
-                        } else if (firstIslandSelected === 'santacruz' && secondIslandSelected === 'floreana') {
-                            link.href = 'https://supgalapagos.tours/central/producto/ferry-santacruz-floreana/';
-                        } else {
-                            link.href = '#';
-                        }
-                    });
-                } else {
-                    clearAll();
-                }
-            });
-        });
-
-        map.on('click', function (e) {
-            clearAll();
-        });
-
-        const modal = document.getElementById('ticketModal');
-        const closeBtn = document.querySelector('.close');
-
-        closeBtn.onclick = function () {
-            modal.style.display = 'none';
-        }
-
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
-
-        map.on('zoom', function () {
-            const currentZoom = map.getZoom();
-            const center = map.getCenter();
-
-            if (currentZoom > 4) {
-                let insideCircle = false;
-                islands.forEach(island => {
-                    const distance = center.distanceTo(island.coords);
-                    if (distance <= 8000) {
-                        insideCircle = true;
-                    }
-                });
-
-                if (insideCircle) {
-                    map.setZoom(4);
-                }
+                overlayTitle.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    overlayTitle.style.transform = 'scale(1)';
+                }, 150);
             }
         });
-
-        const bounds = L.latLngBounds(islands.map(i => i.coords));
-        map.fitBounds(bounds, { padding: [50, 50] });
-    </script>
-</body>
-
-</html>
+    });
+</script>

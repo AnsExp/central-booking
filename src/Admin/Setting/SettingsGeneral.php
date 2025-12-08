@@ -1,123 +1,100 @@
 <?php
 namespace CentralTickets\Admin\Setting;
 
-use CentralTickets\Constants\DateTripConstants;
 use CentralTickets\Components\Displayer;
-use CentralTickets\Components\AccordionComponent;
-use CentralTickets\Components\CodeEditorComponent;
 use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Placeholders\PlaceholderEngineCheckout;
-use WC_Order;
 
 final class SettingsGeneral implements Displayer
 {
-    private InputComponent $date_min_buyer_input;
-    private SelectComponent $date_min_buyer;
-    private CodeEditorComponent $message_checkout_editor;
-
-    public function __construct()
-    {
-        $this->init();
-    }
-
-    private function init()
-    {
-        $this->date_min_buyer = new SelectComponent('date_min_buyer');
-        $this->message_checkout_editor = new CodeEditorComponent('message_checkout');
-        $this->date_min_buyer_input = new InputComponent('date_min_buyer_custome', 'number');
-
-        $this->date_min_buyer_input->set_attribute('min', 0);
-
-        $this->date_min_buyer->add_option('Ninguno', DateTripConstants::NONE);
-        $this->date_min_buyer->add_option('Fecha actual', DateTripConstants::TODAY);
-        $this->date_min_buyer->add_option('Personalizar', DateTripConstants::CUSTOME);
-
-        $this->date_min_buyer->set_value(git_get_setting('date_min_buyer', 'none'));
-        $this->date_min_buyer_input->set_value(git_get_setting('date_min_buyer_custome', 0));
-        $this->message_checkout_editor->set_value(git_get_setting('message_checkout', ''));
-
-        $this->message_checkout_editor->set_language('html');
-    }
-
     public function display()
     {
         ?>
-        <form id="git-settings-form"
-            action="<?= esc_url(add_query_arg('action', 'git_settings', admin_url('admin-ajax.php'))) ?>" method="post">
-            <input type="hidden" name="nonce" value="<?= wp_create_nonce('git_settings_nonce') ?>" />
-            <script>
-                jQuery(document).ready(function ($) {
-                    $('#<?= $this->date_min_buyer->id ?>').on('change', function () {
-                        const selected = $(this).val();
-                        $('#row_date_min_buyer_custome').toggle(selected === '<?= DateTripConstants::CUSTOME ?>');
-                    });
-                });
-            </script>
-            <input type="hidden" name="scope" value="general">
-            <?php wp_nonce_field('git_settings_nonce', 'nonce'); ?>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">
-                        <?= $this->date_min_buyer->get_label('Fecha de ida (inicial)')->compact() ?>
-                    </th>
-                    <td>
-                        <?= $this->date_min_buyer->compact() ?>
-                        <p class="description">
-                            Fecha mínima en que se puede reservar el viaje.
-                        </p>
-                    </td>
-                </tr>
-                <tr id="row_date_min_buyer_custome"
-                    style="<?= git_get_setting('date_min_buyer', 'none') === 'custome' ? '' : 'display: none;' ?>">
-                    <th scope="row">
-                        <?= $this->date_min_buyer_input->get_label('Días hasta la ida')->compact() ?>
-                    </th>
-                    <td>
-                        <?= $this->date_min_buyer_input->compact() ?>
-                        <p class="description">
-                            Fecha actual + Días hasta la ida = Fecha de reserva.
-                        </p>
-                    </td>
-                </tr>
+        <div class="wrap">
+            <button type="button" class="button" id="import_data_button">Importar datos</button>
+            <button type="button" class="button" id="export_data_button">Exportar datos</button>
+        </div>
+        <?php
+        $this->import_data_form();
+        $this->export_data_form();
+    }
 
-                <tr>
-                    <td colspan="2">
-                        <?php
-                        $accordion = new AccordionComponent();
-                        $accordion->add_item(
-                            git_string_to_component('<i class="bi bi-bookmark"></i> Placeholders para el mensaje checkout.'),
-                            git_string_to_component($this->get_placeholders()),
-                        );
-                        echo $accordion->compact();
-                        ?>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th scope="row">
-                        <?php $this->message_checkout_editor->get_label('Mensaje de Checkout')->display(); ?>
-                    </th>
-                    <td>
-                        <?php $this->message_checkout_editor->display(); ?>
-                        <p class="description">
-                            Mensaje que aparecerá a la hora de hacer Checkout. Puedes usar HTML y subir imágenes directamente.
-                        </p>
-                    </td>
-                </tr>
-            </table>
-            <p class="submit">
-                <button type="submit" class="button-primary" id="git-save-button">
-                    Guardar configuraciones
-                </button>
-            </p>
-        </form>
+    private function import_data_form()
+    {
+        $file_input = new InputComponent('git_data', 'file');
+        $nonce_input = new InputComponent('nonce', 'hidden');
+        $nonce_input->set_value(wp_create_nonce('git-import-data'));
+        $file_input->set_attribute('accept', '.json');
+        ?>
+        <div class="git-import-data">
+            <form method="post" enctype="multipart/form-data" id="git-import-data-form" class="git-import-data-form"
+                action="<?= esc_url(admin_url('admin-ajax.php?action=git_import_data')) ?>">
+                <h3>Sube los datos que quieres cargar al sistema GIT</h3>
+                <?= $nonce_input->compact(); ?>
+                <?= $file_input->compact(); ?>
+                <input type="submit" class="button  button-primary" value="Subir" disabled>
+            </form>
+        </div>
         <?php
     }
 
-    private function get_placeholders()
+    private function export_data_form()
     {
-        $engine = new PlaceholderEngineCheckout(new WC_Order());
-        return $engine->get_placeholders_info()->compact();
+        $nonce_input = new InputComponent('nonce', 'hidden');
+        $coupons_input = new InputComponent('coupons_data', 'checkbox');
+        $settings_input = new InputComponent('settings_data', 'checkbox');
+        $entities_input = new InputComponent('entities_data', 'checkbox');
+        $products_input = new InputComponent('products_data', 'checkbox');
+        $operators_input = new InputComponent('operators_data', 'checkbox');
+        $coupons_input->class_list->add('git-export-settings');
+        $settings_input->class_list->add('git-export-settings');
+        $entities_input->class_list->add('git-export-settings');
+        $products_input->class_list->add('git-export-settings');
+        $operators_input->class_list->add('git-export-settings');
+        $nonce_input->set_value(wp_create_nonce('git_export_data'));
+        ?>
+        <div class="git-export-data">
+            <form id="git-export-data-form" method="post" class="git-import-data-form"
+                action="<?= esc_url(admin_url('admin-ajax.php?action=git_export_data')) ?>">
+                <h3>¿Qué deseas exportar?</h3>
+                <div class="git-export-options">
+                    <p>
+                        <?php
+                        $nonce_input->display();
+                        $settings_input->display();
+                        $settings_input->get_label('Configuraciones')->display();
+                        ?>
+                    </p>
+                    <p>
+                        <?php
+                        $entities_input->display();
+                        $entities_input->get_label('Entidades de datos')->display();
+                        ?>
+                    </p>
+                    <p>
+                        <?php
+                        $products_input->display();
+                        $products_input->get_label('Productos')->display();
+                        ?>
+                    </p>
+                    <p>
+                        <?php
+                        $operators_input->display();
+                        $operators_input->get_label('Operadores')->display();
+                        ?>
+                    </p>
+                    <p>
+                        <?php
+                        $coupons_input->display();
+                        $coupons_input->get_label('Cupones')->display();
+                        ?>
+                    </p>
+                    <p class="submit inline-edit-save" style="justify-content: center;">
+                        <input type="submit" id="export_data_submit" class="button button-primary" value="Descargar" disabled>
+                        <span class="spinner"></span>
+                    </p>
+                </div>
+            </form>
+        </div>
+        <?php
     }
 }

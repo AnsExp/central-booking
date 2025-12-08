@@ -1,41 +1,50 @@
 <?php
 namespace CentralTickets\Admin\View;
 
-use CentralTickets\Service;
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormService;
+use CentralTickets\Persistence\ResultSet;
 use CentralTickets\Services\ServiceService;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\PaginationComponent;
 
-final class TableServices implements Displayer
+final class TableServices extends TableAdmin
 {
-    /**
-     * @var array<Service>
-     */
-    private array $services;
-    private int $total_items;
-    private int $per_page = 10;
-    private int $total_pages;
-    private int $current_page;
+    private ResultSet $result_set;
 
     public function __construct()
     {
-        $this->services = $this->fetchServices();
+        parent::__construct();
     }
 
-    private function fetchServices(): array
+    protected function get_pagination_links(): array
     {
-        $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
-        $service = new ServiceService();
-        $result = $service->paginated(
-            order: $_GET['order'] ?? 'DESC',
-            order_by: $_GET['order_by'] ?? 'id',
-            page_number: $page_number,
-            page_size: $this->per_page
-        );
-        $this->total_items = $result['pagination']['total_elements'] ?? 0;
-        $this->total_pages = $result['pagination']['total_pages'] ?? 0;
-        $this->current_page = $result['pagination']['current_page'] ?? 1;
-        return $result['data'] ?? [];
+        $url = AdminRouter::get_url_for_class(TableServices::class);
+        return [
+            'first' => add_query_arg(['page_number' => 1], $url),
+            'prev' => add_query_arg(['page_number' => $this->result_set->current_page - 1], $url),
+            'next' => add_query_arg(['page_number' => $this->result_set->current_page + 1], $url),
+            'last' => add_query_arg(['page_number' => $this->result_set->total_pages], $url),
+        ];
+    }
+
+    protected function get_result_set(): ResultSet
+    {
+        if (!isset($this->result_set)) {
+            $this->result_set = new ResultSet();
+            $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
+            $service = new ServiceService();
+            $result = $service->paginated(
+                order: $_GET['order'] ?? 'DESC',
+                order_by: $_GET['order_by'] ?? 'id',
+                page_number: $page_number,
+                page_size: $this->result_set->per_page
+            );
+            $this->result_set->items = $result['data'] ?? [];
+            $this->result_set->total_items = $result['pagination']['total_elements'] ?? 0;
+            $this->result_set->total_pages = $result['pagination']['total_pages'] ?? 0;
+            $this->result_set->current_page = $result['pagination']['current_page'] ?? 0;
+            $this->result_set->has_items = $this->result_set->total_items > 0;
+        }
+        return $this->result_set;
     }
 
     private function get_current_order_by()
@@ -61,20 +70,13 @@ final class TableServices implements Displayer
         ]);
     }
 
-    public function display()
+    protected function no_content(): void
     {
-        $pagination = new PaginationComponent();
-        $pagination->set_data(
-            total_items: $this->total_items,
-            total_pages: $this->total_pages,
-            current_page: $this->current_page
-        );
-        $pagination->set_links(
-            link_first: add_query_arg(['page_number' => 1]),
-            link_prev: add_query_arg(['page_number' => max(1, $this->current_page - 1)]),
-            link_next: add_query_arg(['page_number' => min($this->total_pages, $this->current_page + 1)]),
-            link_last: add_query_arg(['page_number' => $this->total_pages])
-        );
+        echo 'No services found.';
+    }
+
+    protected function table(): void
+    {
         ?>
         <div style="overflow-x: auto; max-width: 700px;">
             <table class="wp-list-table widefat fixed striped">
@@ -106,7 +108,7 @@ final class TableServices implements Displayer
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($this->services as $service): ?>
+                    <?php foreach ($this->get_result_set()->items as $service): ?>
                         <tr>
                             <td>
                                 <span><?= esc_html($service->name) ?></span>
@@ -118,13 +120,7 @@ final class TableServices implements Displayer
                                     </span>
                                     <span> | </span>
                                     <span class="edit">
-                                        <a href="<?= add_query_arg(
-                                            [
-                                                'activity' => 'form',
-                                                'id' => $service->id,
-                                            ],
-                                            admin_url('admin.php?page=central_services')
-                                        ) ?>" aria-label="Editar Servicio">Editar</a>
+                                        <a href="<?= AdminRouter::get_url_for_class(FormService::class,['id' => $service->id]) ?>" aria-label="Editar Servicio">Editar</a>
                                     </span>
                                 </div>
                             </td>
@@ -146,7 +142,6 @@ final class TableServices implements Displayer
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->display() ?>
         </div>
         <?php
     }

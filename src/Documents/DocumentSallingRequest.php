@@ -34,7 +34,7 @@ final class DocumentSallingRequest extends Document
     {
         ob_start();
         ?>
-        <title>SolicitudZarpe<?= $this->transport->code . date('Ymd') ?></title>
+        <title>SolicitudZarpe-<?= $this->transport->code . '-' . date('YmdHis') ?></title>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 

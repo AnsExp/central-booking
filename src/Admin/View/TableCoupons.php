@@ -1,7 +1,10 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormCoupon;
 use CentralTickets\Components\Displayer;
+use CentralTickets\Components\TextComponent;
 
 final class TableCoupons implements Displayer
 {
@@ -13,15 +16,15 @@ final class TableCoupons implements Displayer
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <th scope="col"> Código </th>
-                        <th scope="col"> Operador </th>
+                        <th scope="col"> Comercializador </th>
+                        <th scope="col"> Medio </th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($coupons as $coupon):
                         $operator = git_get_operator_by_coupon($coupon);
                         ?>
-                        <tr>
+                        <tr style="border-bottom: 1px solid gray;">
                             <td>
                                 <span>
                                     <?= esc_html($coupon->post_title) ?>
@@ -31,17 +34,24 @@ final class TableCoupons implements Displayer
                                         ID: <?= $coupon->ID ?>
                                     </span>
                                     <span class="edit"> | </span>
+                                    <span class="edit"><?= esc_html($operator ? "{$operator->first_name} {$operator->last_name}" : 'N/A') ?></span>
+                                    <span class="edit"> | </span>
                                     <span class="edit">
-                                        <a href="<?= add_query_arg([
-                                            'action' => 'edit',
-                                            'id' => $coupon->ID,
-                                        ]) ?>">
-                                            Editar
-                                        </a>
+                                        <a href="<?= esc_url(AdminRouter::get_url_for_class(
+                                            FormCoupon::class,
+                                            ['id' => $coupon->ID]
+                                        )) ?>">Editar</a>
                                     </span>
                                 </div>
                             </td>
-                            <td><?= esc_html($operator ? $operator->first_name . ' ' . $operator->last_name : 'N/A') ?></td>
+                            <td>
+                                <?php
+                                $link = new TextComponent('a', 'Ver');
+                                $link->set_attribute('href', git_get_url_logo_by_coupon($coupon));
+                                $link->set_attribute('target', '_blank');
+                                $link->display();
+                                ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

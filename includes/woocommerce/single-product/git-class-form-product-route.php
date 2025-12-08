@@ -118,7 +118,7 @@ class FormProductRoute implements Component
                         for="<?= $id_radio_one_way ?>"><?= git_get_text_by_way(TypeWayConstants::ONE_WAY) ?></label>
                 <?php elseif ($type_way === TypeWayConstants::DOUBLE_WAY): ?>
                     <input id="<?= $id_radio_double_way ?>" class="form-control btn-check" name="type_way" type="radio"
-                        value="<?= TypeWayConstants::DOUBLE_WAY ?>">
+                        value="<?= TypeWayConstants::DOUBLE_WAY ?>" checked>
                     <label class="btn btn-outline-primary m-1" for="<?= $id_radio_double_way ?>"
                         checked><?= git_get_text_by_way(TypeWayConstants::DOUBLE_WAY) ?></label>
                 <?php elseif ($type_way === TypeWayConstants::ANY_WAY): ?>
@@ -147,7 +147,7 @@ class FormProductRoute implements Component
                 </div>
             </div>
             <div id="<?= $id_container_trip_goes ?>" class="p-2">
-                <p class="fs-5">Horario de Ida</p>
+                <p class="fs-5">Fecha y hora de ida</p>
                 <?php
                 $floating_date_trip_goes = new InputFloatingLabelComponent($date_trip_goes, 'Fecha');
                 $floating_schedule_goes = new InputFloatingLabelComponent($schedule_goes, 'Hora');
@@ -158,7 +158,7 @@ class FormProductRoute implements Component
             <?php if ($type_way !== TypeWayConstants::ONE_WAY): ?>
                 <div id="<?= $id_container_trip_returns ?>" class="p-2"
                     style="display: <?= $type_way === TypeWayConstants::ANY_WAY ? 'none' : '' ?>;">
-                    <p class="fs-5">Horario de Vuelta</p>
+                    <p class="fs-5">Fecha y hora de vuelta</p>
                     <?php
                     $floating_date_trip_returns = new InputFloatingLabelComponent($date_trip_returns, 'Fecha');
                     $floating_schedule_returns = new InputFloatingLabelComponent($schedule_returns, 'Hora');

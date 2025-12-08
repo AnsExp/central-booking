@@ -42,7 +42,7 @@ class EndpointsPreorder
         }
         $preorder = PreorderCreator::create(
             $data['pax'],
-            $data['transport_id'],
+            $data['transport_id'] ?? 0,
             $data['origin'],
             $data['destiny'],
             $data['date_trip'],
@@ -58,9 +58,7 @@ class EndpointsPreorder
         }
         return new WP_REST_Response([
             'success' => true,
-            'data' => [
-                'order_id' => $preorder->get_order()->get_id()
-            ]
+            'data' => ['id_preorder' => $preorder->get_order()->get_id()]
         ]);
     }
 }

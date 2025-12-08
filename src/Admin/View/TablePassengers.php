@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormTransfer;
 use CentralTickets\Passenger;
 use CentralTickets\Services\PassengerService;
 use CentralTickets\Components\Displayer;

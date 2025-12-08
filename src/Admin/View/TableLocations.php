@@ -1,6 +1,9 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormLocation;
+use CentralTickets\Admin\Form\FormTransport;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Components\PaginationComponent;
 use CentralTickets\Services\LocationService;
@@ -116,7 +119,7 @@ final class TableLocations implements Displayer
                                     <span> | </span>
                                     <span class="edit">
                                         <a
-                                            href="<?= add_query_arg(['action' => 'form', 'id' => $location->id], admin_url('admin.php?page=central_locations')) ?>">Editar</a>
+                                            href="<?= AdminRouter::get_url_for_class(FormLocation::class, ['id' => $location->id]) ?>">Editar</a>
                                     </span>
                                 </div>
                             </td>
@@ -128,6 +131,5 @@ final class TableLocations implements Displayer
             <?php $pagination->display() ?>
         </div>
         <?php
-
     }
 }

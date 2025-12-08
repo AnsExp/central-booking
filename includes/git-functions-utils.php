@@ -6,7 +6,6 @@ use CentralTickets\Constants\TicketConstants;
 use CentralTickets\Constants\TransportConstants;
 use CentralTickets\Constants\TypeWayConstants;
 use CentralTickets\MetaManager;
-use CentralTickets\Operator;
 use CentralTickets\Persistence\QueryPersistence;
 
 function git_get_secret_key()
@@ -97,6 +96,20 @@ function git_get_ticket_viewer_qr_url($data)
 function git_get_setting(string $key, mixed $default = null)
 {
     return Configurations::get($key, $default);
+}
+
+function git_get_map_setting(string $key, mixed $default = null)
+{
+    return Configurations::get_map($key, $default);
+}
+
+function git_get_url_logo_by_coupon(WP_Post $coupon)
+{
+    $url = get_post_meta($coupon->ID, 'logo_sale', true);
+    if ($url === '') {
+        return CENTRAL_BOOKING_URL . 'assets/img/logo-placeholder.png';
+    }
+    return $url;
 }
 
 function git_get_text_by_type(string $type)
@@ -511,6 +524,12 @@ function git_get_route_by_id(int $id)
     return $route ?? false;
 }
 
+function git_get_service_by_id(int $id)
+{
+    $service = git_get_query_persistence()->get_service_repository()->find($id);
+    return $service ?? false;
+}
+
 function git_get_location_by_id(int $id)
 {
     $location = git_get_query_persistence()->get_location_repository()->find($id);
@@ -569,9 +588,18 @@ function git_get_operator_by_coupon(WP_Post $coupon)
 {
     $operator_id = get_post_meta($coupon->ID, 'coupon_assigned_operator', true);
     if ($operator_id) {
-        return new Operator($operator_id);
+        return git_get_operator_by_id((int) $operator_id);
     }
     return null;
+}
+
+function git_get_logo_by_coupon(WP_Post $coupon)
+{
+    $url = get_post_meta($coupon->ID, 'logo_sale', true);
+    if ($url === '') {
+        return $url;
+    }
+    return '';
 }
 
 function git_get_all_coupons()

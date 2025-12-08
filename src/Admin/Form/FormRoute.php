@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\Form;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\View\TableRoutes;
 use CentralTickets\Components\Displayer;
 use CentralTickets\Components\InputComponent;
 use CentralTickets\Components\MultipleSelectComponent;
@@ -20,7 +22,7 @@ final class FormRoute implements Displayer
     private InputComponent $input_departure_time;
     private MultipleSelectComponent $select_transport;
 
-    public function __construct(private int $id)
+    public function __construct()
     {
         $this->input_id = new InputComponent('id', 'hidden');
         $this->input_distance = new InputComponent('distance', 'number');
@@ -55,27 +57,15 @@ final class FormRoute implements Displayer
                 $this->select_transport->set_value($transport->id);
             }
         }
-        wp_enqueue_script(
-            'central-tickets-admin-form-route',
-            CENTRAL_BOOKING_URL . '/assets/js/admin/route-form.js',
-            ['jquery'],
-            null,
-            true
-        );
-        wp_localize_script(
-            'central-tickets-admin-form-route',
-            'formRoute',
-            [
-                'url' => admin_url('admin-ajax.php'),
-                'hook' => 'git_form_route',
-                'successRedirect' => admin_url('admin.php?page=git_routes'),
-            ]
-        );
         ob_start();
         ?>
         <div id="form-route-message-container"></div>
-        <form id="form-route" method="post">
-            <?php $this->input_id->display() ?>
+        <form id="form-route" method="post"
+            action="<?= add_query_arg(['action' => 'git_edit_route'], admin_url('admin-ajax.php')) ?>">
+            <?php
+            $this->input_id->display();
+            wp_nonce_field('edit_route', 'nonce');
+            ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">

@@ -15,6 +15,7 @@ class TicketViewer implements Component
 {
     private Ticket $ticket;
     private string $ticket_template;
+    private string $ticket_js_template;
     private string $ticket_css_template;
     private string $passenger_template;
 
@@ -25,15 +26,10 @@ class TicketViewer implements Component
             $this->ticket = $ticket;
         }
 
-        $settings = git_get_setting('ticket_viewer', [
-            'viewer_css' => '',
-            'ticket_viewer_html' => '',
-            'passenger_viewer_html' => ''
-        ]);
-
-        $this->ticket_css_template = $settings['viewer_css'];
-        $this->ticket_template = $settings['ticket_viewer_html'];
-        $this->passenger_template = $settings['passenger_viewer_html'];
+        $this->ticket_js_template = git_get_map_setting('ticket_viewer.viewer_js', '');
+        $this->ticket_css_template = git_get_map_setting('ticket_viewer.viewer_css', '');
+        $this->ticket_template = git_get_map_setting('ticket_viewer.ticket_viewer_html', '');
+        $this->passenger_template = git_get_map_setting('ticket_viewer.passenger_viewer_html', '');
     }
 
     public function compact()
@@ -42,7 +38,6 @@ class TicketViewer implements Component
             return (new TicketViewerNotAvailable)->compact();
         }
         $container = new CompositeComponent;
-        $container->class_list->add('my-5');
         $container->add_child($this->card());
         return $container->compact();
     }
@@ -64,6 +59,7 @@ class TicketViewer implements Component
     {
         $result = $this->replace_placeholder_ticket($this->ticket_template)->compact();
         $result .= (new TextComponent('style', $this->ticket_css_template))->compact();
+        $result .= (new TextComponent('script', $this->ticket_js_template))->compact();
         return git_string_to_component($result);
     }
 }

@@ -17,7 +17,7 @@ class Operator extends WP_User
      */
     private array $transports;
     public string $phone;
-    public bool $logo_sale = false;
+    public string $brand_media = '';
 
     private array $business_plan = [
         'limit' => 0,

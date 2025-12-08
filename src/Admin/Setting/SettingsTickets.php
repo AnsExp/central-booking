@@ -1,6 +1,7 @@
 <?php
 namespace CentralTickets\Admin\Setting;
 
+use CentralTickets\Components\InputComponent;
 use CentralTickets\Ticket;
 use CentralTickets\Passenger;
 use CentralTickets\Components\Displayer;
@@ -15,8 +16,10 @@ final class SettingsTickets implements Displayer
 {
     private SelectComponent $page_viewer;
     private CodeEditorComponent $viewer_css;
+    private CodeEditorComponent $viewer_js;
     private CodeEditorComponent $ticket_viewer_html;
     private CodeEditorComponent $passenger_viewer_html;
+    private InputComponent $default_media;
 
     public function __construct()
     {
@@ -26,31 +29,31 @@ final class SettingsTickets implements Displayer
     private function init()
     {
         $this->page_viewer = (new PageSelect('page_viewer'))->create();
+        $this->viewer_js = new CodeEditorComponent('viewer_js');
         $this->viewer_css = new CodeEditorComponent('viewer_css');
         $this->ticket_viewer_html = new CodeEditorComponent('ticket_viewer_html');
         $this->passenger_viewer_html = new CodeEditorComponent('passenger_viewer_html');
-
-        $form_data = git_get_setting('ticket_viewer', [
-            'page_viewer' => '',
-            'viewer_css' => '',
-            'ticket_viewer_html' => '',
-            'passenger_viewer_html' => ''
-        ]);
+        $this->default_media = new InputComponent('default_media');
 
         foreach ([
+            $this->viewer_js,
             $this->viewer_css,
             $this->ticket_viewer_html,
-            $this->passenger_viewer_html
+            $this->passenger_viewer_html,
+            $this->default_media,
         ] as $code_editor) {
             $code_editor->set_attribute('rows', 7);
             $code_editor->styles->set('width', '100%');
         }
 
-        $this->page_viewer->set_value($form_data['page_viewer']);
-        $this->viewer_css->set_value($form_data['viewer_css']);
-        $this->ticket_viewer_html->set_value($form_data['ticket_viewer_html']);
-        $this->passenger_viewer_html->set_value($form_data['passenger_viewer_html']);
+        $this->page_viewer->set_value(git_get_map_setting('ticket_viewer.page_viewer'));
+        $this->viewer_js->set_value(git_get_map_setting('ticket_viewer.viewer_js'));
+        $this->viewer_css->set_value(git_get_map_setting('ticket_viewer.viewer_css'));
+        $this->default_media->set_value(git_get_map_setting('ticket_viewer.default_media'));
+        $this->ticket_viewer_html->set_value(git_get_map_setting('ticket_viewer.ticket_viewer_html'));
+        $this->passenger_viewer_html->set_value(git_get_map_setting('ticket_viewer.passenger_viewer_html'));
 
+        $this->viewer_js->set_language('js');
         $this->viewer_css->set_language('css');
         $this->ticket_viewer_html->set_language('html');
         $this->passenger_viewer_html->set_language('html');
@@ -96,6 +99,14 @@ final class SettingsTickets implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
+                        <?php $this->viewer_js->get_label('Visor de tickets (js)')->display() ?>
+                    </th>
+                    <td>
+                        <?php $this->viewer_js->display() ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
                         <?php $this->viewer_css->get_label('Visor de tickets (css)')->display() ?>
                     </th>
                     <td>
@@ -108,6 +119,14 @@ final class SettingsTickets implements Displayer
                     </th>
                     <td>
                         <?php $this->passenger_viewer_html->display() ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <?php $this->default_media->get_label('Medio por defecto')->display() ?>
+                    </th>
+                    <td>
+                        <?php $this->default_media->display() ?>
                     </td>
                 </tr>
             </table>

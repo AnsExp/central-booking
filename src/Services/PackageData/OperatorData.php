@@ -16,7 +16,7 @@ class OperatorData implements PackageData
         public readonly array $coupons = [],
         public readonly int $coupon_counter = 0,
         public readonly int $coupon_limit = 0,
-        public readonly bool $logo_sale = false,
+        public readonly string $brand_media = '',
     ) {
     }
 
@@ -36,9 +36,7 @@ class OperatorData implements PackageData
         $operator->phone = $this->phone;
         $operator->last_name = $this->lastname;
         $operator->first_name = $this->firstname;
-        $operator->logo_sale = $this->logo_sale;
-
-        git_set_setting('sample',$this->logo_sale);
+        $operator->brand_media = $this->brand_media;
 
         $operator->set_coupons($coupons);
         $operator->set_business_plan($this->coupon_limit, $this->coupon_counter);

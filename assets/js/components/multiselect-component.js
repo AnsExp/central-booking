@@ -221,6 +221,26 @@ function getOptionsInContainer(container) {
     return container.querySelectorAll('.git-option-item-selected');
 }
 
+document.querySelectorAll('.git-multiselect').forEach(select => {
+    let form = null;
+    if (select.closest('form')) {
+        form = select.closest('form');
+    }
+    if (form) {
+        form.addEventListener('submit', function () {
+            const selectedValues = getSelectedValues(select);
+            for (const value of selectedValues) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = select.name + '[]';
+                hiddenInput.value = value;
+                form.appendChild(hiddenInput);
+            }
+            select.name = ''; // Evitar envío del select original
+        });
+    }
+});
+
 /**
  * API pública para uso externo
  */

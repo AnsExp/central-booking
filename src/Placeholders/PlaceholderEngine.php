@@ -93,7 +93,13 @@ public function get_placeholders_info()
                         <code style="background: #f0f0f0; padding: 2px 4px; border-radius: 2px;">[<?= $name ?>]</code>
                     </td>
                     <td style="border: 1px solid #ddd; padding: 8px; vertical-align: top; color: #666; font-size: 14px;">
-                        <?= esc_html($info['description']) ?>
+                        <h3 class="wp-heading-inline" style="margin: 0;margin-top: 10px;text-decoration: underline;text-underline-offset: 5px;margin-bottom: 10px;">
+                            <?= esc_html($info['title']) ?>
+                        </h3>
+                        <!-- <hr> -->
+                        <p style="margin: 0; margin-bottom: 10px;">
+                            <?= esc_html($info['description']) ?>
+                        </p>
                     </td>
                     <td style="border: 1px solid #ddd; padding: 8px; vertical-align: top;">
                         <?php if (!empty($info['parameters'])): ?>

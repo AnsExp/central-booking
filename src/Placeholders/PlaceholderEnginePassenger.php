@@ -196,50 +196,58 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
             ],
         ]);
 
-        $this->add_placeholder('logo_sale', function (array $params) {
-            $width = $params['width'] ?? null;
-            $height = $params['height'] ?? null;
-            $img = new StandaloneComponent('img');
-            if ($width !== null) {
-                if (str_contains($width, 'px')) {
-                    $width = (int) str_replace('px', '', $width);
-                }
-                $img->set_attribute('width', $width);
-            }
-            if ($height !== null) {
-                if (str_contains($height, 'px')) {
-                    $height = (int) str_replace('px', '', $height);
-                }
-                $img->set_attribute('height', $height);
-            }
-            $img->set_attribute('src', $this->passenger->get_ticket()->get_brand_logo());
-            $img->set_attribute('alt', 'Logo de la Venta');
-            return $img->compact();
-        });
-        $this->add_description('logo_sale', [
-            'title' => 'Logo de la Venta',
-            'description' => 'Logo asociado a la venta',
-            'parameters' => [
-                [
-                    'param' => 'width',
-                    'values' => [
-                        [
-                            'value' => 'any-number',
-                            'description' => 'Ancho del logo en píxeles (ej. 350px)'
-                        ],
-                    ],
-                ],
-                [
-                    'param' => 'height',
-                    'values' => [
-                        [
-                            'value' => 'any-number',
-                            'description' => 'Alto del logo en píxeles (ej. 150px)'
-                        ],
-                    ],
-                ],
-            ],
-        ]);
+        // $this->add_placeholder('logo_sale', function (array $params) {
+        //     $width = $params['width'] ?? null;
+        //     $height = $params['height'] ?? null;
+        //     $img = new StandaloneComponent('img');
+        //     if ($width !== null) {
+        //         if (str_contains($width, 'px')) {
+        //             $width = (int) str_replace('px', '', $width);
+        //         }
+        //         $img->set_attribute('width', $width);
+        //     }
+        //     if ($height !== null) {
+        //         if (str_contains($height, 'px')) {
+        //             $height = (int) str_replace('px', '', $height);
+        //         }
+        //         $img->set_attribute('height', $height);
+        //     }
+        //     $coupon = $this->passenger->get_ticket()->get_coupon();
+        //     if ($coupon === null) {
+        //         return '';
+        //     }
+        //     $operator = git_get_operator_by_coupon($coupon);
+        //     if ($operator === null || !$operator->logo_sale) {
+        //         return '';
+        //     }
+        //     $img->set_attribute('src', git_get_url_logo_by_coupon($coupon));
+        //     $img->set_attribute('alt', 'Logo de la Venta');
+        //     return $img->compact();
+        // });
+        // $this->add_description('logo_sale', [
+        //     'title' => 'Logo de la Venta',
+        //     'description' => 'Logo asociado a la venta',
+        //     'parameters' => [
+        //         [
+        //             'param' => 'width',
+        //             'values' => [
+        //                 [
+        //                     'value' => 'any-number',
+        //                     'description' => 'Ancho del logo en píxeles (ej. 350px)'
+        //                 ],
+        //             ],
+        //         ],
+        //         [
+        //             'param' => 'height',
+        //             'values' => [
+        //                 [
+        //                     'value' => 'any-number',
+        //                     'description' => 'Alto del logo en píxeles (ej. 150px)'
+        //                 ],
+        //             ],
+        //         ],
+        //     ],
+        // ]);
 
         $this->add_placeholder('transport', fn(array $params) => match ($params['info'] ?? 'name') {
             'id' => $this->passenger->get_transport()->id,

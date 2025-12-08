@@ -74,7 +74,6 @@ class FormSearchCouponOperator implements Component
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Buscar</button>
-                <!-- <input class="btn btn-primary" type="submit" value="Buscar"> -->
             </form>
         </div>
         <?php

@@ -12,6 +12,7 @@ use CentralTickets\Components\Implementation\TypeSelect;
 use CentralTickets\Components\Implementation\RouteSelect;
 use CentralTickets\Components\Implementation\OperatorSelect;
 use CentralTickets\Components\Implementation\ServiceSelect;
+use CentralTickets\Constants\TransportCustomeFieldConstants;
 use CentralTickets\MetaManager;
 
 final class FormTransport implements Displayer
@@ -41,7 +42,7 @@ final class FormTransport implements Displayer
         $this->select_operator = (new OperatorSelect('operator'))->create();
         $this->select_routes = (new RouteSelect('routes'))->create(true);
         $this->select_services = (new ServiceSelect('services'))->create(true);
-        $this->custom_field = new TextareaComponent('custom_field');
+        $this->custom_field = new TextareaComponent('custom_field_content');
         $this->custom_field_topic = new SelectComponent('custom_field_topic');
         $this->input_id->set_value(0);
     }
@@ -61,12 +62,6 @@ final class FormTransport implements Displayer
                 'buttonAddAlias' => 'button-add-alias',
                 'buttonAddCrewMember' => 'button-add-crew-member',
                 'templates' => 'form-transport-template',
-                'ajax' => [
-                    'url' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('git_transport_form'),
-                    'action' => 'git_transport_form',
-                    'successRedirect' => admin_url('admin.php?page=git_transports&action=table'),
-                ],
             ]
         );
         $alias = [];
@@ -79,10 +74,9 @@ final class FormTransport implements Displayer
         $this->input_capacity->set_required(true);
         $this->select_operator->set_required(true);
         $this->custom_field_topic->styles->set('margin-bottom', '10px');
-        $this->custom_field_topic->add_option('Texto', 'text');
-        $this->custom_field_topic->add_option('Acción', 'action');
-        $this->custom_field_topic->add_option('Prompt de IA', 'ia_prompt');
-        $this->custom_field_topic->add_option('Logo de la Venta', 'logo_sale');
+        foreach (TransportCustomeFieldConstants::get_all() as $field) {
+            $this->custom_field_topic->add_option(TransportCustomeFieldConstants::display($field), $field);
+        }
         $transport = git_get_transport_by_id((int) ($_GET['id'] ?? '0'));
         if ($transport) {
             $working_days = $transport->get_working_days();
@@ -109,8 +103,12 @@ final class FormTransport implements Displayer
         ob_start();
         ?>
         <div id="form-transport-message-container"></div>
-        <form id="form-transport" method="post">
+        <form id="form-transport" method="post" action="<?= add_query_arg(
+            ['action' => 'git_transport_form'],
+            admin_url('admin-ajax.php')
+        ) ?>">
             <?php $this->input_id->display() ?>
+            <input type="hidden" name="nonce" value="<?= esc_attr(wp_create_nonce('git_transport_form')); ?>">
             <template id="form-transport-template">
                 <div id="template-form-crew-member">
                     <?= $this->create_form_crew_member()->compact() ?>
@@ -286,7 +284,7 @@ final class FormTransport implements Displayer
                     </td>
                 </tr>
             </table>
-            <?= get_submit_button('Guardar Transporte'); ?>
+            <button type="submit" class="button-primary">Guardar Transporte</button>
         </form>
         <?php
         echo ob_get_clean();

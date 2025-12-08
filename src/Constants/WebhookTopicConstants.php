@@ -6,6 +6,7 @@ final class WebhookTopicConstants
     public const COUPON_USED = 'coupon_used';
     public const TICKET_CREATE = 'ticket_create';
     public const TICKET_UPDATE = 'ticket_update';
+    public const INVOICE_UPLOAD = 'invoice_upload';
     public const PASSENGER_SERVED = 'passenger_served';
     public const PASSENGER_APPROVED = 'passenger_approved';
     public const PASSENGER_TRANSFERRED = 'passenger_transferred';
@@ -15,6 +16,7 @@ final class WebhookTopicConstants
         return match ($status) {
             self::COUPON_USED => 'Cupón utilizado',
             self::TICKET_CREATE => 'Ticket creado',
+            self::INVOICE_UPLOAD => 'Factura subida',
             self::TICKET_UPDATE => 'Ticket actualizado',
             self::PASSENGER_SERVED => 'Pasajero atendido',
             self::PASSENGER_APPROVED => 'Pasajero aprobado',
@@ -29,6 +31,7 @@ final class WebhookTopicConstants
             self::COUPON_USED,
             self::TICKET_CREATE,
             self::TICKET_UPDATE,
+            self::INVOICE_UPLOAD,
             self::PASSENGER_SERVED,
             self::PASSENGER_APPROVED,
             self::PASSENGER_TRANSFERRED,

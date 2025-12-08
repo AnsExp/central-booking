@@ -102,10 +102,4 @@ class Ticket
         $clone->total_amount = $this->total_amount;
         return $clone;
     }
-
-    public function get_brand_logo()
-    {
-        $custom_field = $this->get_meta('custome_field');
-        return 'https://img.freepik.com/vector-gratis/plantilla-diseno-logotipo-barco_23-2150391518.jpg';
-    }
 }

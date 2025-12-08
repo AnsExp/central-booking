@@ -2,6 +2,7 @@
 namespace CentralTickets\Placeholders;
 
 use CentralTickets\Components\StandaloneComponent;
+use CentralTickets\Constants\TicketConstants;
 use CentralTickets\Ticket;
 
 final class PlaceholderEngineTicket extends PlaceholderEngine
@@ -106,41 +107,56 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
             'description' => 'Estado actual del ticket',
             'parameters' => [],
         ]);
-        $this->add_placeholder('logo_sale', function (array $params) {
-            $size = 350;
-            if (str_contains($params['size'] ?? '350', 'px')) {
-                $size = (int) str_replace('px', '', $params['size']);
-            }
-            $coupon = $this->ticket->get_coupon();
-            if ($coupon === null) {
-                return 'Logo no disponible';
-            }
-            $operator = git_get_operator_by_coupon($coupon);
-            if ($operator === null || !$operator->logo_sale) {
-                return 'Logo no disponible';
-            }
-            if (!$operator->logo_sale) {
-                return 'Logo no disponible';
-            }
-            $logo_sale = get_post_meta($coupon->ID, 'logo_sale', true);
+        $this->add_placeholder('brand_media', function (array $params) {
+            $width = $params['width'] ?? null;
+            $height = $params['height'] ?? null;
             $img = new StandaloneComponent('img');
-            $img->set_attribute('src', $logo_sale);
-            $img->set_attribute('alt', 'Logo de Venta del Ticket');
+            if ($width !== null) {
+                if (str_contains($width, 'px')) {
+                    $width = (int) str_replace('px', '', $width);
+                }
+                $img->set_attribute('width', $width . 'px');
+            }
+            if ($height !== null) {
+                if (str_contains($height, 'px')) {
+                    $height = (int) str_replace('px', '', $height);
+                }
+                $img->set_attribute('height', $height . 'px');
+            }
+            $img->set_attribute('alt', 'Logo de la Venta');
+            $brand_media_url = git_get_map_setting('ticket_viewer.default_media') ?? '';
+            if ($this->ticket->status === TicketConstants::PAYMENT) {
+                if ($this->ticket->get_coupon() === null) {
+                    $brand_media_url = $this->ticket->get_passengers()[0]->get_transport()->get_operator()->brand_media ?: $brand_media_url;
+                } else {
+                    $brand_media_url = get_post_meta($this->ticket->get_coupon()->ID,'brand_media', true) ?: $brand_media_url;
+                }
+            }
+            $img->set_attribute('src', $brand_media_url);
             return $img->compact();
         });
-        $this->add_description('logo_sale', [
-            'title' => 'Logo de Venta del Ticket',
-            'description' => 'Logo de venta asociado al ticket',
+        $this->add_description('brand_media', [
+            'title' => 'Banner asociado a la venta',
+            'description' => 'Muestra el banner asociado a la venta. Primero, busca si el operador tiene un banner de venta. Si no lo tiene, busca el banner de venta del cupón de la venta. En caso de no encontrar un banner de cupón, no mostrará nada.',
             'parameters' => [
                 [
-                    'param' => 'size',
+                    'param' => 'width',
                     'values' => [
                         [
                             'value' => 'any-number',
-                            'description' => 'Tamaño del logo en píxeles (ej. 350px)'
+                            'description' => 'Ancho del banner en píxeles (ej. 350px)'
                         ]
                     ]
-                ]
+                ],
+                [
+                    'param' => 'height',
+                    'values' => [
+                        [
+                            'value' => 'any-number',
+                            'description' => 'Altura del banner en píxeles (ej. 350px)'
+                        ]
+                    ]
+                ],
             ],
         ]);
         $this->add_placeholder('qr_ticket', function (array $params) {

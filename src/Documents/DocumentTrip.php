@@ -38,7 +38,7 @@ final class DocumentTrip extends Document
     {
         ob_start();
         ?>
-        <title>ListaEmbarque<?= $this->transport->code . date('Ymd') ?></title>
+        <title>ListaEmbarque-<?= $this->transport->code . '-' . date('YmdHis') ?></title>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 

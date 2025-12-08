@@ -21,16 +21,16 @@ if (!defined('CENTRAL_BOOKING_URL')) {
 }
 
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
-    $links[] = '<a href="' . admin_url('admin.php?page=git_settings') . '">Ajustes</a>';
+    $links[] = '<a href="' . admin_url('admin.php?page=git-central') . '">Ajustes</a>';
     return $links;
 }, 10);
 
-$vendor = plugin_dir_path(__FILE__) . 'vendor/autoload.php';
+$vendor = CENTRAL_BOOKING_DIR . 'vendor/autoload.php';
 if (file_exists($vendor)) {
     require_once $vendor;
 }
 
-$bootstrapFile = plugin_dir_path(__FILE__) . 'src/Bootstrap.php';
+$bootstrapFile = CENTRAL_BOOKING_DIR . 'src/Bootstrap.php';
 if (!class_exists(\CentralTickets\Bootstrap::class) && file_exists($bootstrapFile)) {
     require_once $bootstrapFile;
 }

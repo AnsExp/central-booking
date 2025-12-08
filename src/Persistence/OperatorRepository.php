@@ -54,7 +54,6 @@ class OperatorRepository extends BaseRepository
 
     protected function build_count_query(): string
     {
-        global $wpdb;
         return "SELECT COUNT(DISTINCT u.id)
         FROM {$this->table_users} u
         LEFT JOIN {$this->table_users_meta} um ON um.user_id = u.id
@@ -98,7 +97,7 @@ class OperatorRepository extends BaseRepository
         update_user_meta($entity->ID, 'phone_number', $entity->phone);
         update_user_meta($entity->ID, 'business_plan_limit', $entity->get_business_plan()['limit']);
         update_user_meta($entity->ID, 'business_plan_counter', $entity->get_business_plan()['counter']);
-        update_user_meta($entity->ID, 'logo_sale', $entity->logo_sale ? 'on' : 'off');
+        update_user_meta($entity->ID, 'brand_media', $entity->brand_media);
 
         return $entity;
     }
@@ -107,7 +106,7 @@ class OperatorRepository extends BaseRepository
     {
         $operator = new Operator($result->ID);
         $operator->phone = get_user_meta($operator->ID, 'phone_number', true);
-        $operator->logo_sale = get_user_meta($operator->ID, 'logo_sale', true) === 'on';
+        $operator->brand_media = get_user_meta($operator->ID, 'brand_media', true);
 
         $bussines_plan_limit = get_user_meta($operator->ID, 'business_plan_limit', true);
         $bussines_plan_counter = get_user_meta($operator->ID, 'business_plan_counter', true);

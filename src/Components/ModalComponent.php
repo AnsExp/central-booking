@@ -4,7 +4,7 @@ namespace CentralTickets\Components;
 use CentralTickets\Components\Constants\ButtonActionConstants;
 use CentralTickets\Components\Constants\ButtonStyleConstants;
 
-class ModalComponent implements Component
+class ModalComponent implements Component, Displayer
 {
     private string $id;
     private string $title;
@@ -15,6 +15,11 @@ class ModalComponent implements Component
     {
         $this->title = $title;
         $this->id = 'modal-' . rand();
+    }
+
+    public function display()
+    {
+        echo $this->compact();
     }
 
     public function compact()
@@ -75,7 +80,7 @@ class ModalComponent implements Component
         return $this;
     }
 
-    public function create_button_launch(string $text = 'Launch Modal')
+    public function create_button_launch(string|Component $text = 'Launch Modal')
     {
         $button_launch = new ButtonComponent($text, ButtonActionConstants::BUTTON, ButtonStyleConstants::PRIMARY);
         $button_launch->set_attribute('data-bs-toggle', 'modal');

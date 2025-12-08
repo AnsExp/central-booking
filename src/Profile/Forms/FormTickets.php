@@ -31,53 +31,77 @@ class FormTickets implements Component
         $select_schedule = $combine->get_schedule_select('time');
         $select_transport = $combine->get_transport_select('transport');
         $date_trip_input->set_required(true);
+        $select_origin_floating_label = new InputFloatingLabelComponent($select_origin, 'Origen');
+        $select_destiny_floating_label = new InputFloatingLabelComponent($select_destiny, 'Destino');
+        $select_schedule_floating_label = new InputFloatingLabelComponent($select_schedule, 'Horario');
+        $select_transport_floating_label = new InputFloatingLabelComponent($select_transport, 'Transporte');
+        $input_date_trip_floating_label = new InputFloatingLabelComponent($date_trip_input, 'Fecha de viaje');
         ?>
         <form method="post" action="<?php echo esc_url(admin_url('admin-ajax.php?action=git_transfer_passengers')); ?>">
-            <?php
-            foreach ($passengers as $passenger):
-                $checkbox = new InputComponent('passengers[]', 'checkbox');
-                $checkbox->class_list->remove('form-control');
-                $checkbox->set_value($passenger->id);
+            <h2>Modo translado</h2>
+            <div class="bg-warning-subtle p-3 my-3 rounded">
+                <?php
+                $first = true;
+                $has_approveds = false;
+                foreach ($passengers as $passenger) {
+                    if (!$passenger->approved) {
+                        continue;
+                    }
+                    $checkbox = new InputComponent('passengers[]', 'checkbox');
+                    $checkbox->class_list->remove('form-control');
+                    $checkbox->set_value($passenger->id);
+                    $checkbox->class_list->add('me-3');
+                    $checkbox->display();
+                    $checkbox->get_label($passenger->name)->display();
+                    if ($first && count($passengers) > 1) {
+                        echo '<br>';
+                    }
+                    $first = false;
+                    $has_approveds = true;
+                }
+                if (!$has_approveds) {
+                    ?>
+                    <p>No hay pasajeros aprobados en este ticket. Las razones pueden incluir:</p>
+                    <ul>
+                        <li>El ticket no fue pagado.</li>
+                        <li>El ticket fue anulado.</li>
+                    </ul>
+                    <?php
+                }
                 ?>
-                <ul>
-                    <li>
-                        <?= $checkbox->compact(); ?>
-                        <?= $checkbox->get_label($passenger->name)->compact(); ?>
-                    </li>
-                </ul>
-            <?php endforeach;
-            $select_origin_floating_label = new InputFloatingLabelComponent($select_origin, 'Origen');
-            $select_destiny_floating_label = new InputFloatingLabelComponent($select_destiny, 'Destino');
-            $select_schedule_floating_label = new InputFloatingLabelComponent($select_schedule, 'Horario');
-            $select_transport_floating_label = new InputFloatingLabelComponent($select_transport, 'Transporte');
-            $input_date_trip_floating_label = new InputFloatingLabelComponent($date_trip_input, 'Fecha de viaje');
-            ?>
-            <div class="row">
-                <div class="col">
-                    <?= $select_origin_floating_label->compact(); ?>
-                </div>
-                <div class="col">
-                    <?= $select_destiny_floating_label->compact(); ?>
-                </div>
             </div>
-            <div class="row">
-                <div class="col">
-                    <?= $select_schedule_floating_label->compact(); ?>
+            <?php if ($has_approveds): ?>
+                <div class="row mb-3">
+                    <div class="col">
+                        <?= $select_origin_floating_label->compact(); ?>
+                    </div>
+                    <div class="col">
+                        <?= $select_destiny_floating_label->compact(); ?>
+                    </div>
                 </div>
-                <div class="col">
-                    <?= $select_transport_floating_label->compact(); ?>
+                <div class="row mb-3">
+                    <div class="col">
+                        <?= $select_schedule_floating_label->compact(); ?>
+                    </div>
+                    <div class="col">
+                        <?= $select_transport_floating_label->compact(); ?>
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col">
+                <div class="row mb-3">
+                    <div class="col">
+                        <?= $input_date_trip_floating_label->compact(); ?>
+                    </div>
                 </div>
-                <div class="col">
-                    <?= $input_date_trip_floating_label->compact(); ?>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">
-                Guardar cambios
-            </button>
+            <?php endif; ?>
+            <a class="btn btn-danger" href="<?= esc_url(add_query_arg([
+                'action' => 'view_order',
+                'order' => $ticket->get_order()->get_id(),
+            ])) ?>">Cancelar</a>
+            <?php if ($has_approveds): ?>
+                <button type="submit" class="btn btn-primary">
+                    Guardar cambios
+                </button>
+            <?php endif; ?>
         </form>
         <?php
         return ob_get_clean();

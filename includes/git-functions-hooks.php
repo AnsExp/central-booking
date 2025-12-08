@@ -1,9 +1,21 @@
 <?php
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormZone;
+use CentralTickets\Admin\Setting\SettingsGeneral;
+use CentralTickets\Admin\Setting\SettingsTickets;
+use CentralTickets\Admin\View\TableCoupons;
+use CentralTickets\Admin\View\TableOperators;
+use CentralTickets\Admin\View\TableRoutes;
+use CentralTickets\Admin\View\TableServices;
+use CentralTickets\Admin\View\TableTickets;
+use CentralTickets\Admin\View\TableTransports;
+use CentralTickets\Admin\View\TableZones;
 use CentralTickets\ConnectorManager;
 use CentralTickets\Constants\TicketConstants;
 use CentralTickets\Constants\TimeExpirationConstants;
 use CentralTickets\Constants\TransportConstants;
+use CentralTickets\Constants\TransportCustomeFieldConstants;
 use CentralTickets\Constants\TypeWayConstants;
 use CentralTickets\Constants\UserConstants;
 use CentralTickets\Constants\WebhookStatusConstants;
@@ -14,6 +26,7 @@ use CentralTickets\Persistence\RouteRepository;
 use CentralTickets\Persistence\ZoneRepository;
 use CentralTickets\REST\RegisterRoute;
 use CentralTickets\Services\Actions\DateTrip;
+use CentralTickets\Services\Actions\DownloadInvoiceInfo;
 use CentralTickets\Services\Actions\TransferPassengers;
 use CentralTickets\Services\ArrayParser\PassengerArray;
 use CentralTickets\Services\LocationService;
@@ -72,9 +85,9 @@ add_action('wp_ajax_git_update_coupon_status', function () {
     }
 
     $service = new TicketService();
-    $result = $service->change_ticket_status($ticket_id, $status);
+    $ticket = $service->change_ticket_status($ticket_id, $status);
 
-    if ($result === null) {
+    if ($ticket === null) {
         wp_send_json(['message' => 'Ha ocurrido un error al cambiar el estado del ticket.'], 400);
         return;
     }
@@ -104,6 +117,11 @@ add_action('wp_ajax_git_update_coupon_status', function () {
         wp_send_json(['message' => $service->error_stack], 400);
         return;
     }
+
+    WebhookManager::get_instance()->trigger(
+        WebhookTopicConstants::INVOICE_UPLOAD,
+        $ticket->get_meta('proof_payment') ?? [],
+    );
 
     wp_send_json([
         'message' => 'Operación completada con éxito.',
@@ -200,12 +218,12 @@ add_action('wp_ajax_git_transfer_passengers', function () {
         $route,
         $transport,
         $_POST['date_trip'] ?? '',
-        $_POST['passengers'] ?? []
+        $_POST['passengers'] ? array_map('intval', $_POST['passengers']) : []
     );
 
     $array_parser = new PassengerArray();
     foreach ($_POST['passengers'] as $passenger_id) {
-        $passenger = git_get_passenger_by_id($passenger_id);
+        $passenger = git_get_passenger_by_id((int) $passenger_id);
         if ($passenger) {
             $payload = $array_parser->get_array($passenger);
             WebhookManager::get_instance()->trigger(
@@ -216,7 +234,7 @@ add_action('wp_ajax_git_transfer_passengers', function () {
     }
 
     if ($result) {
-        wp_send_json_success(['message' => 'Traslado exitoso.']);
+        wp_send_json_success($_POST);
     } else {
         wp_send_json_error(['message' => 'Error al realizar el traslado.']);
     }
@@ -257,12 +275,12 @@ add_action('wp_ajax_git_toggle_flexible', function () {
     $force = isset($_POST['flexible']) ? (bool) $_POST['flexible'] : !$ticket->flexible;
     $service = new TicketService();
     $service->toggle_flexible($ticket->id, $force);
-    wp_redirect(remove_query_arg(['action'], wp_get_referer()));
+    wp_safe_redirect(AdminRouter::get_url_for_class(TableTickets::class));
     exit;
 });
 
 add_action('wp_ajax_git_transport_form', function () {
-    $data = json_decode(stripslashes($_POST['data']), true);
+    $data = $_POST;
     $service = new TransportService();
     $result = $service->save(
         new TransportData(
@@ -273,30 +291,28 @@ add_action('wp_ajax_git_transport_form', function () {
             (int) ($data['operator'] ?? 0),
             (int) ($data['flexible'] ?? false),
             $data['crew'] ?? [],
-            $data['working_days'] ?? [],
+            $data['days'] ?? [],
             $data['services'] ?? [],
             $data['routes'] ?? [],
             $data['alias'] ?? [],
         ),
         (int) ($data['id'] ?? 0),
     );
-
     if ($result === null) {
         wp_send_json([
             'message' => 'Error al guardar el transporte.',
         ], 400);
     } else {
-        MetaManager::set_meta(MetaManager::TRANSPORT, $result->id, 'custom_field', [
-            'content' => $data['custom_field_content'] ?? '',
-            'topic' => $data['custom_field_topic'] ?? 'text',
-        ]);
-        MetaManager::set_meta(MetaManager::TRANSPORT, $result->id, 'photo_url', $data['photo_url'] ?? '');
-        wp_send_json([
-            'message' => 'Transporte guardado correctamente.',
-        ], 200);
+        if (TransportCustomeFieldConstants::is_valid($data['custom_field_topic'] ?? '')) {
+            MetaManager::set_meta(MetaManager::TRANSPORT, $result->id, 'custom_field', [
+                'content' => $data['custom_field_content'] ?? '',
+                'topic' => $data['custom_field_topic'] ?? TransportCustomeFieldConstants::TEXT,
+            ]);
+            MetaManager::set_meta(MetaManager::TRANSPORT, $result->id, 'photo_url', $data['photo_url'] ?? '');
+        }
+        wp_safe_redirect(AdminRouter::get_url_for_class(TableTransports::class));
+        exit;
     }
-
-    wp_die();
 });
 
 add_action('wp_ajax_git_update_location', function () {
@@ -320,21 +336,22 @@ add_action('wp_ajax_git_update_location', function () {
     exit;
 });
 
-add_action('wp_ajax_git_modify_operator', function () {
+add_action('wp_ajax_git_update_operator', function () {
     if (!wp_verify_nonce($_POST['nonce'], 'git_operator_form_nonce')) {
         wp_send_json(
             ['message' => 'Conflictos de seguridad'],
             400
         );
+        exit;
     } else {
         $operator_data = new OperatorData(
             $_POST['firstname'],
             $_POST['lastname'],
             $_POST['phone'],
-            json_decode(stripslashes($_POST['coupons']), true),
+            array_map('intval', $_POST['coupons']),
             $_POST['coupons_counter'],
             $_POST['coupons_limit'],
-            isset($_POST['logo_sale']),
+            $_POST['brand_media'],
         );
         $result = (new OperatorService())->save(
             $operator_data,
@@ -346,17 +363,15 @@ add_action('wp_ajax_git_modify_operator', function () {
                 400
             );
         } else {
-            wp_send_json(
-                ['message' => '¡Operador guardado exitosamente!'],
-                200
-            );
+            wp_safe_redirect(AdminRouter::get_url_for_class(TableOperators::class));
         }
+        exit;
     }
-    wp_die();
 });
 
 
-add_action('wp_ajax_git_form_route', function () {
+add_action('wp_ajax_git_edit_route', function () {
+    echo json_encode($_POST);
     $service = new RouteService();
     $result = $service->save(
         new RouteData(
@@ -372,9 +387,9 @@ add_action('wp_ajax_git_form_route', function () {
     );
     if ($result === null) {
         wp_send_json_error($service->error_stack);
-        return;
     }
-    wp_send_json_success('Ruta creada con éxito.');
+    wp_safe_redirect(AdminRouter::get_url_for_class(TableRoutes::class));
+    exit;
 });
 
 
@@ -401,32 +416,30 @@ add_action('wp_ajax_git_service_form', function () {
         return;
     }
 
-    wp_send_json_success([
-        'message' => 'Service form loaded successfully.',
-    ]);
+    wp_safe_redirect(AdminRouter::get_url_for_class(TableServices::class));
+    exit;
 });
 
 add_action('wp_ajax_git_edit_coupon', function () {
-    $id = (int) ($_POST['id'] ?? '0');
-    $code = $_POST['code'] ?? '';
-    $logo_sale = $_POST['logo_sale'] ?? '';
-    $operator = (int) ($_POST['operator'] ?? '0');
+    $coupon_id = $_POST['coupon'] ?? '0';
+    $brand_media = $_POST['brand_media'] ?? '';
 
-    $coupon = git_get_coupon_by_id($id);
-    $operator = git_get_operator_by_id($operator);
+    $coupon = git_get_coupon_by_id(intval($coupon_id));
 
-    if (!$coupon || !$operator) {
+    if (!$coupon) {
         wp_redirect(wp_get_referer());
         exit;
     }
 
-    $coupon->post_title = $code;
+    $operator = git_get_operator_by_coupon($coupon);
+
     git_get_query_persistence()->get_coupon_repository()->assign_coupon_to_operator(
         $coupon,
         $operator
     );
-    update_post_meta($coupon->ID, 'logo_sale', $logo_sale);
-    wp_redirect(admin_url('admin.php?page=central_marketing'));
+
+    update_post_meta($coupon->ID, 'brand_media', $brand_media);
+    wp_redirect(AdminRouter::get_url_for_class(TableCoupons::class));
     exit;
 });
 
@@ -438,11 +451,11 @@ add_action('wp_ajax_git_update_zone', function () {
     $name = $_POST['name'] ?? '';
     $id = $_POST['id'] ?? '0';
     if (empty($name)) {
-        wp_redirect(wp_get_referer());
+        wp_redirect(AdminRouter::get_url_for_class(FormZone::class));
         exit;
     }
-    if (empty($id) || !is_numeric($id)) {
-        wp_redirect(wp_get_referer());
+    if (empty($name) || !is_numeric($id)) {
+        wp_redirect(AdminRouter::get_url_for_class(FormZone::class));
         exit;
     }
     $service = new ZoneRepository();
@@ -452,7 +465,7 @@ add_action('wp_ajax_git_update_zone', function () {
     }
     $zone->name = $name;
     $service->save($zone);
-    wp_redirect(remove_query_arg(['action', 'id'], wp_get_referer()));
+    wp_redirect(AdminRouter::get_url_for_class(TableZones::class));
     exit;
 });
 
@@ -530,9 +543,10 @@ add_action('wp_ajax_git_export_data', function () {
         isset($_POST['settings_data']),
         isset($_POST['entities_data']),
         isset($_POST['products_data']),
+        isset($_POST['operators_data']),
+        isset($_POST['coupons_data']),
     );
-    wp_send_json_success(base64_encode(git_serialize($data)));
-    exit;
+    wp_send_json_success(git_serialize($data));
 });
 
 add_action('wp_ajax_git_import_data', function () {
@@ -545,40 +559,34 @@ add_action('wp_ajax_git_import_data', function () {
 
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         error_log('[central-tickets] Import file upload error: ' . ($file['error'] ?? 'no_file'));
-        wp_redirect(wp_get_referer());
+        wp_safe_redirect(AdminRouter::get_url_for_class(SettingsGeneral::class));
         exit;
     }
 
     $tmp = $file['tmp_name'];
     if (!is_uploaded_file($tmp) || !is_readable($tmp)) {
         error_log('[central-tickets] Uploaded file not readable: ' . $tmp);
-        wp_redirect(wp_get_referer());
+        wp_safe_redirect(AdminRouter::get_url_for_class(SettingsGeneral::class));
         exit;
     }
 
     $content = file_get_contents($tmp);
     if ($content === false) {
         error_log('[central-tickets] Failed reading uploaded file: ' . $tmp);
-        wp_redirect(wp_get_referer());
+        wp_safe_redirect(AdminRouter::get_url_for_class(SettingsGeneral::class));
         exit;
     }
 
-    $content_decoded = base64_decode($content, true);
-    if ($content_decoded === false) {
-        error_log('[central-tickets] Failed decoding uploaded file content: ' . $tmp);
-        wp_redirect(wp_get_referer());
-        exit;
-    }
-
-    $payload = json_decode($content_decoded, true);
+    $payload = json_decode($content, true);
     if (!is_array($payload)) {
         error_log('[central-tickets] Uploaded file content is not valid JSON: ' . $tmp);
-        wp_redirect(wp_get_referer());
+        wp_safe_redirect(AdminRouter::get_url_for_class(SettingsGeneral::class));
         exit;
     }
 
     (new Migration)->set_data($payload);
     wp_redirect(wp_get_referer());
+    wp_safe_redirect(AdminRouter::get_url_for_class(SettingsGeneral::class));
     exit;
 });
 
@@ -591,6 +599,7 @@ add_action('git_settings_clients', function () {
     $standard_message = git_sanitize_html_content(stripslashes($_POST['standard_message']));
     $flexible_message = git_sanitize_html_content(stripslashes($_POST['flexible_message']));
     $terms_conditions = git_sanitize_html_content(stripslashes($_POST['terms_conditions']));
+    $days_without_sale = (int) ($_POST['days_without_sale'] ?? 0);
 
     git_set_setting('form_message_kid', $kid_message);
     git_set_setting('form_message_rpm', $rpm_message);
@@ -600,25 +609,21 @@ add_action('git_settings_clients', function () {
     git_set_setting('form_message_flexible', $flexible_message);
     git_set_setting('form_message_request_seats', $request_seats);
     git_set_setting('form_message_terms_conditions', $terms_conditions);
-});
-
-add_action('git_settings_general', function () {
-    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'git_settings_nonce')) {
-        wp_die('Security check failed');
-    }
-
-    $date_min_buyer = sanitize_text_field($_POST['date_min_buyer'] ?? '');
-    $date_min_buyer_custome = absint($_POST['date_min_buyer_custome'] ?? 0);
-
-    $message_checkout = git_sanitize_html_content(stripslashes($_POST['message_checkout'] ?? ''));
-
-    git_set_setting('message_checkout', $message_checkout);
-    DateTrip::set_rule($date_min_buyer, $date_min_buyer_custome);
+    DateTrip::set_days_without_sale($days_without_sale);
 });
 
 add_action('git_settings_notifications', function () {
-    $notification_email = git_sanitize_html_content(stripslashes($_POST['notification_email']));
-    git_set_setting('notification_email', $notification_email);
+    $title = $_POST['title_notification_email'] ?? '';
+    $sender = $_POST['sender_notification_email'] ?? '';
+    $content = git_sanitize_html_content(stripslashes($_POST['notification_email']));
+    $message_checkout = git_sanitize_html_content(stripslashes($_POST['message_checkout'] ?? ''));
+
+    git_set_setting('notification_email', [
+        'title' => $title,
+        'sender' => $sender,
+        'content' => $content,
+    ]);
+    git_set_setting('message_checkout', $message_checkout);
 });
 
 add_action('git_settings_operators', function () {
@@ -693,17 +698,23 @@ add_action('git_settings_texts', function () {
 
 add_action('git_settings_tickets', function () {
     $page_viewer = $_POST['page_viewer'] ?? -1;
+    $viewer_js = git_sanitize_html_content(stripslashes($_POST['viewer_js']));
     $viewer_css = git_sanitize_html_content(stripslashes($_POST['viewer_css']));
     $ticket_viewer_html = git_sanitize_html_content(stripslashes($_POST['ticket_viewer_html']));
     $passenger_viewer_html = git_sanitize_html_content(stripslashes($_POST['passenger_viewer_html']));
+    $default_media = sanitize_text_field($_POST['default_media'] ?? '');
 
     git_set_setting('ticket_viewer', [
         'page_viewer' => $page_viewer,
+        'viewer_js' => $viewer_js,
         'viewer_css' => $viewer_css,
         'ticket_viewer_html' => $ticket_viewer_html,
-        'passenger_viewer_html' => $passenger_viewer_html
+        'passenger_viewer_html' => $passenger_viewer_html,
+        'default_media' => $default_media,
     ]);
 
+    wp_safe_redirect(AdminRouter::get_url_for_class(SettingsTickets::class));
+    exit;
 });
 
 
@@ -719,4 +730,42 @@ add_action('git_settings_webhooks', function () {
     $webhook->topic = sanitize_text_field($_POST['topic'] ?? 'none');
     $webhook->url_delivery = esc_url_raw($_POST['delivery_url'] ?? '');
     $webhook_manager->save($webhook);
+});
+
+add_action('admin_post_download_invoice_csv', function () {
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'download_invoice')) {
+        wp_die('Token de seguridad inválido');
+    }
+    $operator = git_get_operator_by_id($_POST['operator'] ?? -1);
+    if (!$operator) {
+        wp_die('Operador no válido');
+    }
+    $downloader = new DownloadInvoiceInfo();
+    $downloader->download_csv(
+        $operator,
+        $_POST['date_start'] ?? date('Y-m-01'),
+        $_POST['date_end'] ?? date('Y-m-t'),
+        get_post($_POST['coupon'] ?? null),
+        $_POST['columns'] ?? [],
+    );
+    wp_safe_redirect($_POST['_wp_http_referer'] ?? admin_url());
+    exit;
+});
+
+add_action('wp_ajax_git_qr_generator', function () {
+    $placeholder = 'https://api.qrserver.com/v1/create-qr-code/?size={width}x{width}&data={data}';
+    $data = $_POST['data'] ?? '';
+    $type = $_POST['type'] ?? 'text';
+    $width = $_POST['width'] ?? '100';
+    if ($type === 'text' || $type === 'url') {
+        $placeholder = str_replace('{data}', urlencode($data), $placeholder);
+    } elseif ($type === 'email') {
+        $placeholder = str_replace('{data}', 'mailto:' . urlencode($data), $placeholder);
+    } elseif ($type === 'phone') {
+        $placeholder = str_replace('{data}', 'tel:' . urlencode($data), $placeholder);
+    // } elseif ($type === 'wifi') {
+    //     $placeholder = str_replace('{data}', 'WIFI:' . urlencode($data), $placeholder);
+    }
+    $placeholder = str_replace('{width}', $width, $placeholder);
+    wp_send_json_success($placeholder);
 });

@@ -1,29 +1,18 @@
 <?php
 namespace CentralTickets;
 
-use CentralTickets\Admin\ActivitiesLogView;
 use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\LocationsView;
-use CentralTickets\Admin\MarketingView;
-use CentralTickets\Admin\OperatorsView;
-use CentralTickets\Admin\PassengersView;
-use CentralTickets\Admin\RoutesView;
-use CentralTickets\Admin\ServicesView;
-use CentralTickets\Admin\Setting\SettingsDashboard;
-use CentralTickets\Admin\TicketsView;
-use CentralTickets\Admin\TransportsView;
-use CentralTickets\Admin\View\TableOperators;
-use CentralTickets\Admin\View\TablePassengersLog;
-use CentralTickets\Admin\View\TableTicketsLog;
 use CentralTickets\Client\TicketViewer;
 use CentralTickets\Components\CompositeComponent;
+use CentralTickets\Constants\UserConstants;
 use CentralTickets\Preorder\PreorderDashboard;
 use CentralTickets\Profile\ProfileDashboard;
 use CentralTickets\REST\EndpointsConnectorsOperators;
 use CentralTickets\REST\EndpointsPDF;
 use CentralTickets\REST\EndpointsPreorder;
-use CentralTickets\REST\EndpointsTransports;
+use CentralTickets\REST\EndpointsRoosevelt;
 use CentralTickets\REST\RegisterRoute;
+use DateTime;
 
 final class Bootstrap
 {
@@ -60,16 +49,8 @@ final class Bootstrap
         add_action('rest_api_init', function () {
             (new EndpointsPDF())->init_endpoints();
             (new EndpointsPreorder())->init_endpoints();
-            // (new EndpointsTransports())->init_endpoints();
+            (new EndpointsRoosevelt())->init_endpoints();
             (new EndpointsConnectorsOperators())->init_endpoints();
-            RegisterRoute::register(
-                'verify_signed_pdf',
-                'POST',
-                function () {
-                    $verifier = new Services\Actions\SignedPDF();
-                    return $verifier->verifySigned($_FILES['pdf_signed']['tmp_name'] ?? '');
-                }
-            );
         });
     }
 
@@ -143,7 +124,8 @@ final class Bootstrap
 
     private function init_admin_menu()
     {
-        add_role('operator', 'Operador', ['read' => true]);
+        add_role(UserConstants::OPERATOR, 'Operador', ['read' => true]);
+        add_role(UserConstants::MARKETER, 'Comercializador', ['read' => true]);
         add_action('admin_menu', function () {
             wp_enqueue_style(
                 'icons-bootstrap',
@@ -166,113 +148,141 @@ final class Bootstrap
                     'Central Reservas',
                     'Central Reservas',
                     'manage_options',
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     function () {
-                        (new SettingsDashboard())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_CENTRAL_BOOKING,
+                            $_GET['action'] ?? null,
+                        );
+                        ?>
+                    <div class="notice notice-info" style="padding:16px; margin-bottom:16px;">
+                        <h2 style="margin-top:0;">Central Reservas - Versión del Plugin</h2>
+                        <p>
+                            <strong>Versión actual:</strong> 1.0
+                        </p>
+                        <p style="color:#666;">
+                            Última actualización: <?= git_date_format((new DateTime('@' . filemtime(__FILE__)))->format('Y-m-d')) ?> </p>
+                    </div>
+                    <?php
                     },
                     'dashicons-tickets',
                     6
                 );
                 add_submenu_page(
-                    'central_booking',
-                    'Marketing',
-                    'Marketing',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
+                    'Comercializador',
+                    'Comercializador',
                     'manage_options',
-                    'central_marketing',
+                    AdminRouter::PAGE_MARKETING,
                     function () {
-                        (new MarketingView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_MARKETING,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Pasajeros',
                     'Pasajeros',
                     'manage_options',
-                    'central_passengers',
+                    AdminRouter::PAGE_PASSENGERS,
                     function () {
-                        (new PassengersView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_PASSENGERS,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Tickets',
                     'Tickets',
                     'manage_options',
-                    'central_tickets',
+                    AdminRouter::PAGE_TICKETS,
                     function () {
-                        (new TicketsView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_TICKETS,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Transportes',
                     'Transportes',
                     'manage_options',
-                    'central_transports',
+                    AdminRouter::PAGE_TRANSPORTS,
                     function () {
-                        (new TransportsView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_TRANSPORTS,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Rutas',
                     'Rutas',
                     'manage_options',
-                    'central_routes',
+                    AdminRouter::PAGE_ROUTES,
                     function () {
-                        (new RoutesView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_ROUTES,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Servicios',
                     'Servicios',
                     'manage_options',
-                    'central_services',
+                    AdminRouter::PAGE_SERVICES,
                     function () {
-                        (new ServicesView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_SERVICES,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Ubicaciones',
                     'Ubicaciones',
                     'manage_options',
-                    'central_locations',
+                    AdminRouter::PAGE_LOCATIONS,
                     function () {
-                        (new LocationsView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_LOCATIONS,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Operadores',
                     'Operadores',
                     'manage_options',
-                    'central_operators',
+                    AdminRouter::PAGE_OPERATORS,
                     function () {
-                        (new OperatorsView())->display();
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_OPERATORS,
+                            $_GET['action'] ?? null,
+                        );
                     }
                 );
                 add_submenu_page(
-                    'central_booking',
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
                     'Log de Actividades',
                     'Log de Actividades',
                     'manage_options',
-                    'central_activity',
+                    AdminRouter::PAGE_ACTIVITIES_LOGS,
                     function () {
-                        AdminRouter::add_route(
-                            'passengers_log',
-                            'Pasajeros',
-                            TablePassengersLog::class,
-                            'central_activity'
+                        AdminRouter::render_page(
+                            AdminRouter::PAGE_ACTIVITIES_LOGS,
+                            $_GET['action'] ?? null,
                         );
-                        AdminRouter::add_route(
-                            'tickets_log',
-                            'Tickets',
-                            TableTicketsLog::class,
-                            'central_activity'
-                        );
-                        AdminRouter::render_content('central_activity');
                     }
                 );
             }

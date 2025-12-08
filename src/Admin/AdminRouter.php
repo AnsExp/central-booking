@@ -1,329 +1,446 @@
 <?php
 namespace CentralTickets\Admin;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\TextComponent;
+use CentralTickets\Admin\Form\FormCoupon;
+use CentralTickets\Admin\Form\FormLocation;
+use CentralTickets\Admin\Form\FormOperator;
+use CentralTickets\Admin\Form\FormOperatorsExternal;
+use CentralTickets\Admin\Form\FormQRCode;
+use CentralTickets\Admin\Form\FormRoute;
+use CentralTickets\Admin\Form\FormService;
+use CentralTickets\Admin\Form\FormTransfer;
+use CentralTickets\Admin\Form\FormTransport;
+use CentralTickets\Admin\Form\FormWebhook;
+use CentralTickets\Admin\Form\FormZone;
+use CentralTickets\Admin\Setting\SettingsClients;
+use CentralTickets\Admin\Setting\SettingsGeneral;
+use CentralTickets\Admin\Setting\SettingsNotifications;
+use CentralTickets\Admin\Setting\SettingsOperators;
+use CentralTickets\Admin\Setting\SettingsPreorder;
+use CentralTickets\Admin\Setting\SettingsTexts;
+use CentralTickets\Admin\Setting\SettingsTickets;
+use CentralTickets\Admin\Setting\SettingsWebhooks;
+use CentralTickets\Admin\View\TableCoupons;
+use CentralTickets\Admin\View\TableLocations;
+use CentralTickets\Admin\View\TableOperators;
+use CentralTickets\Admin\View\TablePassengers;
+use CentralTickets\Admin\View\TablePassengersLog;
+use CentralTickets\Admin\View\TableRoutes;
+use CentralTickets\Admin\View\TableServices;
+use CentralTickets\Admin\View\TableTickets;
+use CentralTickets\Admin\View\TableTicketsLog;
+use CentralTickets\Admin\View\TableTransports;
+use CentralTickets\Admin\View\TableZones;
 
 final class AdminRouter
 {
-    private static $routes = [];
+    public const PAGE_CENTRAL_BOOKING = 'git-central';
+    public const PAGE_MARKETING = 'git-marketing';
+    public const PAGE_PASSENGERS = 'git-passengers';
+    public const PAGE_TICKETS = 'git-tickets';
+    public const PAGE_TRANSPORTS = 'git-transports';
+    public const PAGE_ROUTES = 'git-routes';
+    public const PAGE_SERVICES = 'git-services';
+    public const PAGE_LOCATIONS = 'git-locations';
+    public const PAGE_OPERATORS = 'git-operators';
+    public const PAGE_ACTIVITIES_LOGS = 'git-activity-logs';
 
-    public static function add_route(
-        string $slug,
-        string $title,
-        string $classname,
-        ?string $parent = null,
-    ) {
-        if (!is_subclass_of($classname, Displayer::class)) {
-            return;
-        }
-        self::$routes[$slug] = [
-            'title' => $title,
-            'parent' => $parent,
-            'content' => $classname
-        ];
-    }
+    private static array $route_mappings = [
+        self::PAGE_CENTRAL_BOOKING => [
+            'default_action' => 'general',
+            'header' => 'Central Reservas',
+            'tabpane' => true,
+            'actions' => [
+                'general' => [
+                    'tab_label' => 'General',
+                    'target' => SettingsGeneral::class,
+                    'is_tab' => true,
+                ],
+                'booking' => [
+                    'tab_label' => 'Reseva',
+                    'target' => SettingsClients::class,
+                    'is_tab' => true,
+                ],
+                'tickets' => [
+                    'tab_label' => 'Tickets',
+                    'target' => SettingsTickets::class,
+                    'is_tab' => true,
+                ],
+                'operators' => [
+                    'tab_label' => 'Operadores',
+                    'target' => SettingsOperators::class,
+                    'is_tab' => true,
+                ],
+                'labels' => [
+                    'tab_label' => 'Etiquetas',
+                    'target' => SettingsTexts::class,
+                    'is_tab' => true,
+                ],
+                'preorder' => [
+                    'tab_label' => 'Preorder',
+                    'target' => SettingsPreorder::class,
+                    'is_tab' => true,
+                ],
+                'webhooks' => [
+                    'tab_label' => 'Webhooks',
+                    'target' => SettingsWebhooks::class,
+                    'is_tab' => true,
+                    'redirects' => [
+                        [
+                            'label' => 'Crear webhook',
+                            'to' => FormWebhook::class,
+                        ]
+                    ],
+                ],
+                'messenger' => [
+                    'tab_label' => 'Notificaciones',
+                    'target' => SettingsNotifications::class,
+                    'is_tab' => true,
+                ],
+                'edit_webhook' => [
+                    'tab_label' => 'Editar Webhook',
+                    'target' => FormWebhook::class,
+                    'is_tab' => false,
+                ],
+            ],
+        ],
+        self::PAGE_MARKETING => [
+            'header' => 'Comercializador',
+            'default_action' => 'list_flyers',
+            'tabpane' => true,
+            'actions' => [
+                'list_flyers' => [
+                    'is_tab' => true,
+                    'tab_label' => 'Flyer de Comercializador',
+                    'target' => TableCoupons::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Asignar Flyer',
+                            'to' => FormCoupon::class,
+                        ]
+                    ],
+                ],
+                'edit_coupon' => [
+                    'is_tab' => false,
+                    'target' => FormCoupon::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Lista de Flyers',
+                            'to' => TableCoupons::class,
+                        ]
+                    ],
+                ],
+                'qr_generator' => [
+                    'is_tab' => true,
+                    'tab_label' => 'Generador QR',
+                    'target' => FormQRCode::class,
+                ],
+            ],
+        ],
+        self::PAGE_PASSENGERS => [
+            'header' => 'Pasajeros',
+            'default_action' => 'list',
+            'actions' => [
+                'list' => [
+                    'target' => TablePassengers::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Modo Traslado',
+                            'to' => FormTransfer::class,
+                        ]
+                    ],
+                ],
+                'transfer' => [
+                    'target' => FormTransfer::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => TablePassengers::class,
+                        ]
+                    ],
+                ],
+            ],
+        ],
+        self::PAGE_TICKETS => [
+            'header' => 'Tickets',
+            'default_action' => 'list',
+            'actions' => [
+                'list' => [
+                    'target' => TableTickets::class,
+                ],
+            ],
+        ],
+        self::PAGE_TRANSPORTS => [
+            'header' => 'Transportes',
+            'default_action' => 'list',
+            'actions' => [
+                'list' => [
+                    'target' => TableTransports::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Añadir nuevo',
+                            'to' => FormTransport::class,
+                        ]
+                    ],
+                ],
+                'edit' => [
+                    'target' => FormTransport::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => TableTransports::class,
+                        ]
+                    ],
+                ],
+            ],
+        ],
+        self::PAGE_ROUTES => [
+            'header' => 'Rutas',
+            'default_action' => 'list',
+            'actions' => [
+                'list' => [
+                    'target' => TableRoutes::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Añadir nuevo',
+                            'to' => FormRoute::class,
+                        ]
+                    ],
+                ],
+                'edit' => [
+                    'target' => FormRoute::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => TableRoutes::class,
+                        ]
+                    ],
+                ],
+            ],
+        ],
+        self::PAGE_SERVICES => [
+            'header' => 'Servicios',
+            'default_action' => 'list',
+            'actions' => [
+                'list' => [
+                    'target' => TableServices::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Añadir nuevo',
+                            'to' => FormService::class,
+                        ]
+                    ],
+                ],
+                'edit' => [
+                    'target' => FormService::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => TableServices::class,
+                        ]
+                    ],
+                ],
+            ],
+        ],
+        self::PAGE_LOCATIONS => [
+            'header' => 'Ubicaciones',
+            'tabpane' => true,
+            'default_action' => 'list_locations',
+            'actions' => [
+                'list_locations' => [
+                    'tab_label' => 'Ubicaciones',
+                    'target' => TableLocations::class,
+                    'is_tab' => true,
+                    'redirects' => [
+                        [
+                            'label' => 'Añadir nuevo',
+                            'to' => FormLocation::class,
+                        ]
+                    ],
+                ],
+                'edit_location' => [
+                    'target' => FormLocation::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => TableLocations::class,
+                        ]
+                    ],
+                ],
+                'list_zones' => [
+                    'tab_label' => 'Zonas',
+                    'target' => TableZones::class,
+                    'is_tab' => true,
+                    'redirects' => [
+                        [
+                            'label' => 'Añadir nuevo',
+                            'to' => FormZone::class,
+                        ]
+                    ],
+                ],
+                'edit_zone' => [
+                    'target' => FormZone::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => TableZones::class,
+                        ]
+                    ],
+                ],
+            ],
+        ],
+        self::PAGE_OPERATORS => [
+            'header' => 'Operadores',
+            'default_action' => 'list',
+            'actions' => [
+                'list' => [
+                    'target' => TableOperators::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Conectar operador externo',
+                            'to' => FormOperatorsExternal::class,
+                        ]
+                    ],
+                ],
+                'edit' => [
+                    'target' => FormOperator::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Listar operadores',
+                            'to' => TableOperators::class,
+                        ]
+                    ],
+                ],
+                'connector' => [
+                    'target' => FormOperatorsExternal::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Listar operadores',
+                            'to' => TableOperators::class,
+                        ]
+                    ],
+                ],
+            ],
+        ],
+        self::PAGE_ACTIVITIES_LOGS => [
+            'header' => 'Log de Actividades',
+            'tabpane' => true,
+            'default_action' => 'list_tickets',
+            'actions' => [
+                'list_tickets' => [
+                    'tab_label' => 'Tickets',
+                    'target' => TableTicketsLog::class,
+                    'is_tab' => true,
+                ],
+                'list_passengers' => [
+                    'tab_label' => 'Pasajeros',
+                    'target' => TablePassengersLog::class,
+                    'is_tab' => true,
+                ],
+            ],
+        ],
+    ];
 
     /**
-     * Renderizar contenido basado en la ruta solicitada
+     * Obtener página y acción para una clase específica
      */
-    public static function render_content(string $page_slug)
+    public static function get_route_for_class(string $classname): ?array
     {
-        // Determinar qué contenido renderizar
-        $target_slug = self::resolve_target_slug($page_slug);
-        
-        if (!$target_slug) {
-            echo '<div class="notice notice-error"><p>Página no encontrada</p></div>';
-            return;
-        }
-
-        // Renderizar tabs si es necesario
-        $route = self::$routes[$target_slug];
-        if ($route['parent'] !== null) {
-            $siblings = self::get_childs($route['parent']);
-            if (count($siblings) > 1) {
-                echo self::get_tabpane($siblings, $target_slug);
-            }
-        } else {
-            // Es página principal, verificar si tiene hijos para mostrar tabs
-            $children = self::get_childs($target_slug);
-            if (count($children) > 1) {
-                // Si hay un slug específico en GET, usarlo; si no, el primero
-                $active_child = $_GET['slug'] ?? array_key_first($children);
-                if (isset($children[$active_child])) {
-                    echo self::get_tabpane($children, $active_child);
-                    $target_slug = $active_child; // Renderizar el hijo activo
+        foreach (self::$route_mappings as $page => $config) {
+            foreach ($config['actions'] as $action => $class) {
+                if (!isset($class['target'])) {
+                    continue;
+                }
+                if ($class['target'] === $classname) {
+                    return [
+                        'page' => $page,
+                        'action' => $action
+                    ];
                 }
             }
         }
-
-        // Renderizar el contenido
-        if (isset(self::$routes[$target_slug])) {
-            (new self::$routes[$target_slug]['content'])->display();
-        }
-    }
-
-    /**
-     * Resolver qué slug debe renderizarse basado en los parámetros GET
-     */
-    private static function resolve_target_slug(string $page_slug): ?string
-    {
-        $requested_slug = $_GET['slug'] ?? '';
-        
-        // Si hay un slug específico solicitado y existe, usarlo
-        if ($requested_slug && isset(self::$routes[$requested_slug])) {
-            return $requested_slug;
-        }
-
-        // Si la página principal existe, usarla
-        if (isset(self::$routes[$page_slug])) {
-            // Si tiene hijos, devolver el primer hijo
-            $children = self::get_childs($page_slug);
-            if (!empty($children)) {
-                return array_key_first($children);
-            }
-            return $page_slug;
-        }
-
-        // Si la página no existe pero tiene hijos, devolver el primer hijo
-        $children = self::get_childs($page_slug);
-        if (!empty($children)) {
-            return array_key_first($children);
-        }
-
         return null;
     }
 
     /**
-     * Generar panel de tabs
+     * Obtener URL para una clase específica
      */
-    private static function get_tabpane(array $childs, string $slug_active): string
+    public static function get_url_for_class(string $classname, array $additional_params = []): string
     {
-        $html = '<div class="nav-tab-wrapper">';
-        foreach ($childs as $slug => $child) {
-            $link = new TextComponent('a', $child['title']);
-            $link->set_attribute('href', self::get_url($slug));
-            $link->class_list->add('nav-tab');
-            if ($slug === $slug_active) {
-                $link->class_list->add('nav-tab-active');
-            }
-            $html .= $link->compact();
-        }
-        $html .= '</div>';
-        return $html;
-    }
-
-    /**
-     * Obtener hijos de una ruta
-     */
-    private static function get_childs(string $slug_parent): array
-    {
-        $childs = [];
-        foreach (self::$routes as $slug => $route) {
-            if ($route['parent'] === $slug_parent) {
-                $childs[$slug] = $route;
-            }
-        }
-        return $childs;
-    }
-
-    /**
-     * Generar URL para una ruta
-     */
-    public static function get_url(string $slug): string
-    {
-        if (!isset(self::$routes[$slug])) {
+        $route = self::get_route_for_class($classname);
+        if (!$route) {
             return '';
         }
 
-        $route = self::$routes[$slug];
+        $params = array_merge([
+            'page' => $route['page'],
+            'action' => $route['action']
+        ], $additional_params);
 
-        // Si no tiene padre, es página principal
-        if ($route['parent'] === null) {
-            return add_query_arg([
-                'page' => $slug
-            ], admin_url('admin.php'));
-        }
-
-        // Tiene padre, buscar la página raíz
-        $root_page = self::find_root_page($slug);
-
-        return add_query_arg([
-            'page' => $root_page,
-            'slug' => $slug
-        ], admin_url('admin.php'));
+        return add_query_arg($params, admin_url('admin.php'));
     }
 
     /**
-     * Obtener URL por nombre de clase
+     * Obtener contenido/clase para página y acción específica
      */
-    public static function get_url_by_classname(string $classname): string
+    public static function get_class_for_route(string $page, ?string $action = null)
     {
-        foreach (self::$routes as $slug => $route) {
-            if ($route['content'] === $classname) {
-                return self::get_url($slug);
+        if (!isset(self::$route_mappings[$page])) {
+            return null;
+        }
+
+        $page_config = self::$route_mappings[$page];
+        $action = $action ?: $page_config['default_action'];
+
+        return $page_config['actions'][$action] ?? [];
+    }
+
+    public static function get_actions_for_page(string $page): ?array
+    {
+        if (!isset(self::$route_mappings[$page])) {
+            return null;
+        }
+
+        return array_keys(self::$route_mappings[$page]['actions']);
+    }
+
+    public static function render_page(string $page, ?string $action = null)
+    {
+        $page_template = self::$route_mappings[$page] ?? null;
+        if ($page_template === null) {
+            return;
+        }
+        $class = self::get_class_for_route($page, $action);
+        if ($action === null) {
+            $action = $page_template['default_action'];
+        }
+        echo '<div class="wrap">';
+        if (isset($page_template['header'])) {
+            echo '<h1 class="wp-heading-inline">' . esc_html($page_template['header']) . '</h1>';
+        }
+        if (!empty($class['redirects'])) {
+            foreach ($class['redirects'] as $redirect) {
+                echo '<a class="page-title-action" href="' . esc_url(self::get_url_for_class($redirect['to'])) . '" class="page-title">' . esc_html($redirect['label']) . '</a>';
             }
         }
-        return '';
-    }
-
-    /**
-     * Obtener slug por nombre de clase
-     */
-    public static function get_slug_by_classname(string $classname): ?string
-    {
-        foreach (self::$routes as $slug => $route) {
-            if ($route['content'] === $classname) {
-                return $slug;
+        echo '<hr class="wp-header-end">';
+        if (isset($page_template['tabpane']) && $page_template['tabpane'] === true) {
+            echo '<nav class="nav-tab-wrapper">';
+            $panes = self::$route_mappings[$page]['actions'];
+            foreach ($panes as $key => $pane) {
+                if (isset($pane['is_tab']) && $pane['is_tab'] === true) {
+                    echo '<a href="' . esc_url(self::get_url_for_class($pane['target'])) . '" class="nav-tab ' . ($action === $key ? 'nav-tab-active' : '') . '">' . esc_html($pane['tab_label'] ?? '') . '</a>';
+                }
             }
+            echo '</nav>';
         }
-        return null;
-    }
-
-    /**
-     * Verificar si una clase está registrada
-     */
-    public static function classname_exists(string $classname): bool
-    {
-        foreach (self::$routes as $route) {
-            if ($route['content'] === $classname) {
-                return true;
-            }
+        if ($class) {
+            echo '<div class="wrap">';
+            (new $class['target']())->display();
+            echo '</div>';
+        } else {
+            wp_die('Página no encontrada');
         }
-        return false;
-    }
-
-    /**
-     * Encontrar la página raíz (sin padre)
-     */
-    private static function find_root_page(string $slug): string
-    {
-        $current = $slug;
-
-        while (isset(self::$routes[$current]) && self::$routes[$current]['parent'] !== null) {
-            $current = self::$routes[$current]['parent'];
-        }
-
-        return $current;
-    }
-
-    /**
-     * Obtener la ruta actual basada en los parámetros GET
-     */
-    public static function get_current_route(): ?string
-    {
-        $page = $_GET['page'] ?? '';
-        $slug = $_GET['slug'] ?? '';
-
-        // Si hay slug específico, devolverlo
-        if ($slug && isset(self::$routes[$slug])) {
-            return $slug;
-        }
-
-        // Si no hay slug, devolver la página
-        if ($page && isset(self::$routes[$page])) {
-            return $page;
-        }
-
-        return null;
-    }
-
-    /**
-     * Crear enlace a una clase específica
-     */
-    public static function link_to_class(string $classname, string $text, array $attributes = []): string
-    {
-        $url = self::get_url_by_classname($classname);
-        
-        if (!$url) {
-            return $text; // Si no encuentra la URL, devolver solo el texto
-        }
-
-        $link = new TextComponent('a', $text);
-        $link->set_attribute('href', $url);
-        
-        foreach ($attributes as $attr => $value) {
-            $link->set_attribute($attr, $value);
-        }
-
-        return $link->compact();
-    }
-
-    /**
-     * Verificar si estamos en una clase específica
-     */
-    public static function is_current_class(string $classname): bool
-    {
-        $current_route = self::get_current_route();
-        if (!$current_route) {
-            return false;
-        }
-
-        return self::$routes[$current_route]['content'] === $classname;
-    }
-
-    /**
-     * Obtener breadcrumbs para la ruta actual
-     */
-    public static function get_breadcrumbs(): array
-    {
-        $current_route = self::get_current_route();
-        if (!$current_route) {
-            return [];
-        }
-
-        $breadcrumbs = [];
-        $route = self::$routes[$current_route];
-
-        // Construir cadena de padres
-        $parents = [];
-        $current = $current_route;
-        
-        while ($current && isset(self::$routes[$current])) {
-            array_unshift($parents, $current);
-            $current = self::$routes[$current]['parent'];
-        }
-
-        // Convertir a breadcrumbs
-        foreach ($parents as $slug) {
-            $breadcrumbs[] = [
-                'title' => self::$routes[$slug]['title'],
-                'url' => self::get_url($slug),
-                'slug' => $slug,
-                'is_current' => $slug === $current_route
-            ];
-        }
-
-        return $breadcrumbs;
-    }
-
-    /**
-     * Debug: Mostrar información de rutas
-     */
-    public static function debug_routes(): void
-    {
-        echo '<pre style="background: #f0f0f0; padding: 10px; margin: 10px 0;">';
-        echo "=== RUTAS REGISTRADAS ===\n";
-        foreach (self::$routes as $slug => $route) {
-            echo "Slug: {$slug}\n";
-            echo "  Título: {$route['title']}\n";
-            echo "  Padre: " . ($route['parent'] ?? 'ninguno') . "\n";
-            echo "  Clase: {$route['content']}\n";
-            echo "  URL: " . self::get_url($slug) . "\n\n";
-        }
-        
-        echo "=== ESTADO ACTUAL ===\n";
-        echo "GET[page]: " . ($_GET['page'] ?? 'no definido') . "\n";
-        echo "GET[slug]: " . ($_GET['slug'] ?? 'no definido') . "\n";
-        echo "Ruta actual: " . (self::get_current_route() ?? 'no encontrada') . "\n";
-        echo '</pre>';
-    }
-
-    /**
-     * Obtener todas las rutas registradas
-     */
-    public static function get_routes(): array
-    {
-        return self::$routes;
+        echo '</div>';
     }
 }

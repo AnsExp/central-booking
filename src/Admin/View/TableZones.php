@@ -1,6 +1,8 @@
 <?php
 namespace CentralTickets\Admin\View;
 
+use CentralTickets\Admin\AdminRouter;
+use CentralTickets\Admin\Form\FormZone;
 use CentralTickets\Components\Displayer;
 
 final class TableZones implements Displayer
@@ -27,7 +29,7 @@ final class TableZones implements Displayer
                                     <span> | </span>
                                     <span class="edit">
                                         <a
-                                            href="<?= add_query_arg(['action' => 'zone', 'id' => $zone->id], admin_url('admin.php?page=central_locations')) ?>">Editar</a>
+                                            href="<?= AdminRouter::get_url_for_class(FormZone::class, ['id' => $zone->id]) ?>">Editar</a>
                                     </span>
                                 </div>
                             </td>

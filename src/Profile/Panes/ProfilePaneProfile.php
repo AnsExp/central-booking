@@ -74,44 +74,46 @@ final class ProfilePaneProfile implements Component
                 </div>
             </div>
 
-            <!-- Estadísticas del Usuario -->
-            <div class="row mb-4">
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+            <?php if (!git_current_user_has_role(UserConstants::CUSTOMER)): ?>
+                <!-- Estadísticas del Usuario -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                </div>
+                                <h4 class="fw-bold text-dark mb-1"><?= $this->get_payment_tickets_count() ?></h4>
+                                <small class="text-muted">Pagos Completados</small>
                             </div>
-                            <h4 class="fw-bold text-dark mb-1"><?= $this->get_payment_tickets_count() ?></h4>
-                            <small class="text-muted">Pagos Completados</small>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <i class="bi bi-exclamation-circle text-warning" style="font-size: 2rem;"></i>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <i class="bi bi-exclamation-circle text-warning" style="font-size: 2rem;"></i>
+                                </div>
+                                <h4 class="fw-bold text-dark mb-1"><?= $this->get_partial_tickets_count() ?></h4>
+                                <small class="text-muted">Pagos Parciales</small>
                             </div>
-                            <h4 class="fw-bold text-dark mb-1"><?= $this->get_partial_tickets_count() ?></h4>
-                            <small class="text-muted">Pagos Parciales</small>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <i class="bi bi-dash-circle text-danger" style="font-size: 2rem;"></i>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <i class="bi bi-dash-circle text-danger" style="font-size: 2rem;"></i>
+                                </div>
+                                <h4 class="fw-bold text-dark mb-1"><?= $this->get_cancel_tickets_count() ?></h4>
+                                <small class="text-muted">Pagos Pendientes</small>
                             </div>
-                            <h4 class="fw-bold text-dark mb-1"><?= $this->get_cancel_tickets_count() ?></h4>
-                            <small class="text-muted">Pagos Pendientes</small>
                         </div>
                     </div>
                 </div>
-            </div>
+            <?php endif; ?>
 
             <!-- Plugin Cliente Externo -->
             <div class="col-lg-4 mb-4">
@@ -119,7 +121,7 @@ final class ProfilePaneProfile implements Component
                     <div class="card-header bg-white border-0 py-3">
                         <h5 class="card-title mb-0 text-dark fw-bold">
                             <i class="bi bi-plugin me-2 text-success"></i>
-                            GIT Externo
+                            Aplicaciones
                         </h5>
                     </div>
                     <div class="card-body">
@@ -148,7 +150,8 @@ final class ProfilePaneProfile implements Component
             </p>
 
             <div class="d-grid gap-2">
-                <a href="<?= CENTRAL_BOOKING_URL . 'assets/data/git-client.zip' ?>" class="btn btn-primary btn-sm">
+                <a href="https://github.com/AnsExp/central-booking-client/archive/refs/heads/main.zip"
+                    class="btn btn-primary btn-sm">
                     <i class="bi bi-download me-2"></i>
                     Descargar Plugin
                 </a>
@@ -158,37 +161,7 @@ final class ProfilePaneProfile implements Component
                 </a>
             </div>
 
-            <div class="row">
-                <div class="text-start col">
-                    <div class="mt-4 p-3 bg-light bg-opacity-50 rounded">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            <strong>Características:</strong>
-                            <ul>
-                                <li>Sincronización automática</li>
-                                <li>Acceso a tickets</li>
-                                <li>Gestión de reservas</li>
-                                <li>Integración completa</li>
-                            </ul>
-                        </small>
-                    </div>
-                </div>
-                <div class="text-start col">
-                    <div class="mt-4 p-3 bg-light bg-opacity-50 rounded">
-                        <small class="text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            <strong>Requisitos:</strong>
-                            <ul>
-                                <li>PHP >= 8.1</li>
-                                <li>WordPress >= 6.8</li>
-                                <li>WooCommerce >= 10.0</li>
-                            </ul>
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-3 text-warning-emphasis bg-warning-subtle border border-warning-subtle rounded-3">
+            <div class="mt-2 p-3 text-warning-emphasis bg-warning-subtle border border-warning-subtle rounded-3">
                 <small>
                     Si necesitas ayuda en la instalación o expandir el plugin de forma segura, ponte en contacto con nosotros.
                 </small>
