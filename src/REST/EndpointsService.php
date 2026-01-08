@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
 use CentralTickets\REST\Controllers\ServiceController;
 use CentralTickets\Service;

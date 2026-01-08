@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\REST\Controllers;
+namespace CentralBooking\REST\Controllers;
 
 use CentralTickets\Services\PackageData\PackageData;
 use CentralTickets\Services\ArrayParser\ArrayParser;

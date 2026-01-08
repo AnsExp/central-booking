@@ -37,37 +37,37 @@ function initRemovePassengerButtons() {
 };
 
 form.addEventListener('submit', function (event) {
-    event.preventDefault();
+    localStorage.removeItem('passengers_to_transfer');
+    // event.preventDefault();
 
-    const formData = new FormData(form);
+    // const formData = new FormData(form);
 
-    jQuery.ajax({
-        url: form.getAttribute('action'),
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-            console.log(response);
-            if (response.success) {
-                localStorage.removeItem('passengers_to_transfer');
-                location.replace(gitTransferForm.successRedirect);
-            } else {
-                showError(`
-                <div class="notice notice-error is-dismissible">
-                <p>${response.data.message}</p>
-                </div>`);
-            }
-        },
-        error: function (response) {
-            console.log(response);
-            showError(`
-            <div class="notice notice-error is-dismissible">
-                <p>Ha ocurrido un error a la hora de trasladar a los pasajeros.</p>
-            </div>
-        `);
-        }
-    });
+    // jQuery.ajax({
+    //     url: form.getAttribute('action'),
+    //     method: 'POST',
+    //     data: formData,
+    //     processData: false,
+    //     contentType: false,
+    //     success: function (response) {
+    //         if (response.success) {
+    //             localStorage.removeItem('passengers_to_transfer');
+    //             location.replace(gitTransferForm.successRedirect);
+    //         } else {
+    //             showError(`
+    //             <div class="notice notice-error is-dismissible">
+    //             <p>${response.data.message}</p>
+    //             </div>`);
+    //         }
+    //     },
+    //     error: function (response) {
+    //         console.log(response);
+    //         showError(`
+    //         <div class="notice notice-error is-dismissible">
+    //             <p>Ha ocurrido un error a la hora de trasladar a los pasajeros.</p>
+    //         </div>
+    //     `);
+    //     }
+    // });
 });
 
 jQuery.ajax({

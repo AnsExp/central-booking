@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
 class RegisterRoute
 {

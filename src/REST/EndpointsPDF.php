@@ -1,15 +1,13 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
+use CentralBooking\Data\Passenger;
+use CentralBooking\Data\Route;
+use CentralBooking\Data\Transport;
+use CentralBooking\Implementation\Document\DocumentSallingRequest;
+use CentralBooking\Implementation\Document\DocumentTrip;
+use CentralBooking\PDF\DocumentPdf;
 use Dompdf\Dompdf;
-use CentralTickets\Route;
-use CentralTickets\Transport;
-use CentralTickets\Passenger;
-use CentralTickets\Documents\DocumentTrip;
-use CentralTickets\Documents\DocumentSallingRequest;
-use CentralTickets\Persistence\RouteRepository;
-use CentralTickets\Persistence\PassengerRepository;
-use CentralTickets\Persistence\TransportRepository;
 use WP_REST_Request;
 
 class EndpointsPDF
@@ -21,7 +19,6 @@ class EndpointsPDF
      * @var array<Passenger>
      */
     private array $passengers;
-    private string $color_header = '#def7ffff';
 
     public function init_endpoints()
     {
@@ -48,38 +45,37 @@ class EndpointsPDF
             return false;
         }
         $id_route = $request->get_param('route');
-        if (!is_numeric($id_route) || $id_route <= 0) {
+        if ($id_route === null || (is_numeric($id_route ?? 0) && $id_route <= 0)) {
             return false;
         }
         $id_transport = $request->get_param('transport');
-        if (!is_numeric($id_transport) || $id_transport <= 0) {
+        if ($id_transport === null || (is_numeric($id_transport ?? 0) && $id_transport <= 0)) {
             return false;
         }
-        $temp_transport = (new TransportRepository)->find($id_transport);
+        $temp_transport = git_transport_by_id($id_transport);
         if (!$temp_transport) {
             return false;
         }
-        $temp_route = (new RouteRepository)->find($id_route);
+        $temp_route = git_route_by_id($id_route);
         if (!$temp_route) {
             return false;
         }
         $this->route = $temp_route;
         $this->date_trip = $date_trip;
         $this->transport = $temp_transport;
-        if (!$this->transport->use_route($this->route)) {
+        if (!$this->transport->takeRoute($this->route)) {
             return false;
         }
-        $passengers_repository = new PassengerRepository();
-        $this->passengers = $passengers_repository->find_by(
+        $this->passengers = git_passengers(
             [
                 'date_trip' => $date_trip,
                 'id_route' => $id_route,
                 'id_transport' => $id_transport,
                 'approved' => true,
                 'served' => false,
+                'order_by' => 'name',
+                'order' => 'ASC'
             ],
-            'name',
-            'ASC'
         );
         return true;
     }
@@ -93,24 +89,16 @@ class EndpointsPDF
                 $this->passengers,
                 $this->date_trip
             );
-            $dompdf = $document->get_document();
+            (new DocumentPdf($document))->renderPdf(
+                false,
+                "Lista Embarque.pdf"
+            );
         } else {
             $dompdf = new Dompdf();
             $dompdf->loadHtml($this->get_invalid_notice());
-            $dompdf->setPaper('A4');
+            $dompdf->render();
+            $dompdf->stream();
         }
-
-
-        $options = $dompdf->getOptions();
-        $options->set('isRemoteEnabled', true);
-        $dompdf->setOptions($options);
-
-        $dompdf->render();
-
-        $dompdf->stream(
-            "Lista Embarque.pdf",
-            ['Attachment' => false]
-        );
     }
 
     public function get_salling_request(WP_REST_Request $request)
@@ -121,23 +109,16 @@ class EndpointsPDF
                 $this->transport,
                 $this->date_trip
             );
-            $dompdf = $document->get_document();
+            (new DocumentPdf($document))->renderPdf(
+                false,
+                "Solicitud de Zarpe.pdf"
+            );
         } else {
             $dompdf = new Dompdf();
             $dompdf->loadHtml($this->get_invalid_notice());
-            $dompdf->setPaper('A4');
+            $dompdf->render();
+            $dompdf->stream();
         }
-
-        $options = $dompdf->getOptions();
-        $options->set('isRemoteEnabled', true);
-        $dompdf->setOptions($options);
-        
-        $dompdf->render();
-
-        $dompdf->stream(
-            "Solicitud de Zarpe.pdf",
-            ['Attachment' => false]
-        );
     }
 
     private function get_invalid_notice()

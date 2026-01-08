@@ -1,9 +1,9 @@
 <?php
 namespace CentralTickets\Preorder;
 
-use CentralTickets\Components\Component;
+use CentralBooking\GUI\ComponentInterface;
 
-class PreorderFormNotProducts implements Component
+class PreorderFormNotProducts implements ComponentInterface
 {
     public function compact()
     {

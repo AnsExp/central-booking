@@ -1,13 +1,14 @@
 <?php
 namespace CentralTickets\Profile\Panes;
 
-use CentralTickets\Components\Component;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Profile\Forms\FormPreorder;
 
-class ProfilePanePreorder implements Component
+class ProfilePanePreorder implements ComponentInterface
 {
     public function compact()
     {
-        ob_start();
-        return ob_get_clean();
+        $form = new FormPreorder;
+        return $form->compact();
     }
 }

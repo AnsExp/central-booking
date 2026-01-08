@@ -1,21 +1,21 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\TextareaComponent;
-use CentralTickets\Components\TextComponent;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\AccordionComponent;
-use CentralTickets\Components\MultipleSelectComponent;
-use CentralTickets\Components\Implementation\TypeSelect;
-use CentralTickets\Components\Implementation\RouteSelect;
-use CentralTickets\Components\Implementation\OperatorSelect;
-use CentralTickets\Components\Implementation\ServiceSelect;
-use CentralTickets\Constants\TransportCustomeFieldConstants;
-use CentralTickets\MetaManager;
+use CentralBooking\Data\Constants\TransportCustomeFieldConstants;
+use CentralBooking\Data\MetaManager;
+use CentralBooking\GUI\AccordionComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\MultipleSelectComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\GUI\TextareaComponent;
+use CentralBooking\GUI\TextComponent;
+use CentralBooking\Implementation\GUI\OperatorSelect;
+use CentralBooking\Implementation\GUI\RouteSelect;
+use CentralBooking\Implementation\GUI\ServiceSelect;
+use CentralBooking\Implementation\GUI\TypeSelect;
 
-final class FormTransport implements Displayer
+final class FormTransport implements DisplayerInterface
 {
     private InputComponent $input_id;
     private InputComponent $input_nicename;
@@ -44,10 +44,10 @@ final class FormTransport implements Displayer
         $this->select_services = (new ServiceSelect('services'))->create(true);
         $this->custom_field = new TextareaComponent('custom_field_content');
         $this->custom_field_topic = new SelectComponent('custom_field_topic');
-        $this->input_id->set_value(0);
+        $this->input_id->setValue(0);
     }
 
-    public function display()
+    public function render()
     {
         wp_enqueue_script(
             'git-form-transport',
@@ -66,48 +66,49 @@ final class FormTransport implements Displayer
         );
         $alias = [];
         $working_days = [];
-        $this->custom_field->set_attribute('rows', '4');
-        $this->custom_field->set_attribute('cols', '60');
-        $this->input_code->set_required(true);
-        $this->select_type->set_required(true);
-        $this->input_nicename->set_required(true);
-        $this->input_capacity->set_required(true);
-        $this->select_operator->set_required(true);
+        $this->custom_field->attributes->set('rows', '4');
+        $this->custom_field->attributes->set('cols', '60');
+        $this->input_code->setRequired(true);
+        $this->select_type->setRequired(true);
+        $this->input_nicename->setRequired(true);
+        $this->input_capacity->setRequired(true);
+        $this->select_operator->setRequired(true);
         $this->custom_field_topic->styles->set('margin-bottom', '10px');
-        foreach (TransportCustomeFieldConstants::get_all() as $field) {
-            $this->custom_field_topic->add_option(TransportCustomeFieldConstants::display($field), $field);
+        foreach (TransportCustomeFieldConstants::cases() as $field) {
+            $this->custom_field_topic->addOption($field->label(), $field->value);
         }
-        $transport = git_get_transport_by_id((int) ($_GET['id'] ?? '0'));
+        $transport = git_transport_by_id((int) ($_GET['id'] ?? '0'));
         if ($transport) {
-            $working_days = $transport->get_working_days();
-            $alias = $transport->get_meta('alias') ?? [];
-            $this->custom_field->set_value(MetaManager::get_map_meta(MetaManager::TRANSPORT, $transport->id, 'custom_field.content') ?? '');
-            $this->custom_field_topic->set_value(MetaManager::get_map_meta(MetaManager::TRANSPORT, $transport->id, 'custom_field.topic') ?? '');
-            $this->input_code->set_value($transport->code);
-            $this->input_code->set_placeholder('Código');
-            $this->input_photo_url->set_value($transport->get_meta('photo_url') ?? '');
-            $this->select_operator->set_value($transport->get_operator()->ID);
-            $this->input_id->set_value($transport->id);
-            $this->input_nicename->set_value($transport->nicename);
-            $this->input_nicename->set_placeholder('Nombre');
-            $this->input_capacity->set_placeholder('Capacidad');
-            $this->input_capacity->set_value($transport->get_meta('capacity'));
-            $this->select_type->set_value($transport->type);
-            foreach ($transport->get_routes() as $route) {
-                $this->select_routes->set_value($route->id);
+            $working_days = $transport->getWorkingDays();
+            $alias = $transport->getMeta('alias') ?? [];
+            $this->custom_field->setValue(MetaManager::getMapMeta(MetaManager::TRANSPORT, $transport->id, 'custom_field.content') ?? '');
+            $this->custom_field_topic->setValue(MetaManager::getMapMeta(MetaManager::TRANSPORT, $transport->id, 'custom_field.topic') ?? '');
+            $this->input_code->setValue($transport->code);
+            $this->input_code->setPlaceholder('Código');
+            $this->input_photo_url->setValue($transport->getUrlPhoto() ?? '');
+            $this->select_operator->setValue($transport->getOperator()->getUser()->ID);
+            $this->input_id->setValue($transport->id);
+            $this->input_nicename->setValue($transport->nicename);
+            $this->input_nicename->setPlaceholder('Nombre');
+            $this->input_capacity->setPlaceholder('Capacidad');
+            $this->input_capacity->setValue($transport->getMeta('capacity'));
+            $this->select_type->setValue($transport->type->value);
+            foreach ($transport->getRoutes() as $route) {
+                $this->select_routes->setValue($route->id);
             }
-            foreach ($transport->get_services() as $service) {
-                $this->select_services->set_value($service->id);
+            foreach ($transport->getServices() as $service) {
+                $this->select_services->setValue($service->id);
             }
         }
         ob_start();
+        $action = add_query_arg(
+            ['action' => 'git_edit_transport'],
+            admin_url('admin-ajax.php')
+        );
         ?>
         <div id="form-transport-message-container"></div>
-        <form id="form-transport" method="post" action="<?= add_query_arg(
-            ['action' => 'git_transport_form'],
-            admin_url('admin-ajax.php')
-        ) ?>">
-            <?php $this->input_id->display() ?>
+        <form id="form-transport" method="post" action="<?= esc_attr($action) ?>">
+            <?php $this->input_id->render() ?>
             <input type="hidden" name="nonce" value="<?= esc_attr(wp_create_nonce('git_transport_form')); ?>">
             <template id="form-transport-template">
                 <div id="template-form-crew-member">
@@ -120,63 +121,63 @@ final class FormTransport implements Displayer
             <table class="form-table" role="presentation" style="max-width: 700px;">
                 <tr>
                     <th scope="row">
-                        <?php $this->input_nicename->get_label('Nombre')->display() ?>
+                        <?php $this->input_nicename->getLabel('Nombre')->render() ?>
                     </th>
                     <td>
-                        <?php $this->input_nicename->display() ?>
+                        <?php $this->input_nicename->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_capacity->get_label('Capacidad')->display() ?>
+                        <?php $this->input_capacity->getLabel('Capacidad')->render() ?>
                     </th>
                     <td>
-                        <?php $this->input_capacity->display() ?>
+                        <?php $this->input_capacity->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_operator->get_label('Operador')->display() ?>
+                        <?php $this->select_operator->getLabel('Operador')->render() ?>
                     </th>
                     <td>
-                        <?php $this->select_operator->display() ?>
+                        <?php $this->select_operator->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_type->get_label('Tipo de transporte')->display() ?>
+                        <?php $this->select_type->getLabel('Tipo de transporte')->render() ?>
                     </th>
                     <td>
-                        <?php $this->select_type->display() ?>
+                        <?php $this->select_type->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_code->get_label('Código')->display() ?>
+                        <?php $this->input_code->getLabel('Código')->render() ?>
                     </th>
                     <td>
-                        <?php $this->input_code->display() ?>
+                        <?php $this->input_code->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_routes->get_label('Rutas')->display() ?>
+                        <?php $this->select_routes->getLabel('Rutas')->render() ?>
                     </th>
                     <td>
                         <?php
-                        $this->select_routes->display();
-                        $this->select_routes->get_options_container()->display();
+                        $this->select_routes->render();
+                        $this->select_routes->getOptionsContainer()->render();
                         ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_services->get_label('Servicios')->display() ?>
+                        <?php $this->select_services->getLabel('Servicios')->render() ?>
                     </th>
                     <td>
                         <?php
-                        $this->select_services->display();
-                        $this->select_services->get_options_container()->display();
+                        $this->select_services->render();
+                        $this->select_services->getOptionsContainer()->render();
                         ?>
                     </td>
                 </tr>
@@ -188,7 +189,7 @@ final class FormTransport implements Displayer
                         <?php
                         $this->accordion_crew->styles->set('margin-bottom', '10px');
                         if ($transport) {
-                            foreach ($transport->get_crew() as $crew_member) {
+                            foreach ($transport->getCrew() as $crew_member) {
                                 $this->accordion_crew->add_item(
                                     TextComponent::create(
                                         'div',
@@ -205,7 +206,7 @@ final class FormTransport implements Displayer
                             }
                         }
                         ?>
-                        <?php $this->accordion_crew->display(); ?>
+                        <?php $this->accordion_crew->render(); ?>
                         <button id="button-add-crew-member" class="button button-primary" type="button">
                             <i class="bi bi-plus"></i> Añadir tripulante
                         </button>
@@ -268,19 +269,19 @@ final class FormTransport implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?= $this->input_photo_url->get_label('URL de la foto del transporte')->compact() ?>
+                        <?= $this->input_photo_url->getLabel('URL de la foto del transporte')->render() ?>
                     </th>
                     <td>
-                        <?= $this->input_photo_url->compact() ?>
+                        <?= $this->input_photo_url->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?= $this->custom_field->get_label('Campo Personalizado')->compact() ?>
+                        <?= $this->custom_field->getLabel('Campo Personalizado')->render() ?>
                     </th>
                     <td>
-                        <?= $this->custom_field_topic->compact() ?>
-                        <?= $this->custom_field->compact() ?>
+                        <?= $this->custom_field_topic->render() ?>
+                        <?= $this->custom_field->render() ?>
                     </td>
                 </tr>
             </table>
@@ -318,7 +319,7 @@ final class FormTransport implements Displayer
                     <label>Nombre <span class="required">*</span></label>
                 </td>
                 <td>
-                    <input type="text" name="crew_member_name[]" value="<?php echo esc_attr($member['name']); ?>" required>
+                    <input type="text" name="crew[name][]" value="<?php echo esc_attr($member['name']); ?>" required>
                 </td>
             </tr>
             <tr>
@@ -326,7 +327,7 @@ final class FormTransport implements Displayer
                     <label>Rol <span class="required">*</span></label>
                 </td>
                 <td>
-                    <input type="text" name="crew_member_role[]" value="<?php echo esc_attr($member['role']); ?>" required>
+                    <input type="text" name="crew[role][]" value="<?php echo esc_attr($member['role']); ?>" required>
                 </td>
             </tr>
             <tr>
@@ -334,8 +335,7 @@ final class FormTransport implements Displayer
                     <label>Contacto <span class="required">*</span></label>
                 </td>
                 <td>
-                    <input type="text" name="crew_member_contact[]" value="<?php echo esc_attr($member['contact']); ?>"
-                        required>
+                    <input type="text" name="crew[contact][]" value="<?php echo esc_attr($member['contact']); ?>" required>
                 </td>
             </tr>
             <tr>
@@ -343,8 +343,7 @@ final class FormTransport implements Displayer
                     <label>Licencia <span class="required">*</span></label>
                 </td>
                 <td>
-                    <input type="text" name="crew_member_license[]" value="<?php echo esc_attr($member['license']); ?>"
-                        required>
+                    <input type="text" name="crew[license][]" value="<?php echo esc_attr($member['license']); ?>" required>
                 </td>
             </tr>
             <tr>

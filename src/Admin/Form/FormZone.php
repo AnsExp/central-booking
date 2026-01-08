@@ -1,51 +1,44 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Persistence\ZoneRepository;
-use CentralTickets\Components\InputComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
 
-final class FormZone implements Displayer
+final class FormZone implements DisplayerInterface
 {
-    public function __construct()
-    {
-    }
-    
-    public function display()
+    public function render()
     {
         $input_id = new InputComponent('id', 'hidden');
         $input_name = new InputComponent('name', 'text');
-        $input_nonce = new InputComponent('nonce', 'hidden');
 
-        $input_id->set_value(0);
-        $input_nonce->set_value(wp_create_nonce('create_zone'));
+        $input_id->setValue(0);
         if (isset($_GET['id'])) {
-            $repository = new ZoneRepository();
-            $zone = $repository->find((int) $_GET['id']);
+            $zone = git_zone_by_id((int) $_GET['id']);
             if ($zone) {
-                $input_id->set_value($zone->id);
-                $input_name->set_value($zone->name);
+                $input_id->setValue($zone->id);
+                $input_name->setValue($zone->name);
             }
         }
-        $input_name->set_placeholder('Zona');
-        $input_name->set_required(true);
+        $input_name->setPlaceholder('Zona');
+        $input_name->setRequired(true);
         $input_name->styles->set('width', '100%');
         ob_start();
+        $action = admin_url('admin-ajax.php?action=git_edit_zone');
         ?>
-        <form method="post" action="<?= admin_url('admin-ajax.php?action=git_update_zone') ?>">
-            <?php $input_id->display() ?>
-            <?php $input_nonce->display() ?>
+        <form method="post" action="<?= $action ?>">
+            <?php $input_id->render() ?>
+            <?php wp_nonce_field('edit_zone', 'nonce') ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">
-                        <?php $input_name->get_label('Nombre')->display() ?>
+                        <?php $input_name->getLabel('Nombre')->render() ?>
                     </th>
                     <td>
-                        <?php $input_name->display() ?>
+                        <?php $input_name->render() ?>
                     </td>
                 </tr>
             </table>
-            <?= get_submit_button('Guardar Zona'); ?>
+            <?= get_submit_button('Guardar'); ?>
         </form>
         <?php
         echo ob_get_clean();

@@ -1,14 +1,12 @@
 <?php
-namespace CentralTickets\Admin\Setting;
+namespace CentralBooking\Admin\Setting;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Constants\WebhookStatusConstants;
-use CentralTickets\Constants\WebhookTopicConstants;
-use CentralTickets\Webhooks\WebhookManager;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\Webhook\WebhookManager;
 
-final class SettingsWebhooks implements Displayer
+final class SettingsWebhooks implements DisplayerInterface
 {
-    public function display()
+    public function render()
     {
         ?>
         <table style="margin-top: 20px;" class="wp-list-table widefat fixed striped">
@@ -22,8 +20,8 @@ final class SettingsWebhooks implements Displayer
             </thead>
             <tbody>
                 <?php
-                $webhook_manager = WebhookManager::get_instance();
-                $webhooks = $webhook_manager->get_all();
+                $webhook_manager = WebhookManager::getInstance();
+                $webhooks = $webhook_manager->getAll();
                 if (empty($webhooks)) {
                     echo '<tr><td colspan="4">No hay webhooks registrados.</td></tr>';
                 } else {
@@ -42,8 +40,8 @@ final class SettingsWebhooks implements Displayer
                                     </span>
                                 </div>
                             </td>
-                            <td><?= esc_html(WebhookStatusConstants::get_display_name($webhook->status)) ?></td>
-                            <td><?= esc_html(WebhookTopicConstants::get_display_name($webhook->topic)) ?></td>
+                            <td><?= esc_html($webhook->status->label()) ?></td>
+                            <td><?= esc_html($webhook->topic->label()) ?></td>
                             <td><?= esc_html($webhook->url_delivery) ?></td>
                         </tr>
                         <?php

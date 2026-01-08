@@ -1,14 +1,19 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormService;
-use CentralTickets\Persistence\ResultSet;
-use CentralTickets\Services\ServiceService;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormService;
+use CentralBooking\Data\Repository\ResultSetInterface;
+use CentralBooking\Data\Service;
+use CentralBooking\Data\Services\ServiceService;
 
 final class TableServices extends TableAdmin
 {
-    private ResultSet $result_set;
+    /**
+     * Summary of result_set
+     * @var ResultSetInterface<Service>
+     */
+    private ResultSetInterface $result_set;
 
     public function __construct()
     {
@@ -20,31 +25,22 @@ final class TableServices extends TableAdmin
         $url = AdminRouter::get_url_for_class(TableServices::class);
         return [
             'first' => add_query_arg(['page_number' => 1], $url),
-            'prev' => add_query_arg(['page_number' => $this->result_set->current_page - 1], $url),
-            'next' => add_query_arg(['page_number' => $this->result_set->current_page + 1], $url),
-            'last' => add_query_arg(['page_number' => $this->result_set->total_pages], $url),
+            'prev' => add_query_arg(['page_number' => $this->result_set->getCurrentPage() - 1], $url),
+            'next' => add_query_arg(['page_number' => $this->result_set->getCurrentPage() + 1], $url),
+            'last' => add_query_arg(['page_number' => $this->result_set->getTotalPages()], $url),
         ];
     }
 
-    protected function get_result_set(): ResultSet
+    protected function get_result_set(): ResultSetInterface
     {
-        if (!isset($this->result_set)) {
-            $this->result_set = new ResultSet();
-            $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
-            $service = new ServiceService();
-            $result = $service->paginated(
-                order: $_GET['order'] ?? 'DESC',
-                order_by: $_GET['order_by'] ?? 'id',
-                page_number: $page_number,
-                page_size: $this->result_set->per_page
-            );
-            $this->result_set->items = $result['data'] ?? [];
-            $this->result_set->total_items = $result['pagination']['total_elements'] ?? 0;
-            $this->result_set->total_pages = $result['pagination']['total_pages'] ?? 0;
-            $this->result_set->current_page = $result['pagination']['current_page'] ?? 0;
-            $this->result_set->has_items = $this->result_set->total_items > 0;
-        }
-        return $this->result_set;
+        $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
+        $service = new ServiceService();
+        return git_services_result_set([
+            'order' => $this->get_current_order(),
+            'order_by' => 'name',
+            'limit' => 10,
+            'offset' => ($page_number - 1) * 10
+        ]);
     }
 
     private function get_current_order_by()
@@ -58,7 +54,7 @@ final class TableServices extends TableAdmin
 
     private function get_current_order()
     {
-        $order = $_GET['order'] ?? 'DESC';
+        $order = $_GET['order'] ?? 'ASC';
         return $order === 'DESC' ? 'DESC' : 'ASC';
     }
 
@@ -72,7 +68,8 @@ final class TableServices extends TableAdmin
 
     protected function no_content(): void
     {
-        echo 'No services found.';
+        $this->result_set = $this->get_result_set();
+        $this->table();
     }
 
     protected function table(): void
@@ -108,7 +105,7 @@ final class TableServices extends TableAdmin
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($this->get_result_set()->items as $service): ?>
+                    <?php foreach ($this->result_set->getItems() as $service): ?>
                         <tr>
                             <td>
                                 <span><?= esc_html($service->name) ?></span>
@@ -116,11 +113,12 @@ final class TableServices extends TableAdmin
                                     <span>ID: <?= esc_html($service->id) ?> | </span>
                                     <span class="edit">
                                         <a class="git-row-action-link" href="#transport-container-<?= $service->id ?>">Transportes
-                                            (<?= count($service->get_transports()) ?>)</a>
+                                            (<?= count($service->getTransports()) ?>)</a>
                                     </span>
                                     <span> | </span>
                                     <span class="edit">
-                                        <a href="<?= AdminRouter::get_url_for_class(FormService::class,['id' => $service->id]) ?>" aria-label="Editar Servicio">Editar</a>
+                                        <a href="<?= AdminRouter::get_url_for_class(FormService::class, ['id' => $service->id]) ?>"
+                                            aria-label="Editar Servicio">Editar</a>
                                     </span>
                                 </div>
                             </td>
@@ -131,7 +129,7 @@ final class TableServices extends TableAdmin
                             <td colspan="3">
                                 <div id="transport-container-<?= $service->id ?>" class="git-item-container hidden"
                                     data-parent="#actions-container-<?= $service->id ?>">
-                                    <?php foreach ($service->get_transports() as $transport): ?>
+                                    <?php foreach ($service->getTransports() as $transport): ?>
                                         <div class="git-item">
                                             <?= esc_html($transport->nicename) ?>
                                         </div>

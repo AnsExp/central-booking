@@ -1,45 +1,45 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Constants\WebhookStatusConstants;
-use CentralTickets\Constants\WebhookTopicConstants;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Webhooks\WebhookManager;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Webhook\WebhookManager;
+use CentralBooking\Webhook\WebhookStatus;
+use CentralBooking\Webhook\WebhookTopic;
 
-final class FormWebhook implements Displayer
+final class FormWebhook implements DisplayerInterface
 {
-    public function display()
+    public function render()
     {
         $name_input = new InputComponent('name');
         $delivery_url_input = new InputComponent('delivery_url');
         $status_select = new SelectComponent('status');
         $topic_select = new SelectComponent('topic');
-        $name_input->set_required(true);
-        $topic_select->set_required(true);
-        $status_select->set_required(true);
-        $delivery_url_input->set_required(true);
+        $name_input->setRequired(true);
+        $topic_select->setRequired(true);
+        $status_select->setRequired(true);
+        $delivery_url_input->setRequired(true);
         $name_input->styles->set('width', '300px');
         $topic_select->styles->set('width', '300px');
         $status_select->styles->set('width', '300px');
         $delivery_url_input->styles->set('width', '300px');
-        $topic_select->set_required(true);
-        $status_select->set_required(true);
-        $delivery_url_input->set_required(true);
-        foreach (WebhookStatusConstants::get_all() as $status) {
-            $status_select->add_option(WebhookStatusConstants::get_display_name($status), $status);
+        $topic_select->setRequired(true);
+        $status_select->setRequired(true);
+        $delivery_url_input->setRequired(true);
+        foreach (WebhookStatus::cases() as $status) {
+            $status_select->addOption($status->label());
         }
-        foreach (WebhookTopicConstants::get_all() as $topic) {
-            $topic_select->add_option(WebhookTopicConstants::get_display_name($topic), $topic);
+        foreach (WebhookTopic::cases() as $topic) {
+            $topic_select->addOption($topic->label());
         }
         $id = $_GET['id'] ?? '0';
-        $webhook = WebhookManager::get_instance()->get(intval($id));
+        $webhook = WebhookManager::getInstance()->get(intval($id));
         if ($webhook) {
-            $name_input->set_value($webhook->name);
-            $topic_select->set_value($webhook->topic);
-            $status_select->set_value($webhook->status);
-            $delivery_url_input->set_value($webhook->url_delivery);
+            $name_input->setValue($webhook->name);
+            $topic_select->setValue($webhook->topic->value);
+            $status_select->setValue($webhook->status->value);
+            $delivery_url_input->setValue($webhook->url_delivery);
         }
         ?>
         <form id="git-settings-form"
@@ -51,7 +51,7 @@ final class FormWebhook implements Displayer
                 <tbody>
                     <tr>
                         <th scope="row" class="titledesc">
-                            <?= $name_input->get_label('Nombre')->compact() ?>
+                            <?= $name_input->getLabel('Nombre')->compact() ?>
                         </th>
                         <td>
                             <?= $name_input->compact() ?>
@@ -59,7 +59,7 @@ final class FormWebhook implements Displayer
                     </tr>
                     <tr>
                         <th scope="row">
-                            <?= $status_select->get_label('Estado')->compact() ?>
+                            <?= $status_select->getLabel('Estado')->compact() ?>
                         </th>
                         <td>
                             <?= $status_select->compact() ?>
@@ -67,7 +67,7 @@ final class FormWebhook implements Displayer
                     </tr>
                     <tr>
                         <th scope="row">
-                            <?= $topic_select->get_label('Tema')->compact() ?>
+                            <?= $topic_select->getLabel('Tema')->compact() ?>
                         </th>
                         <td>
                             <?= $topic_select->compact() ?>
@@ -75,7 +75,7 @@ final class FormWebhook implements Displayer
                     </tr>
                     <tr>
                         <th scope="row">
-                            <?= $delivery_url_input->get_label('URL de entrega')->compact() ?>
+                            <?= $delivery_url_input->getLabel('URL de entrega')->compact() ?>
                         </th>
                         <td>
                             <?= $delivery_url_input->compact() ?>

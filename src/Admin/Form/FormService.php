@@ -1,13 +1,13 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\MultipleSelectComponent;
-use CentralTickets\Components\Implementation\TransportSelect;
-use CentralTickets\Persistence\ServiceRepository;
+use CentralBooking\Data\Services\ServiceService;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\MultipleSelectComponent;
+use CentralBooking\Implementation\GUI\TransportSelect;
 
-final class FormService implements Displayer
+final class FormService implements DisplayerInterface
 {
     private InputComponent $input_id;
     private InputComponent $input_name;
@@ -24,63 +24,63 @@ final class FormService implements Displayer
         $this->select_transport = (new TransportSelect('transport'))->create(true);
     }
 
-    public function display()
+    public function render()
     {
-        $this->input_name->set_required(true);
-        $this->input_price->set_required(true);
-        $this->input_icon->set_required(true);
+        $this->input_name->setRequired(true);
+        $this->input_price->setRequired(true);
+        $this->input_icon->setRequired(true);
         if ($_GET['id'] ?? -1 > 0) {
-            $repository = new ServiceRepository;
-            $service = $repository->find((int) $_GET['id']);
+            $repository = new ServiceService();
+            $service = $repository->findById((int) $_GET['id']);
             if ($service !== null) {
-                $this->input_id->set_value($service->id);
-                $this->input_name->set_value($service->name);
-                $this->input_icon->set_value($service->icon);
-                $this->input_price->set_value($service->price);
-                foreach ($service->get_transports() as $transport) {
-                    $this->select_transport->set_value($transport->id);
+                $this->input_id->setValue($service->id);
+                $this->input_name->setValue($service->name);
+                $this->input_icon->setValue($service->icon);
+                $this->input_price->setValue($service->price);
+                foreach ($service->getTransports() as $transport) {
+                    $this->select_transport->setValue($transport->id);
                 }
             }
         }
         ob_start();
         ?>
         <div id="form-message-container"></div>
-        <form id="form-service" method="post" action="<?= admin_url('admin-ajax.php?action=git_service_form') ?>">
-            <?php $this->input_id->display() ?>
+        <form id="form-service" method="post" action="<?= admin_url('admin-ajax.php?action=git_edit_service') ?>">
+            <?php $this->input_id->render() ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">
-                        <?php $this->input_name->get_label('Nombre')->display(); ?>
+                        <?php $this->input_name->getLabel('Nombre')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->input_name->display(); ?>
+                        <?php $this->input_name->render(); ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_price->get_label('Precio')->display(); ?>
+                        <?php $this->input_price->getLabel('Precio')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->input_price->display(); ?>
+                        <?php $this->input_price->render(); ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_icon->get_label('Icono')->display(); ?>
+                        <?php $this->input_icon->getLabel('Icono')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->input_icon->display(); ?>
+                        <?php $this->input_icon->render(); ?>
                         <p>Ingrese la direccion URL del ícono.</p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_transport->get_label('Transportes')->display(); ?>
+                        <?php $this->select_transport->getLabel('Transportes')->render(); ?>
                     </th>
                     <td>
                         <?php
-                        $this->select_transport->display();
-                        $this->select_transport->get_options_container()->display();
+                        $this->select_transport->render();
+                        $this->select_transport->getOptionsContainer()->render();
                         ?>
                     </td>
                 </tr>

@@ -1,19 +1,17 @@
 <?php
-namespace CentralTickets\Profile\Forms;
+namespace CentralBooking\Profile\Forms;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\InputFloatingLabelComponent;
-use CentralTickets\Components\Implementation\DateTripInput;
-use CentralTickets\Components\Implementation\SelectorRouteCombine;
-use CentralTickets\Persistence\TicketRepository;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\InputFloatingLabelComponent;
+use CentralBooking\Implementation\GUI\DateTripInput;
+use CentralBooking\Implementation\GUI\SelectorRouteCombine;
 
-class FormTickets implements Component
+class FormTickets implements ComponentInterface
 {
     public function compact()
     {
-        $repository = new TicketRepository();
-        $ticket = $repository->find($_GET['ticket_number'] ?? -1);
+        $ticket = git_ticket_by_id($_GET['ticket_number'] ?? -1);
         ob_start();
         if ($ticket === null) {
             ?>
@@ -23,14 +21,14 @@ class FormTickets implements Component
             <?php
             return ob_get_clean();
         }
-        $passengers = $ticket->get_passengers();
+        $passengers = $ticket->getPassengers();
         $combine = new SelectorRouteCombine();
         $date_trip_input = (new DateTripInput('date_trip'))->create();
         $select_origin = $combine->get_origin_select('origin');
         $select_destiny = $combine->get_destiny_select('destiny');
-        $select_schedule = $combine->get_schedule_select('time');
+        $select_schedule = $combine->get_time_select('time');
         $select_transport = $combine->get_transport_select('transport');
-        $date_trip_input->set_required(true);
+        $date_trip_input->setRequired(true);
         $select_origin_floating_label = new InputFloatingLabelComponent($select_origin, 'Origen');
         $select_destiny_floating_label = new InputFloatingLabelComponent($select_destiny, 'Destino');
         $select_schedule_floating_label = new InputFloatingLabelComponent($select_schedule, 'Horario');
@@ -49,10 +47,10 @@ class FormTickets implements Component
                     }
                     $checkbox = new InputComponent('passengers[]', 'checkbox');
                     $checkbox->class_list->remove('form-control');
-                    $checkbox->set_value($passenger->id);
+                    $checkbox->setValue($passenger->id);
                     $checkbox->class_list->add('me-3');
-                    $checkbox->display();
-                    $checkbox->get_label($passenger->name)->display();
+                    $checkbox->render();
+                    $checkbox->getLabel($passenger->name)->render();
                     if ($first && count($passengers) > 1) {
                         echo '<br>';
                     }
@@ -95,7 +93,7 @@ class FormTickets implements Component
             <?php endif; ?>
             <a class="btn btn-danger" href="<?= esc_url(add_query_arg([
                 'action' => 'view_order',
-                'order' => $ticket->get_order()->get_id(),
+                'order' => $ticket->getOrder()->get_id(),
             ])) ?>">Cancelar</a>
             <?php if ($has_approveds): ?>
                 <button type="submit" class="btn btn-primary">

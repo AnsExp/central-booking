@@ -1,12 +1,13 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormOperator;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Operator;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormOperator;
+use CentralBooking\Data\Operator;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\Data\Services\OperatorService;
 
-final class TableOperators implements Displayer
+final class TableOperators implements DisplayerInterface
 {
     /**
      * @var array<Operator>
@@ -20,10 +21,11 @@ final class TableOperators implements Displayer
 
     private function fetchOperators(): array
     {
-        return git_get_query_persistence()->get_operator_repository()->find_by();
+        $service = new OperatorService();
+        return $service->findAll();
     }
 
-    public function display()
+    public function render()
     {
         ?>
         <div style="overflow-x: auto; max-width: 800px;">
@@ -40,57 +42,57 @@ final class TableOperators implements Displayer
                     <?php foreach ($this->operators as $operator): ?>
                         <tr>
                             <td>
-                                <span><?= esc_html($operator->first_name . ' ' . $operator->last_name) ?></span>
+                                <span><?= esc_html($operator->getUser()->first_name . ' ' . $operator->getUser()->last_name) ?></span>
                                 <div class="row-actions visible">
                                     <span class="edit">
-                                        ID: <?= esc_html($operator->ID) ?>
+                                        ID: <?= esc_html($operator->getUser()->ID) ?>
                                     </span>
                                     <span>|</span>
                                     <span class="edit">
-                                        <a href="#transport-container-<?= $operator->ID ?>" class="git-row-action-link"
-                                            data-route="<?= esc_attr($operator->ID) ?>">
-                                            Transportes (<?= count($operator->get_transports()) ?>)
+                                        <a href="#transport-container-<?= $operator->getUser()->ID ?>" class="git-row-action-link"
+                                            data-route="<?= esc_attr($operator->getUser()->ID) ?>">
+                                            Transportes (<?= count($operator->getTransports()) ?>)
                                         </a>
                                     </span>
                                     <span>|</span>
                                     <span class="edit">
-                                        <a href="#coupon-container-<?= $operator->ID ?>" class="git-row-action-link"
-                                            data-route="<?= esc_attr($operator->ID) ?>">
-                                            Cupones (<?= count($operator->get_coupons()) ?>)
+                                        <a href="#coupon-container-<?= $operator->getUser()->ID ?>" class="git-row-action-link"
+                                            data-route="<?= esc_attr($operator->getUser()->ID) ?>">
+                                            Cupones (<?= count($operator->getCoupons()) ?>)
                                         </a>
                                     </span>
                                     <span>|</span>
                                     <span class="edit">
                                         <a
-                                            href="<?= esc_url(AdminRouter::get_url_for_class(FormOperator::class, ['id' => $operator->ID])) ?>">Editar</a>
+                                            href="<?= esc_url(AdminRouter::get_url_for_class(FormOperator::class, ['id' => $operator->getUser()->ID])) ?>">Editar</a>
                                     </span>
                                 </div>
                             </td>
                             <td>
-                                <?= esc_html(get_user_meta($operator->ID, 'phone_number', true)) ?? '—' ?>
+                                <?= esc_html(get_user_meta($operator->getUser()->ID, 'phone_number', true)) ?? '—' ?>
                             </td>
                             <td>
-                                <?= esc_html($operator->user_login) ?>
+                                <?= esc_html($operator->getUser()->user_login) ?>
                             </td>
                             <td>
-                                <?= esc_html($operator->get_business_plan()['counter']) ?>
+                                <?= esc_html($operator->getBusinessPlan()['counter']) ?>
                                 de
-                                <?= esc_html($operator->get_business_plan()['limit']) ?>
+                                <?= esc_html($operator->getBusinessPlan()['limit']) ?>
                             </td>
                         </tr>
-                        <tr id="actions-container-<?= $operator->ID ?>" class="git-row-actions">
+                        <tr id="actions-container-<?= $operator->getUser()->ID ?>" class="git-row-actions">
                             <td colspan="4">
-                                <div id="transport-container-<?= $operator->ID ?>" class="git-item-container hidden"
-                                    data-parent="#actions-container-<?= $operator->ID ?>">
-                                    <?php foreach ($operator->get_transports() as $transport): ?>
+                                <div id="transport-container-<?= $operator->getUser()->ID ?>" class="git-item-container hidden"
+                                    data-parent="#actions-container-<?= $operator->getUser()->ID ?>">
+                                    <?php foreach ($operator->getTransports() as $transport): ?>
                                         <div class="git-item">
                                             <?= esc_html($transport->nicename) ?>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
-                                <div id="coupon-container-<?= $operator->ID ?>" class="git-item-container hidden"
-                                    data-parent="#actions-container-<?= $operator->ID ?>">
-                                    <?php foreach ($operator->get_coupons() as $coupon): ?>
+                                <div id="coupon-container-<?= $operator->getUser()->ID ?>" class="git-item-container hidden"
+                                    data-parent="#actions-container-<?= $operator->getUser()->ID ?>">
+                                    <?php foreach ($operator->getCoupons() as $coupon): ?>
                                         <div class="git-item">
                                             <?= esc_html($coupon->post_title) ?>
                                         </div>

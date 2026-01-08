@@ -1,10 +1,10 @@
 <?php
-namespace CentralTickets\Admin\Setting;
+namespace CentralBooking\Admin\Setting;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
 
-final class SettingsOperators implements Displayer
+final class SettingsOperators implements DisplayerInterface
 {
     private InputComponent $operator_file_size;
     private InputComponent $operator_file_extensions;
@@ -20,16 +20,15 @@ final class SettingsOperators implements Displayer
         $this->operator_file_size = new InputComponent('operator_file_size', 'number');
         $this->operator_file_extensions = new InputComponent('operator_file_extensions');
 
-        $this->operator_file_size->set_attribute('min', '1');
-        $this->operator_file_size->set_attribute('max', '1024');
-        $this->operator_file_size->set_attribute('step', '1');
+        $this->operator_file_size->attributes->set('min', '1');
+        $this->operator_file_size->attributes->set('max', '1024');
+        $this->operator_file_size->attributes->set('step', '1');
 
-        $this->operator_file_size->set_value(git_get_setting('operator_file_size', 10));
+        $this->operator_file_size->setValue(git_get_setting('operator_file_size', 10));
 
         $extensions_array = git_get_setting('operator_file_extensions', []);
         $extensions_string = is_array($extensions_array) ? implode(', ', $extensions_array) : '';
-        $this->operator_file_extensions->set_value($extensions_string);
-
+        $this->operator_file_extensions->setValue($extensions_string);
         $this->allowed_extensions = [
             '.jpg',
             '.jpeg',
@@ -73,7 +72,7 @@ final class SettingsOperators implements Displayer
         ];
     }
 
-    public function display()
+    public function render()
     {
         ?>
         <form id="git-settings-form"
@@ -155,10 +154,10 @@ final class SettingsOperators implements Displayer
             <table class="form-table" role="presentation">
                 <tr>
                     <th scope="row">
-                        <?php $this->operator_file_size->get_label('Tamaño máximo del archivo (MB)')->display() ?>
+                        <?php $this->operator_file_size->getLabel('Tamaño máximo del archivo (MB)')->render() ?>
                     </th>
                     <td>
-                        <?php $this->operator_file_size->display() ?>
+                        <?php $this->operator_file_size->render() ?>
                         <p class="description">
                             Ingrese el tamaño máximo del archivo en megabytes (MB).
                             Valor entre 1 y 1024 MB.
@@ -170,10 +169,10 @@ final class SettingsOperators implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->operator_file_extensions->get_label('Extensiones de archivo permitidas')->display() ?>
+                        <?php $this->operator_file_extensions->getLabel('Extensiones de archivo permitidas')->render() ?>
                     </th>
                     <td>
-                        <?php $this->operator_file_extensions->display() ?>
+                        <?php $this->operator_file_extensions->render() ?>
                         <p class="description">
                             Ingrese las extensiones de archivo permitidas, separadas por comas.<br>
                             <strong>Ejemplo:</strong> jpg, png, pdf, doc, zip<br>

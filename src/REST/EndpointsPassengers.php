@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
 use CentralTickets\Passenger;
 use CentralTickets\REST\Controllers\PassengerController;

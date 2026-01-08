@@ -1,56 +1,19 @@
 <?php
-namespace CentralTickets\Preorder;
+namespace CentralBooking\Preorder;
 
-use CentralTickets\CartTicket;
-use CentralTickets\Components\FormComponent;
-use CentralTickets\Components\Implementation\NationalitySelect;
-use CentralTickets\Components\Implementation\TypeDocumentSelect;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Constants\PassengerConstants;
-use CentralTickets\Constants\PriceExtraConstants;
-use CentralTickets\Constants\RouteConstants;
-use CentralTickets\Services\TransportService;
+use CentralBooking\Data\Constants\PassengerConstants;
+use CentralBooking\Data\Constants\RouteConstants;
+use CentralBooking\Data\Services\TransportService;
+use CentralBooking\GUI\ButtonComponent;
+use CentralBooking\GUI\CompositeComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\NationalitySelect;
+use CentralBooking\Implementation\GUI\TypeDocumentSelect;
+use CentralTickets\Preorder\PreorderFormNotData;
+use CentralTickets\Preorder\PreorderFormNotProducts;
 use WP_Query;
 
-function preorder_process()
-{
-    $ticket = [
-        'trip' => [
-            'route' => $_POST['route'],
-            'transport' => $_POST['transport'],
-            'date_trip' => $_POST['date_trip'],
-        ],
-        'pax' => [
-            PriceExtraConstants::EXTRA => 0,
-            PassengerConstants::KID => 0,
-            PassengerConstants::RPM => 0,
-            PassengerConstants::STANDARD => count($_POST['passengers']),
-        ],
-        'flexible' => isset($_POST['flexible']),
-        'passengers' => $_POST['passengers'],
-        'product' => $_POST['product'],
-    ];
-    $added = WC()->cart->add_to_cart(
-        $_POST['product'],
-        1,
-        0,
-        [],
-        ['cart_ticket' => CartTicket::create($ticket)]
-    );
-    if ($added) {
-        wp_safe_redirect(wc_get_cart_url());
-    }
-    exit;
-}
-
-add_action('wp_ajax_preorder_process', function () {
-    preorder_process();
-});
-add_action('wp_ajax_nopriv_preorder_process', function () {
-    preorder_process();
-});
-
-class PreorderForm extends FormComponent
+final class PreorderForm extends CompositeComponent
 {
     private array $data;
     private array $products;
@@ -59,7 +22,7 @@ class PreorderForm extends FormComponent
 
     public function __construct(private readonly Preorder $preorder)
     {
-        parent::__construct();
+        parent::__construct('form');
         $this->init();
     }
 
@@ -68,8 +31,8 @@ class PreorderForm extends FormComponent
         $this->products = $this->get_products();
         $this->not_data_panel = new PreorderFormNotData();
         $this->not_products_panel = new PreorderFormNotProducts();
-        $this->set_method('post');
-        $this->set_action(admin_url('admin-ajax.php') . '?action=preorder_process');
+        $this->attributes->set('method', 'post');
+        $this->attributes->set('action', admin_url('admin-ajax.php') . '?action=preorder_process');
     }
 
     private function get_products()
@@ -101,21 +64,21 @@ class PreorderForm extends FormComponent
             $id_zone_destiny = get_post_meta($post->ID, 'zone_destiny', true);
             $id_location_origin = get_post_meta($post->ID, 'location_origin', true);
             $id_location_destiny = get_post_meta($post->ID, 'location_destiny', true);
-            if ($type_route === RouteConstants::BETWEEN_ZONES) {
+            if ($type_route === RouteConstants::BETWEEN_ZONES->value) {
                 foreach ($this->preorder->get_routes() as $route) {
                     if (!$switch) {
                         if (
-                            $route->get_origin()->get_zone()->id == $id_zone_origin &&
-                            $route->get_destiny()->get_zone()->id == $id_zone_destiny
+                            $route->getOrigin()->getZone()->id == $id_zone_origin &&
+                            $route->getDestiny()->getZone()->id == $id_zone_destiny
                         ) {
                             $products[] = $post;
                         }
                     } else {
                         if (
-                            ($route->get_origin()->get_zone()->id == $id_zone_origin &&
-                                $route->get_destiny()->get_zone()->id == $id_zone_destiny) ||
-                            ($route->get_destiny()->get_zone()->id == $id_zone_origin &&
-                                $route->get_origin()->get_zone()->id == $id_zone_destiny)
+                            ($route->getOrigin()->getZone()->id == $id_zone_origin &&
+                                $route->getDestiny()->getZone()->id == $id_zone_destiny) ||
+                            ($route->getDestiny()->getZone()->id == $id_zone_origin &&
+                                $route->getOrigin()->getZone()->id == $id_zone_destiny)
                         ) {
                             $products[] = $post;
                         }
@@ -125,17 +88,17 @@ class PreorderForm extends FormComponent
                 foreach ($this->preorder->get_routes() as $route) {
                     if (!$switch) {
                         if (
-                            $route->get_origin()->id == $id_location_origin &&
-                            $route->get_destiny()->id == $id_location_destiny
+                            $route->getOrigin()->id == $id_location_origin &&
+                            $route->getDestiny()->id == $id_location_destiny
                         ) {
                             $products[] = $post;
                         }
                     } else {
                         if (
-                            ($route->get_origin()->id == $id_location_origin &&
-                                $route->get_destiny()->id == $id_location_destiny) ||
-                            ($route->get_destiny()->id == $id_location_origin &&
-                                $route->get_origin()->id == $id_location_destiny)
+                            ($route->getOrigin()->id == $id_location_origin &&
+                                $route->getDestiny()->id == $id_location_destiny) ||
+                            ($route->getDestiny()->id == $id_location_origin &&
+                                $route->getOrigin()->id == $id_location_destiny)
                         ) {
                             $products[] = $post;
                         }
@@ -153,7 +116,7 @@ class PreorderForm extends FormComponent
         $type_document_select = (new TypeDocumentSelect('passenger_type_document'))->create();
         $passegers_info = $this->preorder->passengers_info;
         if ($this->preorder->get_transport()) {
-            $transport_select->set_value($this->preorder->get_transport()->id);
+            $transport_select->setValue($this->preorder->get_transport()->id);
         }
         ob_start();
         ?>
@@ -161,18 +124,18 @@ class PreorderForm extends FormComponent
         <input type="hidden" name="product" value="<?= $this->products[0]->ID ?>">
         <input type="hidden" name="route" value="<?= $this->preorder->get_routes()[0]->id ?>">
         <input type="hidden" name="preorder" value="<?= $this->preorder->get_order()->get_id() ?>">
-        <input type="hidden" name="date_trip" value="<?= $this->preorder->date_trip ?>">
+        <input type="hidden" name="date_trip" value="<?= $this->preorder->date_trip->format('Y-m-d') ?>">
         <table class="table table-bordered">
             <tbody>
                 <tr>
                     <td>Trayecto</td>
-                    <td><?= $this->preorder->get_routes()[0]->get_origin()->name . ' <i class="bi bi-arrow-right"></i> ' . $this->preorder->get_routes()[0]->get_destiny()->name ?>
+                    <td><?= $this->preorder->get_routes()[0]->getOrigin()->name . ' <i class="bi bi-arrow-right"></i> ' . $this->preorder->get_routes()[0]->getDestiny()->name ?>
                     </td>
                 </tr>
                 <tr>
                     <td>Viaje</td>
                     <td>
-                        <?= git_date_format($this->preorder->date_trip) . ' ' . git_time_format($this->preorder->get_routes()[0]->departure_time) ?>
+                        <?= git_date_format($this->preorder->date_trip->format('Y-m-d')) . ' ' . git_time_format($this->preorder->get_routes()[0]->getDepartureTime()->format()) ?>
                     </td>
                 </tr>
                 <tr>
@@ -187,7 +150,8 @@ class PreorderForm extends FormComponent
                         <?php for ($i = 0; $i < $this->preorder->pax; $i++): ?>
                             <?= $i === 0 ? '' : '<hr>' ?>
                             <p class="my-2 fw-bold">Pasajero <?= $i + 1 ?></p>
-                            <input type="hidden" name="passengers[<?= $i ?>][type]" value="<?= PassengerConstants::STANDARD ?>">
+                            <input type="hidden" name="passengers[<?= $i ?>][type]"
+                                value="<?= PassengerConstants::STANDARD->value ?>">
                             <table class="table table-bordered">
                                 <tbody>
                                     <tr>
@@ -205,9 +169,9 @@ class PreorderForm extends FormComponent
                                         <td>
                                             <div class="form-floating">
                                                 <?php
-                                                $nationality_select->set_attribute('name', "passengers[{$i}][nationality]");
-                                                $nationality_select->set_value(isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['nationality'] ?? '') : '');
-                                                $nationality_select->display();
+                                                $nationality_select->attributes->set('name', "passengers[{$i}][nationality]");
+                                                $nationality_select->setValue(isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['nationality'] ?? '') : '');
+                                                $nationality_select->render();
                                                 ?>
                                                 <label class="form-label">Nacionalidad</label>
                                             </div>
@@ -217,9 +181,9 @@ class PreorderForm extends FormComponent
                                         <td>
                                             <div class="form-floating">
                                                 <?php
-                                                $type_document_select->set_attribute('name', "passengers[{$i}][type_document]");
-                                                $type_document_select->set_value(isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['type_document'] ?? '') : '');
-                                                $type_document_select->display();
+                                                $type_document_select->attributes->set('name', "passengers[{$i}][type_document]");
+                                                $type_document_select->setValue(isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['type_document'] ?? '') : '');
+                                                $type_document_select->render();
                                                 ?>
                                                 <label class="form-label">Tipo de documento</label>
                                             </div>
@@ -278,19 +242,18 @@ class PreorderForm extends FormComponent
     public function get_transport_select()
     {
         $select = new SelectComponent('transport');
-        $transports = $this->preorder->get_routes()[0]->get_transports();
-        $service = new TransportService();
-        $select->set_required(true);
-        $select->add_option('Seleccione...', '');
+        $transports = $this->preorder->get_routes()[0]->getTransports();
+        $select->setRequired(true);
+        $select->addOption('Seleccione...', '');
         foreach ($transports as $transport) {
-            $is_available = $service->check_availability(
+            $is_available = git_transport_check_availability(
                 $transport->id,
                 $this->preorder->get_routes()[0]->id,
-                $this->preorder->date_trip,
+                git_date_create($this->preorder->date_trip->format('Y-m-d')),
                 $this->preorder->pax,
             );
             if ($is_available) {
-                $select->add_option($transport->nicename, $transport->id);
+                $select->addOption($transport->nicename, $transport->id);
             }
         }
         return $select;
@@ -303,10 +266,17 @@ class PreorderForm extends FormComponent
         } elseif (empty($this->products)) {
             return $this->not_products_panel->compact();
         }
-        $this->add_child(git_string_to_component('<div class="container">'));
-        $this->add_child(git_string_to_component($this->fields()));
-        $this->add_child($this->get_submit_button('Confirmar Preorden'));
-        $this->add_child(git_string_to_component('</div>'));
+        $this->addChild(git_string_to_component('<div class="container">'));
+        $this->addChild(git_string_to_component($this->fields()));
+        $this->addChild($this->get_submit_button('Confirmar Preorden'));
+        $this->addChild(git_string_to_component('</div>'));
         return parent::compact();
+    }
+
+    private function get_submit_button(string $text)
+    {
+        $button = new ButtonComponent($text);
+        $button->class_list->add('btn btn-primary my-3');
+        return $button;
     }
 }

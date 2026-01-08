@@ -1,18 +1,17 @@
 <?php
-namespace CentralTickets\Profile\Forms;
+namespace CentralBooking\Profile\Forms;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\View\TableTickets;
-use CentralTickets\Components\Component;
-use CentralTickets\Components\Implementation\TicketStatusSelect;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Operator;
-use CentralTickets\Persistence\CouponRepository;
-use CentralTickets\Persistence\TicketRepository;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Data\Operator;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\TicketStatusSelect;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\View\TableTickets;
 
-class FormEditCouponOperator implements Component
+class FormEditCouponOperator implements ComponentInterface
 {
     private SelectComponent $status_select;
     private InputComponent $code_input;
@@ -30,11 +29,11 @@ class FormEditCouponOperator implements Component
         $this->code_input = new InputComponent('code', 'text');
         $this->file_input = new InputComponent('file', 'file');
         $this->amount_input = new InputComponent('amount', 'number');
-        $this->status_select->set_required(true);
-        $this->code_input->set_required(true);
+        $this->status_select->setRequired(true);
+        $this->code_input->setRequired(true);
 
-        $this->amount_input->set_attribute('min', '0');
-        $this->file_input->set_attribute(
+        $this->amount_input->attributes->set('min', '0');
+        $this->file_input->attributes->set(
             'accept',
             join(',', git_get_setting('operator_file_extensions', []))
         );
@@ -57,35 +56,23 @@ class FormEditCouponOperator implements Component
                     href="<?= esc_url(remove_query_arg(['action', 'ticket_id'])) ?>">buscar</a> otro ticket.</p>
             <?php
         } else {
-            $ticket = (new TicketRepository())->find((int) $_GET['ticket_id']);
-            $proof_payment = $ticket->get_meta('proof_payment');
-            $this->status_select->set_value($ticket->status);
-            if (!git_current_user_has_role('administrator') && $ticket->status !== TicketConstants::PENDING) {
-                $this->status_select->set_attribute('disabled', '');
-                $this->code_input->set_attribute('disabled', '');
+            $ticket = git_ticket_by_id((int) $_GET['ticket_id']);
+            $proof_payment = $ticket->getProofPayment();
+            $this->status_select->setValue($ticket->status->value);
+            if (!git_current_user_has_role(UserConstants::ADMINISTRATOR) && $ticket->status !== TicketStatus::PENDING) {
+                $this->status_select->attributes->set('disabled', '');
+                $this->code_input->attributes->set('disabled', '');
             }
-            $this->code_input->set_value($proof_payment['code'] ?? '');
-            $this->amount_input->set_value(isset($proof_payment['amount']) ? floatval($proof_payment['amount']) / 100 : 0);
-            $this->amount_input->set_attribute('max', $ticket->total_amount / 100);
-            $this->amount_input->set_attribute('step', 0.1);
+            $this->code_input->setValue($proof_payment->code);
+            $this->amount_input->setValue(isset($proof_payment->amount) ? floatval($proof_payment->amount) / 100 : 0);
+            $this->amount_input->attributes->set('max', $ticket->total_amount / 100);
+            $this->amount_input->attributes->set('step', 0.1);
 
-            wp_enqueue_script(
-                'git-operator-form-coupon-status',
-                CENTRAL_BOOKING_URL . '/assets/js/operator/form-coupon-status.js',
-                ['jquery']
-            );
-            wp_localize_script(
-                'git-operator-form-coupon-status',
-                'formCouponStatus',
-                [
-                    'fileInputId' => $this->file_input->id,
-                    'codeInputId' => $this->code_input->id,
-                    'amountInputId' => $this->amount_input->id,
-                    'statusSelectId' => $this->status_select->id,
-                    'checkPassengerClass' => 'check-passenger-approved',
-                    'fileRequiredIn' => [TicketConstants::PARTIAL, TicketConstants::PAYMENT],
-                    'statusToRemove' => [count($ticket->get_passengers()) === 1 ? TicketConstants::PARTIAL : null],
-                ]
+            $action = esc_url(
+                add_query_arg(
+                    ['action' => 'git_edit_coupon_status'],
+                    admin_url('admin-ajax.php')
+                )
             );
             ?>
             <a id="link_to_search_pane" class="btn btn-primary mb-3"
@@ -95,7 +82,7 @@ class FormEditCouponOperator implements Component
             <table class="table table-bordered">
                 <tr>
                     <td><b>Código de cupon:</b></td>
-                    <td><?= $ticket->get_coupon()->post_title ?></td>
+                    <td><?= $ticket->getCoupon()->post_title ?></td>
                 </tr>
                 <tr>
                     <td><b>Precio:</b></td>
@@ -103,7 +90,7 @@ class FormEditCouponOperator implements Component
                 </tr>
                 <tr>
                     <td><b>Fecha de compra:</b></td>
-                    <td><?= git_datetime_format($ticket->get_order()->get_date_created()->format('Y-m-d H:i:s')) ?></td>
+                    <td><?= git_datetime_format($ticket->getOrder()->get_date_created()->format('Y-m-d H:i:s')) ?></td>
                 </tr>
                 <tr>
                     <td><b>Número de ticket:</b></td>
@@ -121,30 +108,54 @@ class FormEditCouponOperator implements Component
                     <?php endif; ?>
                 </tr>
             </table>
-            <form id="form-coupon-status" method="post" class="p-3"
-                action="<?= esc_url(admin_url('admin-ajax.php?action=git_update_coupon_status')) ?>">
-                <div id="message-success-container" class="alert alert-success" role="alert" style="display: none;">
+            <?php if (isset($_GET['success']) && $_GET['success'] === 'true'): ?>
+                <div class="p-3 bg-success bg-opacity-25 border border-success rounded" role="alert">
+                    <p>Se ha actualizado el estado del cupón correctamente. Será redirigido en breve.</p>
                 </div>
-                <div id="message-danger-container" class="alert alert-danger" role="alert" style="display: none;">
+                <script>
+                    setTimeout(() => {
+                        location.replace('<?= esc_url(remove_query_arg(['action', 'ticket_id', 'success'])) ?>');
+                    }, 2000);
+                </script>
+            <?php elseif (isset($_GET['success']) && $_GET['success'] === 'false'): ?>
+                <div class="p-3 bg-danger bg-opacity-25 border border-danger rounded" role="alert">
+                    <p>Hubo un error al actualizar el estado del cupón.</p>
+                    <ul>
+                        <li>
+                            El ticket no existe en la base de datos.
+                        </li>
+                        <li>
+                            Su usuario no tiene permisos para editar el cupón asignado al ticket.
+                        </li>
+                        <li>
+                            Error a la hora de cambiar el estado del ticket.
+                        </li>
+                        <li>
+                            Error guardando el comprobante de pago.
+                        </li>
+                    </ul>
                 </div>
+            <?php endif; ?>
+            <form id="form-coupon-status" method="post" class="p-3" action="<?= $action ?>" enctype="multipart/form-data">
+                <?= wp_nonce_field('git_edit_coupon_status', 'nonce') ?>
                 <div id="error-container"></div>
-                <?php $this->file_input->display() ?>
-                <input type="hidden" name="ticket_id" value="<?= $ticket->id ?>">
+                <?php $this->file_input->render() ?>
+                <input type="hidden" name="id" value="<?= $ticket->id ?>">
                 <input type="hidden" name="has_previous" value="<?= git_serialize(!empty($proof_payment)) ?>">
                 <div class="mb-3">
-                    <?= $this->status_select->get_label('Estado')->compact(); ?>
+                    <?= $this->status_select->getLabel('Estado')->compact(); ?>
                     <?= $this->status_select->compact(); ?>
                 </div>
-                <div style="<?= $ticket->status === TicketConstants::PARTIAL ? 'display: block;' : 'display: none;' ?>"
+                <div style="<?= $ticket->status === TicketStatus::PARTIAL ? 'display: block;' : 'display: none;' ?>"
                     id="partial-options-container">
                     <div class="mb-3 p-3 bg-success bg-opacity-25 border border-success rounded">
                         <span class="fs-4 fw-medium">Pasajeros aprobados a viajar:</span>
                         <div id="approved-passengers-container">
-                            <?php foreach ($ticket->get_passengers() as $passenger): ?>
+                            <?php foreach ($ticket->getPassengers() as $passenger): ?>
                                 <div class="form-check">
                                     <input class="form-check-input check-passenger-approved" <?= $passenger->approved ? 'checked' : '' ?>
                                         type="checkbox" id="passenger_<?= $passenger->id ?>"
-                                        <?= $ticket->status === TicketConstants::PENDING || git_current_user_has_role('administrator') ? '' : 'disabled' ?> name="approved_passengers[]" value="<?= $passenger->id ?>">
+                                        <?= $ticket->status === TicketStatus::PENDING || git_current_user_has_role('administrator') ? '' : 'disabled' ?> name="approved_passengers[]" value="<?= $passenger->id ?>">
                                     <label class="form-check-label" for="passenger_<?= $passenger->id ?>">
                                         <?= esc_html($passenger->name) ?>
                                     </label>
@@ -153,24 +164,24 @@ class FormEditCouponOperator implements Component
                         </div>
                     </div>
                     <div class="mb-3">
-                        <?= $this->amount_input->get_label('Monto')->compact(); ?>
+                        <?= $this->amount_input->getLabel('Monto')->compact(); ?>
                         <?= $this->amount_input->compact(); ?>
                     </div>
                 </div>
                 <div id="section-payment">
                     <div class="mb-3">
-                        <?= $this->code_input->get_label('Código')->compact(); ?>
+                        <?= $this->code_input->getLabel('Código')->compact(); ?>
                         <?= $this->code_input->compact(); ?>
                     </div>
                     <hr>
                     <div class="mb-3">
                         <div class="m-3">
                             <span class="text-secondary" id="proof_payment_name_display">
-                                <?= esc_html(empty($proof_payment['name']) ? 'Subir archivo...' : $proof_payment['name']) ?>
+                                <?= esc_html(empty($proof_payment->filename) ? 'Subir archivo...' : $proof_payment->filename) ?>
                             </span>
                         </div>
                         <div class="btn-group">
-                            <a class="btn btn-outline-success" href="<?= $proof_payment['path'] ?? '#' ?>" target="_blank">
+                            <a class="btn btn-outline-success" href="<?= $proof_payment->url ?? '#' ?>" target="_blank">
                                 <i class="bi bi-eye"></i> Recupera el comprobante
                             </a>
                             <button id="button_upload_proof_payment" type="button" class="btn btn-outline-primary">
@@ -179,18 +190,23 @@ class FormEditCouponOperator implements Component
                         </div>
                     </div>
                 </div>
-                <?php if ($ticket->status === TicketConstants::PENDING || git_current_user_has_role('administrator')): ?>
-                    <button id="button-submit-form-coupon-status" type="submit" class="btn btn-primary">Guardar</button>
+                <?php if ($ticket->status === TicketStatus::PENDING || git_current_user_has_role('administrator')): ?>
+                    <button id="button_submit_form_coupon_status" type="submit" class="btn btn-primary">Guardar</button>
                 <?php endif; ?>
             </form>
             <script>
-                selectElement = document.getElementById('<?= $this->status_select->id ?>');
+                const selectElement = document.getElementById('<?= $this->status_select->id ?>');
+                const submitButton = document.getElementById('button_submit_form_coupon_status');
                 selectElement.addEventListener('change', function (event) {
                     const selectedValue = event.target.value;
-                    if (['<?= TicketConstants::CANCEL ?>', '<?= TicketConstants::PENDING ?>'].includes(selectedValue)) {
+                    if (['<?= TicketStatus::CANCEL->value ?>', '<?= TicketStatus::PENDING->value ?>'].includes(selectedValue)) {
                         document.getElementById('section-payment').style.display = 'none';
                         document.getElementById('<?= $this->code_input->id ?>').required = false;
+                        document.getElementById('partial-options-container').style.display = 'none';
+                    } else if (selectedValue === '<?= TicketStatus::PARTIAL->value ?>') {
+                        document.getElementById('partial-options-container').style.display = 'block';
                     } else {
+                        document.getElementById('partial-options-container').style.display = 'none';
                         document.getElementById('section-payment').style.display = 'block';
                         document.getElementById('<?= $this->code_input->id ?>').required = true;
                     }
@@ -198,8 +214,13 @@ class FormEditCouponOperator implements Component
                 selectElement.dispatchEvent(new Event('change'));
                 document.getElementById('button_upload_proof_payment').addEventListener('click', function () {
                     document.getElementById('<?= $this->file_input->id ?>').click();
-                    const select = document.getElementById('<?= $this->status_select->id ?>');
                 });
+                if (submitButton) {
+                    submitButton.addEventListener('click', function () {
+                        submitButton.textContent = 'Guardando...';
+                        submitButton.disabled = true;
+                    });
+                }
             </script>
             <?php
         }
@@ -217,14 +238,13 @@ class FormEditCouponOperator implements Component
         }
 
         $ticket_id = (int) $_GET['ticket_id'];
-        $repository = new TicketRepository();
-        $ticket = $repository->find($ticket_id);
+        $ticket = git_ticket_by_id($ticket_id);
 
         if ($ticket === null) {
             return false;
         }
 
-        $coupon = $ticket->get_coupon();
+        $coupon = $ticket->getCoupon();
 
         if ($coupon === null) {
             return false;
@@ -238,8 +258,9 @@ class FormEditCouponOperator implements Component
             return false;
         }
 
-        $coupon_repository = new CouponRepository();
-        $coupons = $coupon_repository->get_coupons_by_operator(new Operator(get_current_user_id()));
+        $operator = new Operator();
+        $operator->setUser(wp_get_current_user());
+        $coupons = $operator->getCoupons();
 
         foreach ($coupons as $coupon_operator) {
             if ($coupon_operator->ID === $coupon->ID) {

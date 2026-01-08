@@ -1,8 +1,8 @@
 <?php
-namespace CentralTickets\Placeholders;
+namespace CentralBooking\Placeholders;
 
-use CentralTickets\Components\StandaloneComponent;
-use CentralTickets\Passenger;
+use CentralBooking\Data\Passenger;
+use CentralBooking\GUI\StandaloneComponent;
 use DateInterval;
 use DateTime;
 use Exception;
@@ -30,14 +30,14 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
             'parameters' => [],
         ]);
 
-        $this->add_placeholder('type_document', fn(array $params) => $this->passenger->type_document);
+        $this->add_placeholder('type_document', fn(array $params) => $this->passenger->typeDocument);
         $this->add_description('type_document', [
             'title' => 'Tipo de Documento del Pasajero',
             'description' => 'Tipo de documento del pasajero.',
             'parameters' => [],
         ]);
 
-        $this->add_placeholder('data_document', fn(array $params) => $this->passenger->data_document);
+        $this->add_placeholder('data_document', fn(array $params) => $this->passenger->dataDocument);
         $this->add_description('data_document', [
             'title' => 'Datos del Documento del Pasajero',
             'description' => 'Datos del documento del pasajero.',
@@ -105,9 +105,9 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
         ]);
 
         $this->add_placeholder('origin', fn(array $params) => match ($params['info'] ?? 'name') {
-            'id' => $this->passenger->get_route()->get_origin()->id,
-            'name' => $this->passenger->get_route()->get_origin()->name,
-            'zone_name' => $this->passenger->get_route()->get_origin()->get_zone()->name,
+            'id' => $this->passenger->getRoute()->getOrigin()->id,
+            'name' => $this->passenger->getRoute()->getOrigin()->name,
+            'zone_name' => $this->passenger->getRoute()->getOrigin()->getZone()->name,
             default => '',
         });
         $this->add_description('origin', [
@@ -136,9 +136,9 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
         ]);
 
         $this->add_placeholder('destiny', fn(array $params) => match ($params['info'] ?? 'name') {
-            'id' => $this->passenger->get_route()->get_destiny()->id,
-            'name' => $this->passenger->get_route()->get_destiny()->name,
-            'zone_name' => $this->passenger->get_route()->get_destiny()->get_zone()->name,
+            'id' => $this->passenger->getRoute()->getDestiny()->id,
+            'name' => $this->passenger->getRoute()->getDestiny()->name,
+            'zone_name' => $this->passenger->getRoute()->getDestiny()->getZone()->name,
             default => '',
         });
         $this->add_description('destiny', [
@@ -171,13 +171,13 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
             if (str_contains($params['size'] ?? '350', 'px')) {
                 $size = (int) str_replace('px', '', $params['size']);
             }
-            $url = git_get_ticket_viewer_url($this->passenger->get_ticket()->id, $size);
+            $url = git_get_ticket_viewer_url($this->passenger->getTicket()->id, $size);
             if ($url === null) {
                 return 'QR no disponible';
             }
             $img = new StandaloneComponent('img');
-            $img->set_attribute('src', $url);
-            $img->set_attribute('alt', 'Código QR del Ticket');
+            $img->attributes->set('src', $url);
+            $img->attributes->set('alt', 'Código QR del Ticket');
             return $img->compact();
         });
         $this->add_description('qr_ticket', [
@@ -250,12 +250,12 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
         // ]);
 
         $this->add_placeholder('transport', fn(array $params) => match ($params['info'] ?? 'name') {
-            'id' => $this->passenger->get_transport()->id,
-            'code' => $this->passenger->get_transport()->code,
-            'type' => $this->passenger->get_transport()->type,
-            'name' => $this->passenger->get_transport()->nicename,
-            'capacity' => $this->passenger->get_transport()->get_meta('capacity') ?? 0,
-            'operator_name' => $this->passenger->get_transport()->get_operator()->first_name . ' ' . $this->passenger->get_transport()->get_operator()->last_name,
+            'id' => $this->passenger->getTransport()->id,
+            'code' => $this->passenger->getTransport()->code,
+            'type' => $this->passenger->getTransport()->type,
+            'name' => $this->passenger->getTransport()->nicename,
+            'capacity' => $this->passenger->getTransport()->getMeta('capacity') ?? 0,
+            'operator_name' => $this->passenger->getTransport()->getOperator()->getUser()->first_name . ' ' . $this->passenger->getTransport()->getOperator()->getUser()->last_name,
             default => '',
         });
         $this->add_description('transport', [
@@ -295,27 +295,28 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
         ]);
 
         $this->add_placeholder('date_trip', function (array $params) {
-            $date_obj = new DateTime($this->passenger->date_trip);
-            if (!$date_obj) {
-                return 'Fecha no disponible';
-            }
-            $format = $params['format'] ?? 'iso';
-            $include_time = isset($params['time']) && $params['time'] === 'true';
-            $result = match ($format) {
-                'long' => function_exists('git_date_format')
-                ? git_date_format($date_obj->format('Y-m-d'), false)
-                : $date_obj->format('j \d\e F \d\e Y'),
-                'short' => function_exists('git_date_format')
-                ? git_date_format($date_obj->format('Y-m-d'), true)
-                : $date_obj->format('j M, Y'),
-                'iso' => $date_obj->format('Y-m-d'),
-                default => $date_obj->format('Y-m-d')
-            };
-            if ($include_time) {
-                $time_format = $params['time_format'] ?? 'H:i';
-                $result .= ' ' . $date_obj->format($time_format);
-            }
-            return $result;
+            // $date_obj = new DateTime($this->passenger->getDateTrip());
+            // if (!$date_obj) {
+            //     return 'Fecha no disponible';
+            // }
+            // $format = $params['format'] ?? 'iso';
+            // $include_time = isset($params['time']) && $params['time'] === 'true';
+            // $result = match ($format) {
+            //     'long' => function_exists('git_date_format')
+            //     ? git_date_format($date_obj->format('Y-m-d'), false)
+            //     : $date_obj->format('j \d\e F \d\e Y'),
+            //     'short' => function_exists('git_date_format')
+            //     ? git_date_format($date_obj->format('Y-m-d'), true)
+            //     : $date_obj->format('j M, Y'),
+            //     'iso' => $date_obj->format('Y-m-d'),
+            //     default => $date_obj->format('Y-m-d')
+            // };
+            // if ($include_time) {
+            //     $time_format = $params['time_format'] ?? 'H:i';
+            //     $result .= ' ' . $date_obj->format($time_format);
+            // }
+            // return $result;
+            return '';
         });
         $this->add_description('date_trip', [
             'title' => 'Fecha del Viaje',
@@ -342,7 +343,7 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
         ]);
 
         $this->add_placeholder('schedule_trip', function (array $params) {
-            $route = $this->passenger->get_route();
+            $route = $this->passenger->getRoute();
             if (!$route) {
                 return 'Horario no disponible';
             }
@@ -351,24 +352,24 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
             $format = $params['format'] ?? 'H:i';
 
             return match ($type) {
-                'departure' => $route->departure_time
-                ? date($format, strtotime($route->departure_time))
+                'departure' => $route->departureTime
+                ? date($format, $route->getDepartureTime()->format())
                 : 'Hora de salida no disponible',
 
                 'arrival' => $this->calculate_arrival_time($route, $format),
 
-                'duration' => $route->duration_trip
-                ? $this->format_duration($route->duration_trip, $params['duration_format'] ?? 'text')
+                'duration' => $route->getArrivalTime()->diff($route->getDepartureTime())
+                ? $this->format_duration($route->getArrivalTime()->format(), $params['duration_format'] ?? 'text')
                 : 'Duración no disponible',
 
                 'both' => sprintf(
                     '%s - %s',
-                    $route->departure_time ? date($format, strtotime($route->departure_time)) : 'N/A',
+                    $route->departureTime ? date($format, strtotime($route->getDepartureTime()->format())) : 'N/A',
                     $this->calculate_arrival_time($route, $format)
                 ),
 
-                default => $route->departure_time
-                ? date($format, strtotime($route->departure_time))
+                default => $route->departureTime
+                ? date($format, strtotime($route->getDepartureTime()->format()))
                 : 'Horario no disponible'
             };
         });

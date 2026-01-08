@@ -1,12 +1,12 @@
 <?php
-namespace CentralTickets\Profile\Panes;
+namespace CentralBooking\Profile\Panes;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Profile\Forms\FormEditCouponOperator;
-use CentralTickets\Profile\Forms\FormSearchCouponOperator;
-use CentralTickets\Profile\Tables\TableCouponOperator;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Profile\Forms\FormEditCouponOperator;
+use CentralBooking\Profile\Forms\FormSearchCouponOperator;
+use CentralBooking\Profile\Tables\TableCouponOperator;
 
-class ProfilePaneCoupon implements Component
+class ProfilePaneCoupon implements ComponentInterface
 {
     public function compact()
     {

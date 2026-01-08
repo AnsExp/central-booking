@@ -1,18 +1,20 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Ticket;
-use CentralTickets\Services\TicketService;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\AccordionComponent;
-use CentralTickets\Components\PaginationComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\TextComponent;
-use CentralTickets\Components\Implementation\CouponSelect;
-use CentralTickets\Components\Implementation\TicketStatusSelect;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\Data\Services\TicketService;
+use CentralBooking\Data\Ticket;
+use CentralBooking\GUI\AccordionComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\PaginationComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\GUI\TextComponent;
+use CentralBooking\Implementation\GUI\CouponSelect;
+use CentralBooking\Implementation\GUI\TicketStatusSelect;
 
-final class TableTickets implements Displayer
+final class TableTickets implements DisplayerInterface
 {
     /**
      * @var array<Ticket>
@@ -31,24 +33,21 @@ final class TableTickets implements Displayer
     private function fetchTransports(): array
     {
         $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
-        $service = new TicketService();
-        $filter = [];
+        $filter = ['status_not' => TicketStatus::PERORDER->value];
         foreach ($_GET as $key => $value) {
             if (trim($value) !== '') {
                 $filter[$key] = $value;
             }
         }
-        $result = $service->paginated(
-            $filter,
-            $_GET['order_by'] ?? 'date_creation',
-            $_GET['order'] ?? 'DESC',
-            $page_number,
-            $this->per_page,
-        );
-        $this->total_items = $result['pagination']['total_elements'] ?? 0;
-        $this->total_pages = $result['pagination']['total_pages'] ?? 0;
-        $this->current_page = $result['pagination']['current_page'] ?? 1;
-        return $result['data'] ?? [];
+        $filter['order_by'] = $_GET['order_by'] ?? 'date_creation';
+        $filter['order'] = $_GET['order'] ?? 'DESC';
+        $filter['limit'] = $this->per_page;
+        $filter['offset'] = ($page_number - 1) * $this->per_page;
+        $result = git_tickets_result_set($filter);
+        $this->total_items = $result->getTotalItems();
+        $this->total_pages = $result->getTotalPages();
+        $this->current_page = $result->getCurrentPage();
+        return $result->getItems();
     }
 
     private function get_current_order_by()
@@ -80,29 +79,29 @@ final class TableTickets implements Displayer
         $coupon_select = (new CouponSelect('id_coupon'))->create();
         $flexible_select = new SelectComponent('flexible');
         $date_creation_input = new InputComponent('date_creation', 'date');
-        $flexible_select->add_option('Seleccione...', '');
-        $flexible_select->add_option('Sí', 'true');
-        $flexible_select->add_option('No', 'false');
-        $flexible_select->set_value($_GET['flexible'] ?? '');
-        $date_creation_input->set_value($_GET['date_creation'] ?? '');
-        $ticket_status_select->set_value($_GET['status'] ?? '');
-        $coupon_select->set_value($_GET['id_coupon'] ?? '');
+        $flexible_select->addOption('Seleccione...', '');
+        $flexible_select->addOption('Sí', 'true');
+        $flexible_select->addOption('No', 'false');
+        $flexible_select->setValue($_GET['flexible'] ?? '');
+        $date_creation_input->setValue($_GET['date_creation'] ?? '');
+        $ticket_status_select->setValue($_GET['status'] ?? '');
+        $coupon_select->setValue($_GET['id_coupon'] ?? '');
         ob_start();
         ?>
         <form method="GET">
             <input type="hidden" name="page" value="<?= esc_attr($_GET['page'] ?? 'git_tickets') ?>">
             <table class="form-table">
                 <tr>
-                    <th scope="row"><?php $ticket_status_select->get_label('Estado')->display(); ?></th>
-                    <td><?php $ticket_status_select->display(); ?></td>
-                    <th scope="row"><?php $date_creation_input->get_label('Fecha de Compra')->display(); ?></th>
-                    <td><?php $date_creation_input->display(); ?></td>
+                    <th scope="row"><?php $ticket_status_select->getLabel('Estado')->render(); ?></th>
+                    <td><?php $ticket_status_select->render(); ?></td>
+                    <th scope="row"><?php $date_creation_input->getLabel('Fecha de Compra')->render(); ?></th>
+                    <td><?php $date_creation_input->render(); ?></td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php $coupon_select->get_label('Cupon')->display(); ?></th>
-                    <td><?php $coupon_select->display(); ?></td>
-                    <th scope="row"><?php $flexible_select->get_label('Flexible')->display(); ?></th>
-                    <td><?php $flexible_select->display(); ?></td>
+                    <th scope="row"><?php $coupon_select->getLabel('Cupon')->render(); ?></th>
+                    <td><?php $coupon_select->render(); ?></td>
+                    <th scope="row"><?php $flexible_select->getLabel('Flexible')->render(); ?></th>
+                    <td><?php $flexible_select->render(); ?></td>
                 </tr>
             </table>
             <button class="button button-primary" type="submit">Aplicar</button>
@@ -113,7 +112,7 @@ final class TableTickets implements Displayer
         return git_string_to_component($result);
     }
 
-    public function display()
+    public function render()
     {
         $pagination = new PaginationComponent();
         $pagination->set_data(
@@ -133,7 +132,7 @@ final class TableTickets implements Displayer
         $filter_header->append(git_string_to_component('<i class="bi bi-sliders"></i>'));
         $filter_header->append(' Filtro');
         $accordion->add_item($filter_header, $this->filter_form());
-        $accordion->display();
+        $accordion->render();
         ?>
         <div style="overflow-x: auto; max-width: 1100px;">
             <table class="wp-list-table widefat fixed striped">
@@ -202,27 +201,27 @@ final class TableTickets implements Displayer
                         <tr>
                             <td>
                                 <span>
-                                    <?= git_datetime_format($ticket->get_order()->get_date_created()->format('Y-m-d H:i:s')) ?>
+                                    <?= git_datetime_format($ticket->getOrder()->get_date_created()->format('Y-m-d H:i:s')) ?>
                                 </span>
                                 <div class="row-actions visible">
                                     <span>ID: <?= esc_html($ticket->id) ?></span>
                                     <span> | </span>
                                     <span>
                                         <a target="_blank"
-                                            href="<?= admin_url("post.php?post={$ticket->get_order()->get_id()}&action=edit") ?>">Pedido:
-                                            <?= esc_html($ticket->get_order()->get_id()) ?></a>
+                                            href="<?= admin_url("post.php?post={$ticket->getOrder()->get_id()}&action=edit") ?>">Pedido:
+                                            <?= esc_html($ticket->getOrder()->get_id()) ?></a>
                                     </span>
                                     <span> | </span>
                                     <span>
                                         <a target="_blank"
-                                            href="<?= admin_url("admin.php?page=central_passengers&id_ticket={$ticket->id}") ?>">
-                                            Pasajeros (<?= count($ticket->get_passengers()) ?>)
+                                            href="<?= AdminRouter::get_url_for_class(TablePassengers::class, ['id_ticket' => $ticket->id]) ?>">
+                                            Pasajeros (<?= count($ticket->getPassengers()) ?>)
                                         </a>
                                     </span>
                                     <span> | </span>
                                     <span>
                                         <a class="git-row-action-link" target="_blank"
-                                            href="<?= admin_url("admin.php?page=central_activity&tab=tickets&id={$ticket->id}") ?>">
+                                            href="<?= AdminRouter::get_url_for_class(TableTicketsLog::class, ['id' => $ticket->id]) ?>">
                                             Logs
                                         </a>
                                     </span>
@@ -235,10 +234,10 @@ final class TableTickets implements Displayer
                                 </div>
                             </td>
                             <td><?= git_currency_format($ticket->total_amount, true) ?></td>
-                            <td><?= git_get_text_by_status(esc_html($ticket->status)) ?></td>
+                            <td><?= $ticket->status->label() ?></td>
                             <td><?= $ticket->flexible ? 'Sí' : 'No' ?></td>
-                            <td><?= $ticket->get_coupon() === null ? '—' : $ticket->get_coupon()->post_name ?></td>
-                            <td><?= $ticket->get_order()->get_billing_phone() ?></td>
+                            <td><?= $ticket->getCoupon() === null ? '—' : $ticket->getCoupon()->post_title ?></td>
+                            <td><?= $ticket->getOrder()->get_billing_phone() ?></td>
                         </tr>
                         <tr id="actions-container-<?= $ticket->id ?>" class="git-row-actions">
                             <td colspan="6">
@@ -250,7 +249,7 @@ final class TableTickets implements Displayer
                                         <?php
                                         $input_check = new InputComponent('flexible', 'checkbox');
                                         if ($ticket->flexible) {
-                                            $input_check->set_attribute('checked', '');
+                                            $input_check->attributes->set('checked', '');
                                         }
                                         ?>
                                         <input type="hidden" name="nonce" value="<?= wp_create_nonce('git_ticket_nonce') ?>">
@@ -258,10 +257,10 @@ final class TableTickets implements Displayer
                                         <table class="form-table" role="presentation" style="max-width: 300px;">
                                             <tr>
                                                 <td>
-                                                    <?php $input_check->get_label('Flexible')->display() ?>
+                                                    <?php $input_check->getLabel('Flexible')->render() ?>
                                                 </td>
                                                 <td>
-                                                    <?php $input_check->display() ?>
+                                                    <?php $input_check->render() ?>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -277,7 +276,7 @@ final class TableTickets implements Displayer
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->display() ?>
+            <?php $pagination->render() ?>
         </div>
         <?php
     }
@@ -285,6 +284,7 @@ final class TableTickets implements Displayer
 
 add_action('wp_ajax_toggle_flexible', function () {
     $ticket_id = intval($_POST['ticket_id']);
-    (new TicketService())->toggle_flexible($ticket_id, isset($_POST['flexible']));
+    $ticket_result = git_ticket_toggle_flexible($ticket_id, isset($_POST['flexible']));
+    git_ticket_save($ticket_result);
     wp_die();
 });

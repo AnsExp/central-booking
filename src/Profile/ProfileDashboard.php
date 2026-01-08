@@ -1,18 +1,18 @@
 <?php
-namespace CentralTickets\Profile;
+namespace CentralBooking\Profile;
 
-use CentralTickets\Constants\UserConstants;
-use CentralTickets\Components\Component;
-use CentralTickets\Profile\Panes\ProfilePaneNotFound;
-use CentralTickets\Profile\Panes\ProfilePaneCoupon;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Profile\Panes\ProfilePaneCoupon;
+use CentralBooking\Profile\Panes\ProfilePaneProfile;
 use CentralTickets\Profile\Panes\ProfilePaneInvoice;
+use CentralTickets\Profile\Panes\ProfilePaneNotFound;
 use CentralTickets\Profile\Panes\ProfilePaneOrder;
 use CentralTickets\Profile\Panes\ProfilePanePreorder;
-use CentralTickets\Profile\Panes\ProfilePaneProfile;
 use CentralTickets\Profile\Panes\ProfilePaneTrip;
 use WP_User;
 
-class ProfileDashboard implements Component
+class ProfileDashboard implements ComponentInterface
 {
     private WP_User $current_user;
     private array $user_roles;
@@ -64,33 +64,52 @@ class ProfileDashboard implements Component
         $all_tabs = [
             'profile' => [
                 'label' => 'Mi Perfil',
-                'roles' => [UserConstants::CUSTOMER, UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+                'roles' => [
+                    UserConstants::CUSTOMER->value,
+                    UserConstants::OPERATOR->value,
+                    UserConstants::ADMINISTRATOR->value,
+                ],
                 'callback' => [new ProfilePaneProfile(), 'compact']
             ],
             'orders' => [
                 'label' => 'Mis Pedidos',
-                'roles' => [UserConstants::CUSTOMER, UserConstants::ADMINISTRATOR],
+                'roles' => [
+                    UserConstants::CUSTOMER->value,
+                    UserConstants::ADMINISTRATOR->value,
+                ],
                 'callback' => [new ProfilePaneOrder(), 'compact']
             ],
-            'preorders' => [
-                'label' => 'Preordenes',
-                'roles' => [UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+            'tickets' => [
+                'label' => 'Tickets',
+                'roles' => [
+                    UserConstants::OPERATOR->value,
+                    UserConstants::ADMINISTRATOR->value,
+                ],
                 'callback' => [new ProfilePanePreorder(), 'compact']
             ],
             'coupons' => [
                 'label' => 'Cupones',
-                'roles' => [UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+                'roles' => [
+                    UserConstants::OPERATOR->value,
+                    UserConstants::ADMINISTRATOR->value,
+                ],
                 'callback' => [new ProfilePaneCoupon(), 'compact']
             ],
             'trips' => [
                 'label' => 'Bitácora de Viajes',
                 'icon' => 'dashicons dashicons-location',
-                'roles' => [UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+                'roles' => [
+                    UserConstants::OPERATOR->value,
+                    UserConstants::ADMINISTRATOR->value,
+                ],
                 'callback' => [new ProfilePaneTrip(), 'compact']
             ],
             'sales' => [
                 'label' => 'Ventas',
-                'roles' => [UserConstants::OPERATOR, UserConstants::ADMINISTRATOR],
+                'roles' => [
+                    UserConstants::OPERATOR->value,
+                    UserConstants::ADMINISTRATOR->value,
+                ],
                 'callback' => [new ProfilePaneInvoice(), 'compact']
             ],
         ];

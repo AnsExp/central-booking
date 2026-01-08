@@ -1,11 +1,11 @@
 <?php
-namespace CentralTickets\Admin\Setting;
+namespace CentralBooking\Admin\Setting;
 
-use CentralTickets\Components\CodeEditorComponent;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
+use CentralBooking\GUI\CodeEditorComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
 
-final class SettingsClients implements Displayer
+final class SettingsClients implements DisplayerInterface
 {
     private InputComponent $days_without_sale_input;
     private CodeEditorComponent $standard_textarea;
@@ -33,18 +33,18 @@ final class SettingsClients implements Displayer
         $this->flexible_textarea = new CodeEditorComponent('flexible_message');
         $this->request_seats_textarea = new CodeEditorComponent('request_seats');
         $this->terms_conditions_textarea = new CodeEditorComponent('terms_conditions');
-        $this->days_without_sale_input->set_value(git_get_setting('days_without_sale', 0));
+        $this->days_without_sale_input->setValue(git_get_setting('days_without_sale', 0));
 
-        $this->rpm_textarea->set_value(git_get_setting('form_message_rpm', ''));
-        $this->kid_textarea->set_value(git_get_setting('form_message_kid', ''));
-        $this->extra_textarea->set_value(git_get_setting('form_message_extra', ''));
-        $this->local_textarea->set_value(git_get_setting('form_message_local', ''));
-        $this->standard_textarea->set_value(git_get_setting('form_message_standard', ''));
-        $this->flexible_textarea->set_value(git_get_setting('form_message_flexible', ''));
-        $this->request_seats_textarea->set_value(git_get_setting('form_message_request_seats', ''));
-        $this->terms_conditions_textarea->set_value(git_get_setting('form_message_terms_conditions', ''));
-        $this->days_without_sale_input->set_attribute('min', -365);
-        $this->days_without_sale_input->set_attribute('max', 365);
+        $this->rpm_textarea->setValue(git_get_setting('form_message_rpm', ''));
+        $this->kid_textarea->setValue(git_get_setting('form_message_kid', ''));
+        $this->extra_textarea->setValue(git_get_setting('form_message_extra', ''));
+        $this->local_textarea->setValue(git_get_setting('form_message_local', ''));
+        $this->standard_textarea->setValue(git_get_setting('form_message_standard', ''));
+        $this->flexible_textarea->setValue(git_get_setting('form_message_flexible', ''));
+        $this->request_seats_textarea->setValue(git_get_setting('form_message_request_seats', ''));
+        $this->terms_conditions_textarea->setValue(git_get_setting('form_message_terms_conditions', ''));
+        $this->days_without_sale_input->attributes->set('min', -365);
+        $this->days_without_sale_input->attributes->set('max', 365);
 
         foreach ([
             $this->rpm_textarea,
@@ -58,11 +58,11 @@ final class SettingsClients implements Displayer
         ] as $code_editor) {
             $code_editor->set_language('html');
             $code_editor->styles->set('width', '100%');
-            $code_editor->set_attribute('rows', 7);
+            $code_editor->attributes->set('rows', 7);
         }
     }
 
-    public function display()
+    public function render()
     {
         ?>
         <form id="git-settings-form"
@@ -77,7 +77,7 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?= $this->days_without_sale_input->get_label('Días sin venta')->compact() ?>
+                        <?= $this->days_without_sale_input->getLabel('Días sin venta')->compact() ?>
                     </th>
                     <td>
                         <?= $this->days_without_sale_input->compact() ?>
@@ -93,18 +93,18 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->standard_textarea->get_label('Mensaje para los clientes regular')->display() ?>
+                        <?php $this->standard_textarea->getLabel('Mensaje para los clientes regular')->render() ?>
                     </th>
                     <td>
-                        <?php $this->standard_textarea->display() ?>
+                        <?php $this->standard_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->extra_textarea->get_label('Mensaje sobre carga extra')->display() ?>
+                        <?php $this->extra_textarea->getLabel('Mensaje sobre carga extra')->render() ?>
                     </th>
                     <td>
-                        <?php $this->extra_textarea->display() ?>
+                        <?php $this->extra_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
@@ -114,26 +114,26 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->local_textarea->get_label('Mensaje para locales')->display() ?>
+                        <?php $this->local_textarea->getLabel('Mensaje para locales')->render() ?>
                     </th>
                     <td>
-                        <?php $this->local_textarea->display() ?>
+                        <?php $this->local_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->rpm_textarea->get_label('Mensaje para los clientes RPM')->display() ?>
+                        <?php $this->rpm_textarea->getLabel('Mensaje para los clientes RPM')->render() ?>
                     </th>
                     <td>
-                        <?php $this->rpm_textarea->display() ?>
+                        <?php $this->rpm_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->kid_textarea->get_label('Mensaje para los clientes de edad preferente')->display() ?>
+                        <?php $this->kid_textarea->getLabel('Mensaje para los clientes de edad preferente')->render() ?>
                     </th>
                     <td>
-                        <?php $this->kid_textarea->display() ?>
+                        <?php $this->kid_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
@@ -143,26 +143,26 @@ final class SettingsClients implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->flexible_textarea->get_label('Mensaje sobre flexibilidad')->display() ?>
+                        <?php $this->flexible_textarea->getLabel('Mensaje sobre flexibilidad')->render() ?>
                     </th>
                     <td>
-                        <?php $this->flexible_textarea->display() ?>
+                        <?php $this->flexible_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->terms_conditions_textarea->get_label('Términos y condiciones')->display() ?>
+                        <?php $this->terms_conditions_textarea->getLabel('Términos y condiciones')->render() ?>
                     </th>
                     <td>
-                        <?php $this->terms_conditions_textarea->display() ?>
+                        <?php $this->terms_conditions_textarea->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->request_seats_textarea->get_label('Solicitud de más asientos')->display() ?>
+                        <?php $this->request_seats_textarea->getLabel('Solicitud de más asientos')->render() ?>
                     </th>
                     <td>
-                        <?php $this->request_seats_textarea->display() ?>
+                        <?php $this->request_seats_textarea->render() ?>
                     </td>
                 </tr>
             </table>

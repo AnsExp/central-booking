@@ -1,148 +1,133 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\View\TableRoutes;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\MultipleSelectComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\Implementation\LocationSelect;
-use CentralTickets\Components\Implementation\TransportSelect;
-use CentralTickets\Components\Implementation\TypeSelect;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\MultipleSelectComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\LocationSelect;
+use CentralBooking\Implementation\GUI\TransportSelect;
+use CentralBooking\Implementation\GUI\TypeSelect;
 
-final class FormRoute implements Displayer
+final class FormRoute implements DisplayerInterface
 {
     private InputComponent $input_id;
-    private InputComponent $input_distance;
-    private InputComponent $input_duration;
     private SelectComponent $select_origin;
     private SelectComponent $select_destiny;
     private SelectComponent $select_type;
+    private InputComponent $input_arrival_time;
     private InputComponent $input_departure_time;
     private MultipleSelectComponent $select_transport;
 
     public function __construct()
     {
         $this->input_id = new InputComponent('id', 'hidden');
-        $this->input_distance = new InputComponent('distance', 'number');
-        $this->input_duration = new InputComponent('duration_trip', 'time');
         $this->input_departure_time = new InputComponent('departure_time', 'time');
+        $this->input_arrival_time = new InputComponent('arrival_time', 'time');
         $this->select_type = (new TypeSelect('type'))->create();
         $this->select_origin = (new LocationSelect('origin'))->create();
         $this->select_destiny = (new LocationSelect('destiny'))->create();
         $this->select_transport = (new TransportSelect('transports'))->create(true);
-        $this->input_id->set_value(0);
-        $this->select_type->set_required(true);
-        $this->select_origin->set_required(true);
-        $this->input_distance->set_required(true);
-        $this->input_duration->set_required(true);
-        $this->select_destiny->set_required(true);
-        $this->input_departure_time->set_required(true);
-        $this->input_distance->set_attribute('min', '0');
+        $this->input_id->setValue(0);
+        $this->select_type->setRequired(true);
+        $this->select_origin->setRequired(true);
+        $this->select_destiny->setRequired(true);
+        $this->input_arrival_time->setRequired(true);
+        $this->input_departure_time->setRequired(true);
     }
 
-    public function display()
+    public function render()
     {
-        $route = git_get_route_by_id((int) ($_GET['id'] ?? '0'));
+        $route = git_route_by_id((int) ($_GET['id'] ?? '0'));
         if ($route) {
-            $this->input_id->set_value($route->id);
-            $this->select_type->set_value($route->type);
-            $this->input_distance->set_value($route->distance_km);
-            $this->select_origin->set_value($route->get_origin()->id);
-            $this->select_destiny->set_value($route->get_destiny()->id);
-            $this->input_duration->set_value(esc_attr($route->duration_trip));
-            $this->input_departure_time->set_value(esc_attr($route->departure_time));
-            foreach ($route->get_transports() as $transport) {
-                $this->select_transport->set_value($transport->id);
+            $this->input_id->setValue($route->id);
+            $this->select_type->setValue($route->type->value);
+            $this->select_origin->setValue($route->getOrigin()->id);
+            $this->select_destiny->setValue($route->getDestiny()->id);
+            $this->input_arrival_time->setValue(esc_attr($route->getArrivalTime()->format()));
+            $this->input_departure_time->setValue(esc_attr($route->getDepartureTime()->format()));
+            foreach ($route->getTransports() as $transport) {
+                $this->select_transport->setValue($transport->id);
             }
         }
         ob_start();
+        $action = add_query_arg(
+            ['action' => 'git_edit_route'],
+            admin_url('admin-ajax.php')
+        );
         ?>
         <div id="form-route-message-container"></div>
-        <form id="form-route" method="post"
-            action="<?= add_query_arg(['action' => 'git_edit_route'], admin_url('admin-ajax.php')) ?>">
+        <form id="form-route" method="post" action="<?= esc_attr($action) ?>">
             <?php
-            $this->input_id->display();
+            $this->input_id->render();
             wp_nonce_field('edit_route', 'nonce');
             ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">
-                        <?php $this->select_origin->get_label('Origen')->display() ?>
+                        <?php $this->select_origin->getLabel('Origen')->render() ?>
                     </th>
                     <td>
                         <?php
                         $this->select_origin->styles->set('width', '100%');
-                        $this->select_origin->display();
+                        $this->select_origin->render();
                         ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_destiny->get_label('Destino')->display() ?>
+                        <?php $this->select_destiny->getLabel('Destino')->render() ?>
                     </th>
                     <td>
                         <?php
                         $this->select_destiny->styles->set('width', '100%');
-                        $this->select_destiny->display();
+                        $this->select_destiny->render();
                         ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_type->get_label('Tipo de ruta')->display() ?>
+                        <?php $this->select_type->getLabel('Tipo de ruta')->render() ?>
                     </th>
                     <td>
                         <?php
                         $this->select_type->styles->set('width', '100%');
-                        $this->select_type->display();
+                        $this->select_type->render();
                         ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_duration->get_label('Tiempo de viaje')->display() ?>
-                    </th>
-                    <td>
-                        <?php
-                        $this->input_duration->set_placeholder('Tiempo de viaje');
-                        $this->input_duration->styles->set('width', '100%');
-                        $this->input_duration->display();
-                        ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <?php $this->input_departure_time->get_label('Hora de salida')->display() ?>
+                        <?php $this->input_departure_time->getLabel('Hora de salida')->render() ?>
                     </th>
                     <td>
                         <?php
                         $this->input_departure_time->styles->set('width', '100%');
-                        $this->input_departure_time->display();
+                        $this->input_departure_time->render();
                         ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_distance->get_label('Distancia en km')->display() ?>
+                        <?php $this->input_arrival_time->getLabel('Hora de llegada')->render() ?>
                     </th>
                     <td>
                         <?php
-                        $this->input_distance->styles->set('width', '100%');
-                        $this->input_distance->display();
+                        $this->input_arrival_time->setPlaceholder('Hora de llegada');
+                        $this->input_arrival_time->styles->set('width', '100%');
+                        $this->input_arrival_time->render();
                         ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_transport->get_label('Transportes')->display() ?>
+                        <?php $this->select_transport->getLabel('Transportes')->render() ?>
                     </th>
                     <td>
                         <?php
                         $this->select_transport->styles->set('width', '100%');
-                        $this->select_transport->display();
-                        $this->select_transport->get_options_container()->display();
+                        $this->select_transport->render();
+                        $this->select_transport->getOptionsContainer()->render();
                         ?>
                     </td>
                 </tr>

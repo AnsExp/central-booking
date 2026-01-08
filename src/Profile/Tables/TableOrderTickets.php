@@ -1,12 +1,12 @@
 <?php
-namespace CentralTickets\Profile\Tables;
+namespace CentralBooking\Profile\Tables;
 
-use CentralTickets\Ticket;
-use CentralTickets\Constants\UserConstants;
-use CentralTickets\Components\Component;
-use CentralTickets\Persistence\TicketRepository;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Data\Ticket;
+use CentralBooking\GUI\ComponentInterface;
 
-class TableOrderTickets implements Component
+
+class TableOrderTickets implements ComponentInterface
 {
     /**
      * @var array<Ticket>
@@ -15,12 +15,7 @@ class TableOrderTickets implements Component
 
     public function __construct()
     {
-        $repository = new TicketRepository;
-        $this->tickets = $repository->find_by(
-            [
-                'id_order' => isset($_GET['order']) ? (int) $_GET['order'] : 0
-            ]
-        );
+        $this->tickets = git_tickets(['id_order' => isset($_GET['order']) ? (int) $_GET['order'] : 0]);
     }
 
     public function compact()
@@ -30,7 +25,7 @@ class TableOrderTickets implements Component
         }
         if (!git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
             $current_user = wp_get_current_user();
-            $user = $this->tickets[0]->get_order()->get_user();
+            $user = $this->tickets[0]->getOrder()->get_user();
             if ($user === false) {
                 return $this->order_whitout_owner();
             }
@@ -83,13 +78,13 @@ class TableOrderTickets implements Component
                     </tr>
                     <tr>
                         <th>Fecha de compra:</th>
-                        <td><?= git_datetime_format($ticket->get_order()->get_date_created()->format('Y-m-d H:i:s')); ?></td>
+                        <td><?= git_datetime_format($ticket->getOrder()->get_date_created()->format('Y-m-d H:i:s')); ?></td>
                     </tr>
                     <tr>
-                        <th>Pasajeros (<?= esc_html(count($ticket->get_passengers())); ?>):</th>
+                        <th>Pasajeros (<?= esc_html(count($ticket->getPassengers())); ?>):</th>
                         <td>
                             <ul>
-                                <?php foreach ($ticket->get_passengers() as $passenger): ?>
+                                <?php foreach ($ticket->getPassengers() as $passenger): ?>
                                     <li><?= esc_html($passenger->name); ?></li>
                                 <?php endforeach; ?>
                             </ul>

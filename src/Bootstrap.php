@@ -1,17 +1,15 @@
 <?php
-namespace CentralTickets;
+namespace CentralBooking;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Client\TicketViewer;
-use CentralTickets\Components\CompositeComponent;
-use CentralTickets\Constants\UserConstants;
-use CentralTickets\Preorder\PreorderDashboard;
-use CentralTickets\Profile\ProfileDashboard;
-use CentralTickets\REST\EndpointsConnectorsOperators;
-use CentralTickets\REST\EndpointsPDF;
-use CentralTickets\REST\EndpointsPreorder;
-use CentralTickets\REST\EndpointsRoosevelt;
-use CentralTickets\REST\RegisterRoute;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Client\TicketViewer;
+use CentralBooking\GUI\CompositeComponent;
+use CentralBooking\Preorder\PreorderDashboard;
+use CentralBooking\Profile\ProfileDashboard;
+use CentralBooking\REST\EndpointsPDF;
+use CentralBooking\REST\EndpointsPreorder;
+use CentralBooking\REST\EndpointsRoosevelt;
 use DateTime;
 
 final class Bootstrap
@@ -50,7 +48,6 @@ final class Bootstrap
             (new EndpointsPDF())->init_endpoints();
             (new EndpointsPreorder())->init_endpoints();
             (new EndpointsRoosevelt())->init_endpoints();
-            (new EndpointsConnectorsOperators())->init_endpoints();
         });
     }
 
@@ -62,23 +59,7 @@ final class Bootstrap
         });
         add_action('woocommerce_loaded', function () {
             if (class_exists('WC_Product')) {
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-thankyou.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-cart-ticket.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-hooks-woocommerce.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-product-form.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-passenger-form.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-cart-passenger.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/wc-class-product-operator.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-validate-coupon.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-product-item-cart.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-calculate-ticket-price.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-create-order-line-item.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/git-class-product-single-presentation.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/single-product/git-class-form-product.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/single-product/git-class-form-product-route.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/single-product/git-class-form-product-transport.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/single-product/git-class-form-product-passenger.php';
-                require_once CENTRAL_BOOKING_DIR . '/includes/woocommerce/single-product/git-class-form-product-not-available.php';
+                require_once CENTRAL_BOOKING_DIR . '/includes/git-class-product-operator.php';
             }
         });
     }
@@ -108,7 +89,7 @@ final class Bootstrap
                 'git_url' => $attributes['url'],
                 'git_dir' => $attributes['dir'],
             ], CENTRAL_BOOKING_URL . 'includes/git-interactive-map.php');
-            $component->set_attribute('src', $src);
+            $component->attributes->set('src', $src);
             $component->styles->set('width', $attributes['width']);
             $component->styles->set('height', $attributes['height']);
             return $component->compact();
@@ -124,8 +105,8 @@ final class Bootstrap
 
     private function init_admin_menu()
     {
-        add_role(UserConstants::OPERATOR, 'Operador', ['read' => true]);
-        add_role(UserConstants::MARKETER, 'Comercializador', ['read' => true]);
+        add_role(UserConstants::OPERATOR->value, 'Operador', ['read' => true]);
+        add_role(UserConstants::MARKETER->value, 'Comercializador', ['read' => true]);
         add_action('admin_menu', function () {
             wp_enqueue_style(
                 'icons-bootstrap',
@@ -274,13 +255,13 @@ final class Bootstrap
                 );
                 add_submenu_page(
                     AdminRouter::PAGE_CENTRAL_BOOKING,
-                    'Log de Actividades',
-                    'Log de Actividades',
+                    'Logs',
+                    'Logs',
                     'manage_options',
-                    AdminRouter::PAGE_ACTIVITIES_LOGS,
+                    AdminRouter::PAGE_LOGS,
                     function () {
                         AdminRouter::render_page(
-                            AdminRouter::PAGE_ACTIVITIES_LOGS,
+                            AdminRouter::PAGE_LOGS,
                             $_GET['action'] ?? null,
                         );
                     }

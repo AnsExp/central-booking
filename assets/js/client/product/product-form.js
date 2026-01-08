@@ -10,61 +10,79 @@ function handleMessageModal(message) {
     document.getElementById('button_launch_modal_form').click();
 }
 
-function createInputHidden(name, value) {
-    let input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = name;
-    input.value = value;
-    return input;
-}
+form.addEventListener('submit', (e) => {
+    const createInputHidden = (name, value) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        return input;
+    };
 
-function removeInput(name) {
-    let input = form.querySelector(`input[name="${name}"]`);
-    if (input) {
-        input.remove();
-    }
-    input = form.querySelector(`select[name="${name}"]`);
-    if (input) {
-        input.remove();
-    }
-}
+    const roundTrip = () => {
+        const inputs = document.querySelectorAll('input[name="type_way"]');
+        return Array.from(inputs).some((input) => input.value === 'double_way' && input.checked);
+    };
 
-function renameInput(name, newName) {
-    let input = form.querySelector(`input[name="${name}"]`);
-    if (input) {
-        input.name = newName;
-    }
-    input = form.querySelector(`select[name="${name}"]`);
-    if (input) {
-        input.name = newName;
-    }
-}
+    const body = {
+        nonce: form.querySelector('input[name="nonce"]').value,
+        round_trip: roundTrip() ? '1' : '0',
+        flexible: form.querySelector('input[name="flexible"]').checked ? '1' : '0',
+        product: form.querySelector('input[name="product"]').value,
+        pax: {
+            kid: window.CentralTickets.formProduct.getPax().kid,
+            rpm: window.CentralTickets.formProduct.getPax().rpm,
+            extra: window.CentralTickets.formProduct.getPax().extra,
+            standard: window.CentralTickets.formProduct.getPax().standard
+        },
+        goes: {
+            date_trip: form.querySelector('input[name="date_trip_goes"]').value,
+            id_route: window.CentralTickets.formProduct.getRoutes().goes.id,
+            id_transport: window.CentralTickets.formProduct.getTransports().goes.id
+        },
+        returns: roundTrip() ? {
+            date_trip: form.querySelector('input[name="date_trip_returns"]').value,
+            id_route: window.CentralTickets.formProduct.getRoutes().returns.id,
+            id_transport: window.CentralTickets.formProduct.getTransports().returns.id
+        } : { date_trip: '', id_route: 0, id_transport: 0 },
+        passengers: Array.from(document.getElementsByClassName('form_passenger')).map((pane) => ({
+            name: pane.querySelector('input[name="passenger[name]"]').value,
+            birthday: pane.querySelector('input[name="passenger[birthday]"]').value,
+            nationality: pane.querySelector('select[name="passenger[nationality]"]').value,
+            type_document: pane.querySelector('select[name="passenger[type_document]"]').value,
+            data_document: pane.querySelector('input[name="passenger[data_document]"]').value
+        }))
+    };
 
-form.addEventListener('submit', () => {
-    removeInput('schedule_goes');
-    removeInput('schedule_returns');
-    removeInput('terms_conditions');
-    form.appendChild(createInputHidden('pax[kid]', window.CentralTickets.formProduct.getPax().kid));
-    form.appendChild(createInputHidden('pax[rpm]', window.CentralTickets.formProduct.getPax().rpm));
-    form.appendChild(createInputHidden('pax[extra]', window.CentralTickets.formProduct.getPax().extra));
-    form.appendChild(createInputHidden('pax[standard]', window.CentralTickets.formProduct.getPax().standard));
+    form.innerHTML = `
+        <h3>Estamos procesando su solicitud...
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </h3>
+        `;
 
-    renameInput('date_trip_goes', 'trip[goes][date]');
-    form.appendChild(createInputHidden('trip[goes][route]', window.CentralTickets.formProduct.getRoutes().goes.id));
-    form.appendChild(createInputHidden('trip[goes][transport]', window.CentralTickets.formProduct.getTransports().goes.id));
-
-    if (() => {
-        document.querySelectorAll('input[name="type_way"]').forEach((input) => {
-            if (input.value === 'double_way' && input.checked) {
-                return true;
-            }
-        });
-        return false;
-    }) {
-        renameInput('date_trip_returns', 'trip[returns][date]');
-        form.appendChild(createInputHidden('trip[returns][route]', window.CentralTickets.formProduct.getRoutes().returns.id));
-        form.appendChild(createInputHidden('trip[returns][transport]', window.CentralTickets.formProduct.getTransports().returns.id));
-    }
+    form.appendChild(createInputHidden('nonce', body.nonce));
+    form.appendChild(createInputHidden('flexible', body.flexible));
+    form.appendChild(createInputHidden('round_trip', body.round_trip));
+    form.appendChild(createInputHidden('product', body.product));
+    form.appendChild(createInputHidden('pax[kid]', body.pax.kid));
+    form.appendChild(createInputHidden('pax[rpm]', body.pax.rpm));
+    form.appendChild(createInputHidden('pax[extra]', body.pax.extra));
+    form.appendChild(createInputHidden('pax[standard]', body.pax.standard));
+    form.appendChild(createInputHidden('goes[date_trip]', body.goes.date_trip));
+    form.appendChild(createInputHidden('goes[id_route]', body.goes.id_route));
+    form.appendChild(createInputHidden('goes[id_transport]', body.goes.id_transport));
+    form.appendChild(createInputHidden('returns[date_trip]', body.returns.date_trip));
+    form.appendChild(createInputHidden('returns[id_route]', body.returns.id_route));
+    form.appendChild(createInputHidden('returns[id_transport]', body.returns.id_transport));
+    body.passengers.forEach((passenger, index) => {
+        form.appendChild(createInputHidden(`passengers[${index}][name]`, passenger.name));
+        form.appendChild(createInputHidden(`passengers[${index}][birthday]`, passenger.birthday));
+        form.appendChild(createInputHidden(`passengers[${index}][nationality]`, passenger.nationality));
+        form.appendChild(createInputHidden(`passengers[${index}][type_document]`, passenger.type_document));
+        form.appendChild(createInputHidden(`passengers[${index}][data_document]`, passenger.data_document));
+    });
 });
 
 window.CentralTickets.formProduct = {

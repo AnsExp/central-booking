@@ -1,36 +1,34 @@
 <?php
-namespace CentralTickets\Admin;
+namespace CentralBooking\Admin;
 
-use CentralTickets\Admin\Form\FormCoupon;
-use CentralTickets\Admin\Form\FormLocation;
-use CentralTickets\Admin\Form\FormOperator;
-use CentralTickets\Admin\Form\FormOperatorsExternal;
-use CentralTickets\Admin\Form\FormQRCode;
-use CentralTickets\Admin\Form\FormRoute;
-use CentralTickets\Admin\Form\FormService;
-use CentralTickets\Admin\Form\FormTransfer;
-use CentralTickets\Admin\Form\FormTransport;
-use CentralTickets\Admin\Form\FormWebhook;
-use CentralTickets\Admin\Form\FormZone;
-use CentralTickets\Admin\Setting\SettingsClients;
-use CentralTickets\Admin\Setting\SettingsGeneral;
-use CentralTickets\Admin\Setting\SettingsNotifications;
-use CentralTickets\Admin\Setting\SettingsOperators;
-use CentralTickets\Admin\Setting\SettingsPreorder;
-use CentralTickets\Admin\Setting\SettingsTexts;
-use CentralTickets\Admin\Setting\SettingsTickets;
-use CentralTickets\Admin\Setting\SettingsWebhooks;
-use CentralTickets\Admin\View\TableCoupons;
-use CentralTickets\Admin\View\TableLocations;
-use CentralTickets\Admin\View\TableOperators;
-use CentralTickets\Admin\View\TablePassengers;
-use CentralTickets\Admin\View\TablePassengersLog;
-use CentralTickets\Admin\View\TableRoutes;
-use CentralTickets\Admin\View\TableServices;
-use CentralTickets\Admin\View\TableTickets;
-use CentralTickets\Admin\View\TableTicketsLog;
-use CentralTickets\Admin\View\TableTransports;
-use CentralTickets\Admin\View\TableZones;
+use CentralBooking\Admin\Form\FormCoupon;
+use CentralBooking\Admin\Form\FormLocation;
+use CentralBooking\Admin\Form\FormOperator;
+use CentralBooking\Admin\Form\FormQRCode;
+use CentralBooking\Admin\Form\FormRoute;
+use CentralBooking\Admin\Form\FormService;
+use CentralBooking\Admin\Form\FormTransfer;
+use CentralBooking\Admin\Form\FormTransport;
+use CentralBooking\Admin\Form\FormWebhook;
+use CentralBooking\Admin\Setting\SettingsClients;
+use CentralBooking\Admin\Setting\SettingsGeneral;
+use CentralBooking\Admin\Setting\SettingsNotifications;
+use CentralBooking\Admin\Setting\SettingsOperators;
+use CentralBooking\Admin\Setting\SettingsTexts;
+use CentralBooking\Admin\Setting\SettingsTickets;
+use CentralBooking\Admin\Setting\SettingsWebhooks;
+use CentralBooking\Admin\View\TableCoupons;
+use CentralBooking\Admin\View\TableLocations;
+use CentralBooking\Admin\View\TableOperators;
+use CentralBooking\Admin\View\TablePassengers;
+use CentralBooking\Admin\View\TablePassengersLog;
+use CentralBooking\Admin\View\TableRoutes;
+use CentralBooking\Admin\View\TableServices;
+use CentralBooking\Admin\View\TableTickets;
+use CentralBooking\Admin\View\TableTicketsLog;
+use CentralBooking\Admin\View\TableTransports;
+use CentralBooking\Admin\View\TableZones;
+use CentralBooking\Admin\Setting\SettingsPreorder;
 
 final class AdminRouter
 {
@@ -43,7 +41,7 @@ final class AdminRouter
     public const PAGE_SERVICES = 'git-services';
     public const PAGE_LOCATIONS = 'git-locations';
     public const PAGE_OPERATORS = 'git-operators';
-    public const PAGE_ACTIVITIES_LOGS = 'git-activity-logs';
+    public const PAGE_LOGS = 'git-logs';
 
     private static array $route_mappings = [
         self::PAGE_CENTRAL_BOOKING => [
@@ -294,13 +292,7 @@ final class AdminRouter
             'default_action' => 'list',
             'actions' => [
                 'list' => [
-                    'target' => TableOperators::class,
-                    'redirects' => [
-                        [
-                            'label' => 'Conectar operador externo',
-                            'to' => FormOperatorsExternal::class,
-                        ]
-                    ],
+                    'target' => TableOperators::class
                 ],
                 'edit' => [
                     'target' => FormOperator::class,
@@ -310,20 +302,11 @@ final class AdminRouter
                             'to' => TableOperators::class,
                         ]
                     ],
-                ],
-                'connector' => [
-                    'target' => FormOperatorsExternal::class,
-                    'redirects' => [
-                        [
-                            'label' => 'Listar operadores',
-                            'to' => TableOperators::class,
-                        ]
-                    ],
-                ],
+                ]
             ],
         ],
-        self::PAGE_ACTIVITIES_LOGS => [
-            'header' => 'Log de Actividades',
+        self::PAGE_LOGS => [
+            'header' => 'Logs',
             'tabpane' => true,
             'default_action' => 'list_tickets',
             'actions' => [
@@ -341,9 +324,6 @@ final class AdminRouter
         ],
     ];
 
-    /**
-     * Obtener página y acción para una clase específica
-     */
     public static function get_route_for_class(string $classname): ?array
     {
         foreach (self::$route_mappings as $page => $config) {
@@ -436,7 +416,7 @@ final class AdminRouter
         }
         if ($class) {
             echo '<div class="wrap">';
-            (new $class['target']())->display();
+            (new $class['target']())->render();
             echo '</div>';
         } else {
             wp_die('Página no encontrada');

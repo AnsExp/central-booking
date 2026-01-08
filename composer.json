@@ -16,7 +16,12 @@
     },
     "autoload": {
         "psr-4": {
-            "CentralTickets\\": "src/"
+            "CentralBooking\\": "src/",
+            "CentralBooking\\QR\\": "packages/qr/src/",
+            "CentralBooking\\GUI\\": "packages/gui/src/",
+            "CentralBooking\\PDF\\": "packages/pdf/src/",
+            "CentralBooking\\Data\\": "packages/data/src/",
+            "CentralBooking\\Webhook\\": "packages/webhook/src/"
         }
     },
     "config": {

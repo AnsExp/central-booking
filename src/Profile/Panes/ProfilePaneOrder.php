@@ -1,12 +1,12 @@
 <?php
 namespace CentralTickets\Profile\Panes;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Profile\Forms\FormTickets;
-use CentralTickets\Profile\Tables\TableOrder;
-use CentralTickets\Profile\Tables\TableOrderTickets;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Profile\Forms\FormTickets;
+use CentralBooking\Profile\Tables\TableOrder;
+use CentralBooking\Profile\Tables\TableOrderTickets;
 
-final class ProfilePaneOrder implements Component
+final class ProfilePaneOrder implements ComponentInterface
 {
     public function compact()
     {

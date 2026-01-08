@@ -1,12 +1,12 @@
 <?php
-namespace CentralTickets\Profile\Forms;
+namespace CentralBooking\Profile\Forms;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\Implementation\CouponSelect;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\CouponSelect;
 
-class FormSearchCouponOperator implements Component
+class FormSearchCouponOperator implements ComponentInterface
 {
     private SelectComponent $coupon_select;
     private InputComponent $date_start_input;
@@ -24,22 +24,22 @@ class FormSearchCouponOperator implements Component
         $this->date_end_input = new InputComponent('date_end', 'date');
         $this->date_start_input = new InputComponent('date_start', 'date');
 
-        $this->date_start_input->set_required(true);
-        $this->date_end_input->set_required(true);
-        $this->coupon_select->set_required(true);
+        $this->date_start_input->setRequired(true);
+        $this->date_end_input->setRequired(true);
+        $this->coupon_select->setRequired(true);
 
         $coupon = $_GET['coupon'] ?? null;
         $date_end = $_GET['date_end'] ?? null;
         $date_start = $_GET['date_start'] ?? null;
 
         if ($coupon) {
-            $this->coupon_select->set_value($coupon);
+            $this->coupon_select->setValue($coupon);
         }
         if ($date_end) {
-            $this->date_end_input->set_value($date_end);
+            $this->date_end_input->setValue($date_end);
         }
         if ($date_start) {
-            $this->date_start_input->set_value($date_start);
+            $this->date_start_input->setValue($date_start);
         }
     }
 
@@ -55,7 +55,7 @@ class FormSearchCouponOperator implements Component
                     <div class="col">
                         <div class="form-floating mb-3">
                             <?php echo $this->coupon_select->compact(); ?>
-                            <?php echo $this->coupon_select->get_label('Cupón')->compact(); ?>
+                            <?php echo $this->coupon_select->getLabel('Cupón')->compact(); ?>
                         </div>
                     </div>
                 </div>
@@ -63,13 +63,13 @@ class FormSearchCouponOperator implements Component
                     <div class="col-6">
                         <div class="form-floating mb-3">
                             <?php echo $this->date_start_input->compact(); ?>
-                            <?php echo $this->date_start_input->get_label('Fecha de inicio')->compact(); ?>
+                            <?php echo $this->date_start_input->getLabel('Fecha de inicio')->compact(); ?>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="form-floating mb-3">
                             <?php echo $this->date_end_input->compact(); ?>
-                            <?php echo $this->date_end_input->get_label('Fecha de fin')->compact(); ?>
+                            <?php echo $this->date_end_input->getLabel('Fecha de fin')->compact(); ?>
                         </div>
                     </div>
                 </div>

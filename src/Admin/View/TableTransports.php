@@ -1,15 +1,15 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormTransport;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\PaginationComponent;
-use CentralTickets\Services\TransportService;
-use CentralTickets\Transport;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormTransport;
+use CentralBooking\Data\Services\TransportService;
+use CentralBooking\Data\Transport;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\PaginationComponent;
 
-final class TableTransports implements Displayer
+final class TableTransports implements DisplayerInterface
 {
     /**
      * @var array<Transport>
@@ -29,16 +29,16 @@ final class TableTransports implements Displayer
     {
         $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
         $service = new TransportService();
-        $result = $service->paginated(
+        $result = $service->find(
             order: $_GET['order'] ?? 'DESC',
-            order_by: $_GET['order_by'] ?? 'id',
-            page_number: $page_number,
-            page_size: $this->per_page
+            orderBy: $_GET['order_by'] ?? 'id',
+            pageNumber: $page_number,
+            pageSize: $this->per_page
         );
-        $this->total_items = $result['pagination']['total_elements'] ?? 0;
-        $this->total_pages = $result['pagination']['total_pages'] ?? 0;
-        $this->current_page = $result['pagination']['current_page'] ?? 1;
-        return $result['data'] ?? [];
+        $this->total_items = $result->getTotalItems();
+        $this->total_pages = $result->getTotalPages();
+        $this->current_page = $result->getCurrentPage();
+        return $result->getItems();
     }
 
     private function get_current_order_by()
@@ -64,7 +64,7 @@ final class TableTransports implements Displayer
         ]);
     }
 
-    public function display()
+    public function render()
     {
         if (empty($this->transports)) {
             $this->no_content();
@@ -178,12 +178,12 @@ final class TableTransports implements Displayer
                                     <span> | </span>
                                     <span class="edit">
                                         <a class="git-row-action-link" href="#routes-container-<?= $transport->id ?>">Rutas
-                                            (<?= count($transport->get_routes()) ?>)</a>
+                                            (<?= count($transport->getRoutes()) ?>)</a>
                                     </span>
                                     <span> | </span>
                                     <span class="edit">
                                         <a class="git-row-action-link" href="#services-container-<?= $transport->id ?>">Servicios
-                                            (<?= count($transport->get_services()) ?>)</a>
+                                            (<?= count($transport->getServices()) ?>)</a>
                                     </span>
                                     <span> | </span>
                                     <span class="edit">
@@ -198,36 +198,36 @@ final class TableTransports implements Displayer
                                 </div>
                             </td>
                             <td><?= esc_html($transport->code) ?></td>
-                            <td><?= esc_html($transport->get_meta('capacity')) ?></td>
-                            <td><?= esc_html(git_get_text_by_type($transport->type)) ?></td>
+                            <td><?= esc_html($transport->getCapacity()) ?></td>
+                            <td><?= esc_html($transport->type->label()) ?></td>
                             <td>
-                                <ul style="list-style-type: square; margin: 0;"><?= $transport->get_meta('alias') ? join(
+                                <ul style="list-style-type: square; margin: 0;"><?= $transport->getAlias() ? join(
                                     '',
-                                    array_map(fn($alias) => '<li>' . $alias . '</li>', $transport->get_meta('alias'))
+                                    array_map(fn($alias) => '<li>' . $alias . '</li>', $transport->getAlias())
                                 ) : '' ?></ul>
                             </td>
-                            <td><?= $transport->is_available() ? 'Disponible' : 'No disponible' ?></td>
-                            <td><?= esc_html($transport->get_operator()->first_name . ' ' . $transport->get_operator()->last_name) ?>
+                            <td><?= $transport->isAvailable() ? 'Disponible' : 'No disponible' ?></td>
+                            <td><?= esc_html($transport->getOperator()->getUser()->first_name . ' ' . $transport->getOperator()->getUser()->last_name) ?>
                             </td>
                         </tr>
                         <tr id="actions-container-<?= $transport->id ?>" class="git-row-actions">
                             <td colspan="6">
                                 <div id="routes-container-<?= $transport->id ?>" class="git-item-container hidden"
                                     data-parent="#actions-container-<?= $transport->id ?>">
-                                    <?php foreach ($transport->get_routes() as $route): ?>
+                                    <?php foreach ($transport->getRoutes() as $route): ?>
                                         <div class="git-item">
                                             <table style="border-spacing: 20px 3px; border-collapse: separate;">
                                                 <tr>
                                                     <td><b>Origen:</b></td>
-                                                    <td><?= esc_html($route->get_origin()->name) ?></td>
+                                                    <td><?= esc_html($route->getOrigin()->name) ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><b>Destino:</b></td>
-                                                    <td><?= esc_html($route->get_destiny()->name) ?></td>
+                                                    <td><?= esc_html($route->getDestiny()->name) ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><b>Hora:</b></td>
-                                                    <td><?= git_time_format($route->departure_time) ?></td>
+                                                    <td><?= git_time_format($route->getDepartureTime()->format()) ?></td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -235,7 +235,7 @@ final class TableTransports implements Displayer
                                 </div>
                                 <div id="services-container-<?= $transport->id ?>" class="git-item-container hidden"
                                     data-parent="#actions-container-<?= $transport->id ?>">
-                                    <?php foreach ($transport->get_services() as $service): ?>
+                                    <?php foreach ($transport->getServices() as $service): ?>
                                         <div class="git-item">
                                             <?= esc_html($service->name) ?>
                                         </div>
@@ -248,29 +248,29 @@ final class TableTransports implements Displayer
                                         $id_input = new InputComponent('id_transport', 'hidden');
                                         $date_end_input = new InputComponent('date_end', 'date');
                                         $date_start_input = new InputComponent('date_start', 'date');
-                                        $id_input->set_value($transport->id);
-                                        $date_end_input->set_value($transport->get_maintenance_dates()['date_end'] ?? '');
-                                        $date_start_input->set_value($transport->get_maintenance_dates()['date_start'] ?? '');
-                                        $date_end_input->set_required(true);
-                                        $date_start_input->set_required(true);
-                                        $id_input->display();
+                                        $id_input->setValue($transport->id);
+                                        $date_end_input->setValue($transport->getMaintenanceDates()['date_end'] ?? '');
+                                        $date_start_input->setValue($transport->getMaintenanceDates()['date_start'] ?? '');
+                                        $date_end_input->setRequired(true);
+                                        $date_start_input->setRequired(true);
+                                        $id_input->render();
                                         ?>
                                         <h2 style="margin: 0;">Sin operación</h2>
                                         <table class="form-table" role="presentation" style="max-width: 500px;">
                                             <tr>
                                                 <td scope="row">
-                                                    <?php $date_start_input->get_label('Inicio')->display() ?>
+                                                    <?php $date_start_input->getLabel('Inicio')->render() ?>
                                                 </td>
                                                 <td>
-                                                    <?= $date_start_input->display() ?>
+                                                    <?= $date_start_input->render() ?>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <td scope="row">
-                                                    <?php $date_end_input->get_label('Fin')->display() ?>
+                                                    <?php $date_end_input->getLabel('Fin')->render() ?>
                                                 </td>
                                                 <td>
-                                                    <?= $date_end_input->display() ?>
+                                                    <?= $date_end_input->render() ?>
                                                 </td>
                                             </tr>
                                         </table>
@@ -282,7 +282,7 @@ final class TableTransports implements Displayer
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->display() ?>
+            <?php $pagination->render() ?>
         </div>
         <?php
     }

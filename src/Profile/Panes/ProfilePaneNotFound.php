@@ -1,9 +1,9 @@
 <?php
 namespace CentralTickets\Profile\Panes;
 
-use CentralTickets\Components\Component;
+use CentralBooking\GUI\ComponentInterface;
 
-final class ProfilePaneNotFound implements Component
+final class ProfilePaneNotFound implements ComponentInterface
 {
     public function compact()
     {

@@ -1,12 +1,11 @@
 <?php
-namespace CentralTickets\Profile\Panes;
+namespace CentralBooking\Profile\Panes;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Constants\UserConstants;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\GUI\ComponentInterface;
 use WP_User;
 
-final class ProfilePaneProfile implements Component
+final class ProfilePaneProfile implements ComponentInterface
 {
     private WP_User $current_user;
 
@@ -74,7 +73,7 @@ final class ProfilePaneProfile implements Component
                 </div>
             </div>
 
-            <?php if (!git_current_user_has_role(UserConstants::CUSTOMER)): ?>
+            <?php if (!git_current_user_has_role(UserConstants::CUSTOMER->value)): ?>
                 <!-- Estadísticas del Usuario -->
                 <div class="row mb-4">
                     <div class="col-md-4 mb-3">
@@ -211,19 +210,19 @@ final class ProfilePaneProfile implements Component
         $coupons = [];
         $tickets_count = 0;
         if (git_current_user_has_role(UserConstants::OPERATOR)) {
-            $operator = git_get_operator_by_id(get_current_user_id());
-            $coupons = $operator ? $operator->get_partial_tickets() : [];
+            $operator = git_operator_by_id(get_current_user_id());
+            // $coupons = $operator ? $operator->get_partial_tickets() : [];
         } elseif (git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
-            $coupons = git_get_query_persistence()->get_coupon_repository()->find_all();
+            $coupons = git_coupons();
         }
 
         foreach ($coupons as $coupon) {
-            $tickets_count += git_get_query_persistence()
-                ->get_ticket_repository()
-                ->count([
-                    'id_coupon' => $coupon->ID,
-                    'status' => TicketConstants::PARTIAL
-                ]);
+            // $tickets_count += git_get_query_persistence()
+            //     ->get_ticket_repository()
+            //     ->count([
+            //         'id_coupon' => $coupon->ID,
+            //         'status' => TicketConstants::PARTIAL
+            //     ]);
         }
 
         return $tickets_count;
@@ -234,19 +233,19 @@ final class ProfilePaneProfile implements Component
         $coupons = [];
         $tickets_count = 0;
         if (git_current_user_has_role(UserConstants::OPERATOR)) {
-            $operator = git_get_operator_by_id(get_current_user_id());
-            $coupons = $operator ? $operator->get_partial_tickets() : [];
+            $operator = git_operator_by_id(get_current_user_id());
+            // $coupons = $operator ? $operator->get_partial_tickets() : [];
         } elseif (git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
-            $coupons = git_get_query_persistence()->get_coupon_repository()->find_all();
+            $coupons = git_coupons();
         }
 
         foreach ($coupons as $coupon) {
-            $tickets_count += git_get_query_persistence()
-                ->get_ticket_repository()
-                ->count([
-                    'id_coupon' => $coupon->ID,
-                    'status' => TicketConstants::PAYMENT
-                ]);
+            // $tickets_count += git_get_query_persistence()
+            //     ->get_ticket_repository()
+            //     ->count([
+            //         'id_coupon' => $coupon->ID,
+            //         'status' => TicketConstants::PAYMENT->value
+            //     ]);
         }
 
         return $tickets_count;
@@ -257,19 +256,19 @@ final class ProfilePaneProfile implements Component
         $coupons = [];
         $tickets_count = 0;
         if (git_current_user_has_role(UserConstants::OPERATOR)) {
-            $operator = git_get_operator_by_id(get_current_user_id());
-            $coupons = $operator ? $operator->get_partial_tickets() : [];
+            $operator = git_operator_by_id(get_current_user_id());
+            // $coupons = $operator ? $operator->get_partial_tickets() : [];
         } elseif (git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
-            $coupons = git_get_query_persistence()->get_coupon_repository()->find_all();
+            $coupons = git_coupons();
         }
 
         foreach ($coupons as $coupon) {
-            $tickets_count += git_get_query_persistence()
-                ->get_ticket_repository()
-                ->count([
-                    'id_coupon' => $coupon->ID,
-                    'status' => TicketConstants::PENDING
-                ]);
+            // $tickets_count += git_get_query_persistence()
+            //     ->get_ticket_repository()
+            //     ->count([
+            //         'id_coupon' => $coupon->ID,
+            //         'status' => TicketConstants::PENDING
+            //     ]);
         }
 
         return $tickets_count;

@@ -1,10 +1,10 @@
 <?php
-namespace CentralTickets\Client;
+namespace CentralBooking\Client;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Components\CompositeComponent;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\CompositeComponent;
 
-class TicketViewerNotAvailable implements Component
+class TicketViewerNotAvailable implements ComponentInterface
 {
     public function compact()
     {

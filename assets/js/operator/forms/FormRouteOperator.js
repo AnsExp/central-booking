@@ -109,7 +109,6 @@ form.addEventListener('submit', e => {
         return;
     }
     const endpoint = `${apiAddress}passengers?approved=true&served=false&id_origin=${formValues.origin}&id_destiny=${formValues.destiny}&departure_time=${formValues.time}&id_transport=${formValues.transport}&date_trip_from=${formValues.dateStart}&date_trip_to=${formValues.dateEnd}`;
-    console.log(endpoint);
     fetch(endpoint)
         .then(response => response.json())
         .then(data => {

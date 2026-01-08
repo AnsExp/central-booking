@@ -1,21 +1,51 @@
 <?php
 
-use CentralTickets\Components\Component;
-use CentralTickets\Configurations;
-use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Constants\TransportConstants;
-use CentralTickets\Constants\TypeWayConstants;
-use CentralTickets\MetaManager;
-use CentralTickets\Persistence\QueryPersistence;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Data\Date;
 
 function git_get_secret_key()
 {
-    return git_get_setting('preorder_secret_key', 'default_secret_key');
+    return git_get_setting('secret_key', 'default_secret_key');
 }
 
 function git_set_secret_key(string $key)
 {
-    return git_set_setting('preorder_secret_key', $key);
+    return git_set_setting('secret_key', $key);
+}
+
+function git_set_days_without_sale(int $days_without_sale)
+{
+    git_set_setting('days_without_sale', $days_without_sale);
+    return true;
+}
+
+function git_get_days_without_sale()
+{
+    return git_get_setting('days_without_sale', 0);
+}
+
+function git_date_trip_min()
+{
+    $offset = git_get_days_without_sale();
+    $min_date = new Date;
+    if ($offset > 0) {
+        $min_date->addDays($offset);
+    }
+    return $min_date;
+}
+
+function git_date_trip_valid(Date $date_trip)
+{
+    $min_date = git_date_trip_min();
+    return $min_date->format('Y-m-d') <= $date_trip->format('Y-m-d');
+}
+
+function git_date_create(string $Ymd = 'today')
+{
+    if ($Ymd === 'today') {
+        return Date::today();
+    }
+    return new Date($Ymd);
 }
 
 function git_sanitize_html_content($content)
@@ -93,16 +123,6 @@ function git_get_ticket_viewer_qr_url($data)
     return $url;
 }
 
-function git_get_setting(string $key, mixed $default = null)
-{
-    return Configurations::get($key, $default);
-}
-
-function git_get_map_setting(string $key, mixed $default = null)
-{
-    return Configurations::get_map($key, $default);
-}
-
 function git_get_url_logo_by_coupon(WP_Post $coupon)
 {
     $url = get_post_meta($coupon->ID, 'logo_sale', true);
@@ -112,100 +132,7 @@ function git_get_url_logo_by_coupon(WP_Post $coupon)
     return $url;
 }
 
-function git_get_text_by_type(string $type)
-{
-    $types = git_get_setting('texts_type', [
-        TransportConstants::LAND => 'Terrestre',
-        TransportConstants::AERO => 'Aéreo',
-        TransportConstants::MARINE => 'Marítimo',
-    ]);
-    return $types[$type] ?? $type;
-}
-
-function git_get_text_by_status(string $status)
-{
-    $statuses = git_get_setting('texts_status', [
-        TicketConstants::PENDING => 'Pendiente',
-        TicketConstants::PAYMENT => 'Pagado',
-        TicketConstants::PARTIAL => 'Parcial',
-        TicketConstants::CANCEL => 'Anulado',
-    ]);
-    return $statuses[$status] ?? $status;
-}
-
-function git_get_text_by_way(string $way)
-{
-    $ways = git_get_setting('texts_ways', [
-        TypeWayConstants::ONE_WAY => 'Ida',
-        TypeWayConstants::DOUBLE_WAY => 'Ida y vuelta',
-        TypeWayConstants::ANY_WAY => 'Ambos',
-    ]);
-    return $ways[$way] ?? $way;
-}
-
-function git_set_setting(string $key, mixed $value)
-{
-    return Configurations::set($key, $value);
-}
-
-/**
- * Transforma una cadena a cualquier tipo de dato.
- * @param string $value Cadena a parsear.
- * @return mixed Valor parseado, puede ser bool, int, float, null, string o array.
- */
-function git_unserialize(string $value): mixed
-{
-    $decoded = json_decode($value, true);
-    if (json_last_error() === JSON_ERROR_NONE) {
-        return $decoded;
-    }
-
-    $unserialized = @unserialize($value);
-    if ($unserialized !== false) {
-        return $unserialized;
-    }
-
-    if ($value === 'true')
-        return true;
-    if ($value === 'false')
-        return false;
-    if ($value === 'null')
-        return null;
-    if (is_numeric($value)) {
-        return strpos($value, '.') !== false ? (float) $value : (int) $value;
-    }
-
-    return $value;
-}
-
-/**
- * Serializa un valor para almacenarlo en la base de datos.
- * Convierte tipos complejos a JSON, y maneja strings, booleans y nulls adecuadamente.
- * @param mixed $value Valor a serializar. Puede ser un string, boolean, null, int, float o array.
- * @return bool|string Retorna el valor serializado como string. En caso de un error, retorna false.
- */
-function git_serialize(mixed $value): string
-{
-    if (is_string($value)) {
-        return $value;
-    }
-
-    if (is_bool($value)) {
-        return $value ? 'true' : 'false';
-    }
-
-    if (is_null($value)) {
-        return 'null';
-    }
-
-    if (is_scalar($value)) {
-        return (string) $value;
-    }
-
-    return json_encode($value, JSON_UNESCAPED_UNICODE);
-}
-
-function git_currency_format($amount, bool $is_cent)
+function git_currency_format($amount, bool $is_cent = true)
 {
     if ($is_cent) {
         $amount /= 100;
@@ -316,42 +243,23 @@ function git_datetime_format(string $datetime)
     return "{$day} de {$months[$month_num]}, {$year} {$time_formatted}";
 }
 
-/**
- * Converts a string to a Component instance.
- *
- * @param string $string The string to convert.
- * @return Component The Component instance.
- */
-function git_string_to_component($string): Component
-{
-    return new class ($string) implements Component {
-        public function __construct(private $string)
-        {
-        }
-        public function compact()
-        {
-            return $this->string;
-        }
-    };
-}
-
 function git_user_logged_in()
 {
     return is_user_logged_in();
 }
 
 /**
- * @param string $role Roles pertinentes a la aplicación: 'operator', 'administrator', 'customer'.
+ * @param UserConstants|string $role Roles pertinentes a la aplicación: 'operator', 'administrator', 'customer'.
  * @return bool
  */
-function git_current_user_has_role(string $role)
+function git_current_user_has_role(UserConstants|string $role)
 {
     if (!is_user_logged_in()) {
         return false;
     }
 
     $user = wp_get_current_user();
-    return in_array($role, $user->roles, true);
+    return in_array($role instanceof UserConstants ? $role->value : $role, $user->roles, true);
 }
 
 function git_role_user()
@@ -363,12 +271,6 @@ function git_role_user()
     $user = wp_get_current_user();
     return $user->roles[0] ?? null;
 }
-
-function git_get_meta(string $type, int $id, string $key)
-{
-    return MetaManager::get_meta($type, $id, $key);
-}
-
 
 function sanitize_operator_file_size($input): int|false
 {
@@ -483,131 +385,4 @@ function sanitize_operator_file_extensions($input): array|false
     $sanitized_extensions = array_values(array_unique($sanitized_extensions));
 
     return $sanitized_extensions;
-}
-
-function git_get_query_persistence()
-{
-    return QueryPersistence::get_instance();
-}
-
-function git_get_passenger_by_id(int $id)
-{
-    $access_data = git_get_query_persistence()->get_passenger_repository();
-    $passenger = $access_data->find($id);
-    return $passenger ?? false;
-}
-
-function git_get_operator_by_id(int $id)
-{
-    $access_data = git_get_query_persistence()->get_operator_repository();
-    $operator = $access_data->find($id);
-    return $operator ?? false;
-}
-
-function git_get_operator_by_username(string $username)
-{
-    $access_data = git_get_query_persistence()->get_operator_repository();
-    $operator = $access_data->find_first(['username' => $username]);
-    return $operator ?? false;
-}
-
-function git_get_passengers(array $args = [])
-{
-    $access_data = git_get_query_persistence()->get_passenger_repository();
-    $passenger = $access_data->find_by($args);
-    return $passenger;
-}
-
-function git_get_route_by_id(int $id)
-{
-    $route = git_get_query_persistence()->get_route_repository()->find($id);
-    return $route ?? false;
-}
-
-function git_get_service_by_id(int $id)
-{
-    $service = git_get_query_persistence()->get_service_repository()->find($id);
-    return $service ?? false;
-}
-
-function git_get_location_by_id(int $id)
-{
-    $location = git_get_query_persistence()->get_location_repository()->find($id);
-    return $location ?? false;
-}
-
-function git_get_locations(array $args = [])
-{
-    $locations = git_get_query_persistence()->get_location_repository()->find_by($args);
-    return $locations;
-}
-
-function git_get_transports(array $args = [])
-{
-    $transports = git_get_query_persistence()->get_transport_repository()->find_by($args);
-    return $transports;
-}
-
-function git_get_services(array $args = [])
-{
-    $services = git_get_query_persistence()->get_service_repository()->find_by($args);
-    return $services;
-}
-
-function git_get_transport_by_id(int $id)
-{
-    $transport = git_get_query_persistence()->get_transport_repository()->find($id);
-    return $transport ?? false;
-}
-
-function git_get_ticket_by_id(int $id)
-{
-    $ticket = git_get_query_persistence()->get_ticket_repository()->find($id);
-    return $ticket ?? false;
-}
-
-function git_get_routes(array $args = [])
-{
-    $route = git_get_query_persistence()->get_route_repository()->find_by($args);
-    return $route;
-}
-
-function git_get_zone_by_id(int $id)
-{
-    $zone = git_get_query_persistence()->get_zone_repository()->find($id);
-    return $zone ?? false;
-}
-
-function git_get_zones(array $args = [])
-{
-    $zones = git_get_query_persistence()->get_zone_repository()->find_by($args);
-    return $zones;
-}
-
-function git_get_operator_by_coupon(WP_Post $coupon)
-{
-    $operator_id = get_post_meta($coupon->ID, 'coupon_assigned_operator', true);
-    if ($operator_id) {
-        return git_get_operator_by_id((int) $operator_id);
-    }
-    return null;
-}
-
-function git_get_logo_by_coupon(WP_Post $coupon)
-{
-    $url = get_post_meta($coupon->ID, 'logo_sale', true);
-    if ($url === '') {
-        return $url;
-    }
-    return '';
-}
-
-function git_get_all_coupons()
-{
-    return git_get_query_persistence()->get_coupon_repository()->find_all();
-}
-
-function git_get_coupon_by_id(int $id)
-{
-    return git_get_query_persistence()->get_coupon_repository()->find($id);
 }

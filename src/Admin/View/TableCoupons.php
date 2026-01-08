@@ -1,16 +1,16 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormCoupon;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\TextComponent;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormCoupon;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\TextComponent;
 
-final class TableCoupons implements Displayer
+final class TableCoupons implements DisplayerInterface
 {
-    public function display()
+    public function render()
     {
-        $coupons = git_get_all_coupons();
+        $coupons = git_coupons();
         ?>
         <div style="max-width: 500px; margin-top: 20px;">
             <table class="wp-list-table widefat fixed striped">
@@ -22,7 +22,7 @@ final class TableCoupons implements Displayer
                 </thead>
                 <tbody>
                     <?php foreach ($coupons as $coupon):
-                        $operator = git_get_operator_by_coupon($coupon);
+                        $operator = git_operator_by_coupon($coupon);
                         ?>
                         <tr style="border-bottom: 1px solid gray;">
                             <td>
@@ -34,7 +34,7 @@ final class TableCoupons implements Displayer
                                         ID: <?= $coupon->ID ?>
                                     </span>
                                     <span class="edit"> | </span>
-                                    <span class="edit"><?= esc_html($operator ? "{$operator->first_name} {$operator->last_name}" : 'N/A') ?></span>
+                                    <span class="edit"><?= esc_html($operator ? "{$operator->getUser()->first_name} {$operator->getUser()->last_name}" : 'N/A') ?></span>
                                     <span class="edit"> | </span>
                                     <span class="edit">
                                         <a href="<?= esc_url(AdminRouter::get_url_for_class(
@@ -47,9 +47,9 @@ final class TableCoupons implements Displayer
                             <td>
                                 <?php
                                 $link = new TextComponent('a', 'Ver');
-                                $link->set_attribute('href', git_get_url_logo_by_coupon($coupon));
-                                $link->set_attribute('target', '_blank');
-                                $link->display();
+                                $link->attributes->set('href', git_get_url_logo_by_coupon($coupon));
+                                $link->attributes->set('target', '_blank');
+                                $link->render();
                                 ?>
                             </td>
                         </tr>

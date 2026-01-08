@@ -1,10 +1,9 @@
 <?php
-namespace CentralTickets\REST\Controllers;
+namespace CentralBooking\REST\Controllers;
 
-use CentralTickets\Location;
+use CentralBooking\Data\Services\LocationService;
 use CentralTickets\Services\ArrayParser\LocationArray;
-use CentralTickets\Services\LocationService;
-use CentralTickets\Services\PackageData\LocationData;
+
 
 /**
  * @extends parent<Location>
@@ -14,7 +13,7 @@ class LocationController extends BaseController
     public function __construct()
     {
         parent::__construct(
-            new LocationService,
+            new LocationService(),
             new LocationArray()
         );
     }

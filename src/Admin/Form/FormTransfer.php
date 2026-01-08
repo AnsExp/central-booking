@@ -1,13 +1,12 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\View\TablePassengers;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\Implementation\SelectorRouteCombine;
-final class FormTransfer implements Displayer
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\SelectorRouteCombine;
+
+final class FormTransfer implements DisplayerInterface
 {
     private SelectComponent $origin_select;
     private SelectComponent $destiny_select;
@@ -25,14 +24,14 @@ final class FormTransfer implements Displayer
         $route_combine = new SelectorRouteCombine();
         $this->origin_select = $route_combine->get_origin_select();
         $this->destiny_select = $route_combine->get_destiny_select();
-        $this->schedule_select = $route_combine->get_schedule_select();
+        $this->schedule_select = $route_combine->get_time_select();
         $this->transport_select = $route_combine->get_transport_select();
         $this->date_trip_input = new InputComponent('date_trip', 'date');
 
-        $this->date_trip_input->set_required(true);
+        $this->date_trip_input->setRequired(true);
     }
 
-    public function display()
+    public function render()
     {
         wp_enqueue_script(
             'central-tickets-passengers-table',
@@ -55,20 +54,20 @@ final class FormTransfer implements Displayer
             <div id="container_issues_to_transfer"></div>
             <table class="form-table">
                 <tr>
-                    <th><?php $this->origin_select->get_label('Origen')->display(); ?></th>
-                    <td><?php $this->origin_select->display(); ?></td>
-                    <th><?php $this->destiny_select->get_label('Destino')->display(); ?></th>
-                    <td><?php $this->destiny_select->display(); ?></td>
+                    <th><?php $this->origin_select->getLabel('Origen')->render(); ?></th>
+                    <td><?php $this->origin_select->render(); ?></td>
+                    <th><?php $this->destiny_select->getLabel('Destino')->render(); ?></th>
+                    <td><?php $this->destiny_select->render(); ?></td>
                 </tr>
                 <tr>
-                    <th><?php $this->schedule_select->get_label('Horario')->display(); ?></th>
-                    <td><?php $this->schedule_select->display(); ?></td>
-                    <th><?php $this->transport_select->get_label('Transporte')->display(); ?></th>
-                    <td><?php $this->transport_select->display(); ?></td>
+                    <th><?php $this->schedule_select->getLabel('Horario')->render(); ?></th>
+                    <td><?php $this->schedule_select->render(); ?></td>
+                    <th><?php $this->transport_select->getLabel('Transporte')->render(); ?></th>
+                    <td><?php $this->transport_select->render(); ?></td>
                 </tr>
                 <tr>
-                    <th><?php $this->date_trip_input->get_label('Fecha del Viaje')->display(); ?></th>
-                    <td><?php $this->date_trip_input->display(); ?></td>
+                    <th><?php $this->date_trip_input->getLabel('Fecha del Viaje')->render(); ?></th>
+                    <td><?php $this->date_trip_input->render(); ?></td>
                     <td></td>
                     <td></td>
                 </tr>

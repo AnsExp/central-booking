@@ -1,7 +1,7 @@
 <?php
 namespace CentralTickets\REST;
 
-use CentralTickets\Operator;
+use CentralBooking\Data\Operator;
 use CentralTickets\REST\Controllers\OperatorController;
 
 /**

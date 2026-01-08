@@ -1,22 +1,23 @@
 <?php
 namespace CentralTickets\Profile\Tables;
 
-use CentralTickets\Route;
-use CentralTickets\Transport;
-use CentralTickets\REST\RegisterRoute;
-use CentralTickets\Persistence\PassengerRepository;
-use CentralTickets\Persistence\RouteRepository;
-use CentralTickets\Persistence\TransportRepository;
-use CentralTickets\Components\ButtonComponent;
-use CentralTickets\Components\Component;
-use CentralTickets\Components\ModalComponent;
-use CentralTickets\Components\Constants\ButtonStyleConstants;
+use CentralBooking\Data\Route;
+use CentralBooking\Data\Services\PassengerService;
+use CentralBooking\Data\Services\RouteService;
+use CentralBooking\Data\Services\TransportService;
+use CentralBooking\Data\Transport;
+use CentralBooking\GUI\ButtonComponent;
+use CentralBooking\GUI\ComponentBuilder;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\Constants\ButtonStyleConstants;
+use CentralBooking\GUI\ModalComponent;
+use CentralBooking\REST\RegisterRoute;
 use DateInterval;
 use DatePeriod;
 use DateTime;
 use Exception;
 
-final class TableTripOperator implements Component
+final class TableTripOperator implements ComponentInterface
 {
     private ModalComponent $modal;
 
@@ -56,7 +57,7 @@ final class TableTripOperator implements Component
         }
 
         if (!git_current_user_has_role('administrator')) {
-            if ($transport->get_operator()->ID !== get_current_user_id()) {
+            if ($transport->getOperator()->getUser()->ID !== get_current_user_id()) {
                 ?>
                 <p class="text-center">No tienes permiso para realizar esta consulta.</p>
                 <?php
@@ -69,7 +70,7 @@ final class TableTripOperator implements Component
             $_GET['date_to']
         );
 
-        $this->modal->set_body_component(git_string_to_component(
+        $this->modal->set_body_component(ComponentBuilder::create(
             $this->modal_table_content($route, $transport)
         ));
 
@@ -113,20 +114,20 @@ final class TableTripOperator implements Component
                         ?>
                         <td>
                             <?php
-                            $button = new ButtonComponent($total_passengers . ' / ' . $transport->get_meta('capacity'));
+                            $button = new ButtonComponent($total_passengers . ' / ' . $transport->getCapacity());
                             $button->set_style(ButtonStyleConstants::BASE);
                             if ($total_passengers > 0) {
-                                $button = $this->modal->create_button_launch($total_passengers . ' / ' . $transport->get_meta('capacity'));
+                                $button = $this->modal->create_button_launch($total_passengers . ' / ' . $transport->getCapacity());
                             }
-                            $button->set_attribute('data-passenger-counter', $total_passengers . ' / ' . $transport->get_meta('capacity'));
+                            $button->attributes->set('data-passenger-counter', $total_passengers . ' / ' . $transport->getCapacity());
                             $button->class_list->add('button-launch-modal-info', 'w-100');
-                            $button->set_attribute('data-path-pdf-trip', $path_pdf_trip);
-                            $button->set_attribute('data-path-pdf-salling-request', $path_pdf_salling_request);
-                            $button->set_attribute('data-route', $route->id);
-                            $button->set_attribute('data-transport', $transport->id);
-                            $button->set_attribute('data-date-trip', $date);
-                            $button->set_attribute('data-date-trip-display', git_date_format($date));
-                            $button->display();
+                            $button->attributes->set('data-path-pdf-trip', $path_pdf_trip);
+                            $button->attributes->set('data-path-pdf-salling-request', $path_pdf_salling_request);
+                            $button->attributes->set('data-route', $route->id);
+                            $button->attributes->set('data-transport', $transport->id);
+                            $button->attributes->set('data-date-trip', $date);
+                            $button->attributes->set('data-date-trip-display', git_date_format($date));
+                            $button->render();
                             ?>
                         </td>
                     <?php endforeach; ?>
@@ -144,15 +145,15 @@ final class TableTripOperator implements Component
         <table class="table table-bordered table-striped table-hover">
             <tr>
                 <th>Origen</th>
-                <td><?= $route->get_origin()->name ?></td>
+                <td><?= $route->getOrigin()->name ?></td>
             </tr>
             <tr>
                 <th>Destino</th>
-                <td><?= $route->get_destiny()->name ?></td>
+                <td><?= $route->getDestiny()->name ?></td>
             </tr>
             <tr>
                 <th>Horario</th>
-                <td><?= git_time_format($route->departure_time) ?></td>
+                <td><?= git_time_format($route->getDepartureTime()->format()) ?></td>
             </tr>
             <tr>
                 <th>Viaje</th>
@@ -182,15 +183,15 @@ final class TableTripOperator implements Component
             return [];
         }
 
-        $repository = new PassengerRepository();
+        $repository = new PassengerService();
 
-        return $repository->find_by([
+        return $repository->find([
             'id_transport' => $transport,
             'id_route' => $route,
             'date_trip' => $date,
             'approved' => true,
             'served' => false,
-        ]);
+        ])->getItems();
     }
 
     private function get_transport(int $transport)
@@ -198,8 +199,12 @@ final class TableTripOperator implements Component
         if ($transport < 0) {
             return null;
         }
-        $repository = new TransportRepository();
-        return $repository->find_first(['id' => $transport]);
+        $repository = new TransportService();
+        $result = $repository->find(['id' => $transport]);
+        if ($result->hasItems()) {
+            return $result->getItems()[0];
+        }
+        return null;
     }
 
     private function get_route(int $origin, int $destiny, string $schedule)
@@ -207,12 +212,16 @@ final class TableTripOperator implements Component
         if (empty($schedule) || $origin < 0 || $destiny < 0) {
             return null;
         }
-        $repository = new RouteRepository();
-        return $repository->find_first([
+        $repository = new RouteService();
+        $result = $repository->find([
             'id_origin' => $origin,
             'id_destiny' => $destiny,
             'departure_time' => $schedule,
         ]);
+        if ($result->hasItems()) {
+            return $result->getItems()[0];
+        }
+        return null;
     }
 
     private function obtenerFechasEntre(string $inicio, string $fin)

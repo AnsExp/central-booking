@@ -1,7 +1,7 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
-use CentralTickets\REST\Controllers\BaseController;
+use CentralBooking\REST\Controllers\BaseController;
 
 /**
  * @template T

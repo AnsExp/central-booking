@@ -1,14 +1,16 @@
 <?php
-namespace CentralTickets\Preorder;
+namespace CentralBooking\Preorder;
 
-use CentralTickets\Route;
-use CentralTickets\Transport;
+use CentralBooking\Data\Route;
+use CentralBooking\Data\Time;
+use CentralBooking\Data\Transport;
+use DateTime;
 use WC_Order;
 
 class Preorder
 {
-    public string $departure_time = '00:00:00';
-    public string $date_trip;
+    public Time $departure_time;
+    public DateTime $date_trip;
     public int $pax = 0;
     public array $passengers_info = [];
     /**
@@ -20,7 +22,8 @@ class Preorder
 
     public function __construct()
     {
-        $this->date_trip = date('Y-m-d');
+        $this->date_trip = new DateTime('now');
+        $this->departure_time = new Time('00:00:00');
     }
 
     public function set_order(WC_Order $order)

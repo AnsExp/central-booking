@@ -1,11 +1,11 @@
 <?php
 namespace CentralTickets\Profile\Panes;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Profile\Forms\FormInvoiceOperator;
-use CentralTickets\Profile\Tables\TableInvoiceOperator;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Profile\Forms\FormInvoiceOperator;
+use CentralBooking\Profile\Tables\TableInvoiceOperator;
 
-class ProfilePaneInvoice implements Component
+class ProfilePaneInvoice implements ComponentInterface
 {
     private FormInvoiceOperator $form_invoice;
     private TableInvoiceOperator $table_invoice;

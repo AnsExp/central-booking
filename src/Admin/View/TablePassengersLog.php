@@ -1,18 +1,17 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\PaginationComponent;
-use CentralTickets\Constants\LogSourceConstants;
-use CentralTickets\Services\LogService;
+use CentralBooking\Data\Constants\LogSource;
+use CentralBooking\Data\Services\LogService;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\PaginationComponent;
 
-final class TablePassengersLog implements Displayer
+final class TablePassengersLog implements DisplayerInterface
 {
-    public function display()
+    public function render()
     {
         $logs = LogService::get_logs_with_pagination(
-            source: LogSourceConstants::PASSENGER,
+            source: LogSource::PASSENGER->label(),
             id_source: $_GET['id'] ?? 0,
             page: $_GET['page_number'] ?? 1,
             per_page: $_GET['page_size'] ?? 10
@@ -67,7 +66,7 @@ final class TablePassengersLog implements Displayer
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->display() ?>
+            <?php $pagination->render() ?>
         </div>
         <?php
         echo ob_get_clean();

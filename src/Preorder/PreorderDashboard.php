@@ -1,16 +1,15 @@
 <?php
-namespace CentralTickets\Preorder;
+namespace CentralBooking\Preorder;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Preorder\PreorderRecover;
+use CentralBooking\GUI\ComponentInterface;
 
-class PreorderDashboard implements Component
+class PreorderDashboard implements ComponentInterface
 {
     public function compact()
     {
         ob_start();
         if ($this->verify_preorder()) {
-            (new PreorderForm($this->get_preorder()))->display();
+            (new PreorderForm($this->get_preorder()))->render();
         } else {
             $this->not_preorder();
         }

@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\Placeholders;
+namespace CentralBooking\Placeholders;
 
 use Exception;
 

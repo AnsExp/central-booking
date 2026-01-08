@@ -48,10 +48,10 @@ buttonAddCrewMember.addEventListener('click', () => {
         <i class="bi bi-caret-right"></i>
         <span data-tag-role=""></span>`;
     const content = templates.content.querySelector('#template-form-crew-member>table').cloneNode(true);
-    content.querySelector('input[name="crew_member_name[]"]').addEventListener('input', (e) => {
+    content.querySelector('input[name="crew[name][]"]').addEventListener('input', (e) => {
         header.querySelector('[data-tag-name]').textContent = e.target.value;
     });
-    content.querySelector('input[name="crew_member_role[]"]').addEventListener('input', (e) => {
+    content.querySelector('input[name="crew[role][]"]').addEventListener('input', (e) => {
         header.querySelector('[data-tag-role]').textContent = e.target.value;
     });
     const itemId = window.AccordionComponentAPI.addItem(accordionCrew, header, content);

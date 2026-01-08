@@ -77,8 +77,8 @@ async function initPaneTransport() {
     if (window.CentralTickets.formProduct.getTypeWay() === DOUBLE_WAY) {
         transportsContainerReturns.style.display = 'block';
         dateTripLabelReturns.textContent = formatShortDate(dates.returns);
-        originLabelReturns.textContent = switched ? dataRoute.destiny : dataRoute.origin;
-        destinyLabelReturns.textContent = switched ? dataRoute.origin : dataRoute.destiny;
+        originLabelReturns.textContent = switched ? dataRoute.origin : dataRoute.destiny;
+        destinyLabelReturns.textContent = switched ? dataRoute.destiny : dataRoute.origin;
         const transportsReturns = await fetchTransports(
             !window.CentralTickets.formProduct.switched() ? dataRoute.destiny : dataRoute.origin,
             !window.CentralTickets.formProduct.switched() ? dataRoute.origin : dataRoute.destiny,
@@ -145,9 +145,9 @@ function passengersCount() {
 function updatePrice() {
     calculatePriceService();
     calculatePriceSubtotal();
-    document.getElementById(dataTransport.elements.idServicesAmountLabel).textContent = '$' + services.toFixed(0);
-    document.getElementById(dataTransport.elements.idSubtotalAmountLabel).textContent = '$' + (subtotal).toFixed(0);
-    document.getElementById(dataTransport.elements.idTotalAmountLabel).textContent = '$' + (services + subtotal).toFixed(0);
+    document.getElementById(dataTransport.elements.idServicesAmountLabel).textContent = '$' + services.toFixed(2).replace('.', ',');
+    document.getElementById(dataTransport.elements.idSubtotalAmountLabel).textContent = '$' + (subtotal).toFixed(2).replace('.', ',');
+    document.getElementById(dataTransport.elements.idTotalAmountLabel).textContent = '$' + (services + subtotal).toFixed(2).replace('.', ',');
 }
 
 function createTransportOptionPanel(transports, optionContainer, objectKey, carouselContainer) {
@@ -189,7 +189,6 @@ function createTransportOptionPanel(transports, optionContainer, objectKey, caro
         }
         let icons = '';
         transport.services.forEach(service => {
-            // icons += '<img width="24" src="' + service.icon + '" alt="' + service.name + '">';
             icons += `<img width="24"
                             src="${service.icon}"
                             alt="${service.name}"
@@ -233,11 +232,10 @@ async function fetchTransports(zoneOrigin, zoneDestiny, schedule) {
             name_zone_origin: zoneOrigin,
             name_zone_destiny: zoneDestiny,
             schedule: schedule,
-            splitByAlias: dataTransport.splitByAlias === '1',
+            split_alias: dataTransport.splitByAlias === '1' ? '1' : '0',
         }),
     });
     const json = await fetchData.json();
-    console.log(json.data);
     return json.data;
 }
 

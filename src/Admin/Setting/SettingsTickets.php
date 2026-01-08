@@ -1,18 +1,18 @@
 <?php
-namespace CentralTickets\Admin\Setting;
+namespace CentralBooking\Admin\Setting;
 
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Ticket;
-use CentralTickets\Passenger;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\AccordionComponent;
-use CentralTickets\Components\CodeEditorComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\Implementation\PageSelect;
-use CentralTickets\Placeholders\PlaceholderEnginePassenger;
-use CentralTickets\Placeholders\PlaceholderEngineTicket;
+use CentralBooking\Data\Passenger;
+use CentralBooking\Data\Ticket;
+use CentralBooking\GUI\AccordionComponent;
+use CentralBooking\GUI\CodeEditorComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\PageSelect;
+use CentralBooking\Placeholders\PlaceholderEnginePassenger;
+use CentralBooking\Placeholders\PlaceholderEngineTicket;
 
-final class SettingsTickets implements Displayer
+final class SettingsTickets implements DisplayerInterface
 {
     private SelectComponent $page_viewer;
     private CodeEditorComponent $viewer_css;
@@ -42,16 +42,16 @@ final class SettingsTickets implements Displayer
             $this->passenger_viewer_html,
             $this->default_media,
         ] as $code_editor) {
-            $code_editor->set_attribute('rows', 7);
+            $code_editor->attributes->set('rows', 7);
             $code_editor->styles->set('width', '100%');
         }
 
-        $this->page_viewer->set_value(git_get_map_setting('ticket_viewer.page_viewer'));
-        $this->viewer_js->set_value(git_get_map_setting('ticket_viewer.viewer_js'));
-        $this->viewer_css->set_value(git_get_map_setting('ticket_viewer.viewer_css'));
-        $this->default_media->set_value(git_get_map_setting('ticket_viewer.default_media'));
-        $this->ticket_viewer_html->set_value(git_get_map_setting('ticket_viewer.ticket_viewer_html'));
-        $this->passenger_viewer_html->set_value(git_get_map_setting('ticket_viewer.passenger_viewer_html'));
+        $this->page_viewer->setValue(git_get_map_setting('ticket_viewer.page_viewer'));
+        $this->viewer_js->setValue(git_get_map_setting('ticket_viewer.viewer_js'));
+        $this->viewer_css->setValue(git_get_map_setting('ticket_viewer.viewer_css'));
+        $this->default_media->setValue(git_get_map_setting('ticket_viewer.default_media'));
+        $this->ticket_viewer_html->setValue(git_get_map_setting('ticket_viewer.ticket_viewer_html'));
+        $this->passenger_viewer_html->setValue(git_get_map_setting('ticket_viewer.passenger_viewer_html'));
 
         $this->viewer_js->set_language('js');
         $this->viewer_css->set_language('css');
@@ -59,7 +59,7 @@ final class SettingsTickets implements Displayer
         $this->passenger_viewer_html->set_language('html');
     }
 
-    public function display()
+    public function render()
     {
         $accordion = new AccordionComponent();
         $accordion->add_item(
@@ -71,7 +71,7 @@ final class SettingsTickets implements Displayer
             (new PlaceholderEnginePassenger(new Passenger()))->get_placeholders_info(),
         );
         $accordion->styles->set('margin-top', '20px');
-        $accordion->display();
+        $accordion->render();
         ?>
         <form id="git-settings-form"
             action="<?= esc_url(add_query_arg('action', 'git_settings', admin_url('admin-ajax.php'))) ?>" method="post">
@@ -80,10 +80,10 @@ final class SettingsTickets implements Displayer
             <table class="form-table" role="presentation">
                 <tr>
                     <th scope="row">
-                        <?php $this->page_viewer->get_label('Página de visor')->display(); ?>
+                        <?php $this->page_viewer->getLabel('Página de visor')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->page_viewer->display(); ?>
+                        <?php $this->page_viewer->render(); ?>
                         <p class="description">
                             Seleccione la página donde se redirigiran los QR de los tickets generados.
                         </p>
@@ -91,42 +91,42 @@ final class SettingsTickets implements Displayer
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->ticket_viewer_html->get_label('Visor de tickets (html)')->display() ?>
+                        <?php $this->ticket_viewer_html->getLabel('Visor de tickets (html)')->render() ?>
                     </th>
                     <td>
-                        <?php $this->ticket_viewer_html->display() ?>
+                        <?php $this->ticket_viewer_html->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->viewer_js->get_label('Visor de tickets (js)')->display() ?>
+                        <?php $this->viewer_js->getLabel('Visor de tickets (js)')->render() ?>
                     </th>
                     <td>
-                        <?php $this->viewer_js->display() ?>
+                        <?php $this->viewer_js->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->viewer_css->get_label('Visor de tickets (css)')->display() ?>
+                        <?php $this->viewer_css->getLabel('Visor de tickets (css)')->render() ?>
                     </th>
                     <td>
-                        <?php $this->viewer_css->display() ?>
+                        <?php $this->viewer_css->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->passenger_viewer_html->get_label('Visor de pasajeros (html)')->display() ?>
+                        <?php $this->passenger_viewer_html->getLabel('Visor de pasajeros (html)')->render() ?>
                     </th>
                     <td>
-                        <?php $this->passenger_viewer_html->display() ?>
+                        <?php $this->passenger_viewer_html->render() ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->default_media->get_label('Medio por defecto')->display() ?>
+                        <?php $this->default_media->getLabel('Medio por defecto')->render() ?>
                     </th>
                     <td>
-                        <?php $this->default_media->display() ?>
+                        <?php $this->default_media->render() ?>
                     </td>
                 </tr>
             </table>

@@ -1,12 +1,12 @@
 <?php
-namespace CentralTickets\Profile\Tables;
+namespace CentralBooking\Profile\Tables;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Constants\UserConstants;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\GUI\ComponentInterface;
 use WP_User;
 use WC_Order;
 
-class TableOrder implements Component
+class TableOrder implements ComponentInterface
 {
     private WP_User $current_user;
     /**

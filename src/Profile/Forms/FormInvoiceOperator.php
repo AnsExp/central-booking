@@ -1,15 +1,15 @@
 <?php
-namespace CentralTickets\Profile\Forms;
+namespace CentralBooking\Profile\Forms;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Components\Implementation\CouponSelect;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Components\InputFloatingLabelComponent;
-use CentralTickets\Components\SelectComponent;
-use CentralTickets\Components\Implementation\OperatorSelect;
-use CentralTickets\Constants\UserConstants;
+use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\InputFloatingLabelComponent;
+use CentralBooking\GUI\SelectComponent;
+use CentralBooking\Implementation\GUI\CouponSelect;
+use CentralBooking\Implementation\GUI\OperatorSelect;
 
-class FormInvoiceOperator implements Component
+class FormInvoiceOperator implements ComponentInterface
 {
     private SelectComponent $coupon_select;
     private SelectComponent $operator_select;
@@ -21,7 +21,7 @@ class FormInvoiceOperator implements Component
     
     public function __construct()
     {
-        if (git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
+        if (git_current_user_has_role(UserConstants::ADMINISTRATOR->value)) {
             $this->coupon_select = (new CouponSelect('coupon'))->create();
         } else {
             $this->coupon_select = (new CouponSelect('coupon', get_current_user_id()))->create();
@@ -33,17 +33,16 @@ class FormInvoiceOperator implements Component
         $this->month_select = $this->create_select_month();
         $this->year_select = $this->create_select_year();
 
-        $this->coupon_select->set_value($_GET['coupon'] ?? '');
-        $this->operator_select->set_value($_GET['operator'] ?? '');
-        $this->operator_input->set_value(get_current_user_id());
-        $this->date_start_input->set_value($_GET['date_start'] ?? null);
-        $this->date_end_input->set_value($_GET['date_end'] ?? null);
-
-        $this->operator_select->set_required(true);
-        $this->month_select->set_required(true);
-        $this->year_select->set_required(true);
-        $this->date_start_input->set_required(true);
-        $this->date_end_input->set_required(true);
+        $this->coupon_select->setValue($_GET['coupon'] ?? '');
+        $this->operator_select->setValue($_GET['operator'] ?? '');
+        $this->operator_input->setValue(get_current_user_id());
+        $this->date_start_input->setValue($_GET['date_start'] ?? null);
+        $this->date_end_input->setValue($_GET['date_end'] ?? null);
+        $this->operator_select->setRequired(true);
+        $this->month_select->setRequired(true);
+        $this->year_select->setRequired(true);
+        $this->date_start_input->setRequired(true);
+        $this->date_end_input->setRequired(true);
     }
 
     public function compact()
@@ -55,7 +54,7 @@ class FormInvoiceOperator implements Component
         $month_floating = new InputFloatingLabelComponent($this->month_select, 'Mes de facturación');
         $year_floating = new InputFloatingLabelComponent($this->year_select, 'Año de facturación');
         ob_start();
-        $this->operator_select->set_value(get_current_user_id());
+        $this->operator_select->setValue(get_current_user_id());
         ?>
         <form method="get" class="p-3">
             <input type="hidden" name="tab" value="sales">
@@ -63,9 +62,9 @@ class FormInvoiceOperator implements Component
                 <div class="col">
                     <?php
                     if (git_current_user_has_role('administrator'))
-                        $operator_floating->display();
+                        $operator_floating->render();
                     else
-                        $this->operator_input->display();
+                        $this->operator_input->render();
                     ?>
                 </div>
             </div>
@@ -91,7 +90,7 @@ class FormInvoiceOperator implements Component
     private function create_select_month()
     {
         $select = new SelectComponent('invoice_month');
-        $select->add_option('Seleccione un mes...', '');
+        $select->addOption('Seleccione un mes...', '');
         $months = [
             '01' => 'Enero',
             '02' => 'Febrero',
@@ -107,12 +106,12 @@ class FormInvoiceOperator implements Component
             '12' => 'Diciembre'
         ];
         foreach ($months as $value => $label) {
-            $select->add_option($label, $value);
+            $select->addOption($label, $value);
         }
         if (isset($_GET['invoice_month']) && $_GET['invoice_month'] !== '') {
-            $select->set_value($_GET['invoice_month'] ?? '');
+            $select->setValue($_GET['invoice_month'] ?? '');
         } else {
-            $select->set_value(date('m'));
+            $select->setValue(date('m'));
         }
         return $select;
     }
@@ -120,16 +119,16 @@ class FormInvoiceOperator implements Component
     private function create_select_year()
     {
         $select = new SelectComponent('invoice_year');
-        $select->add_option('Seleccione un año...', '');
+        $select->addOption('Seleccione un año...', '');
         $current_year = date('Y');
         $years = range($current_year, $current_year - 5);
         foreach ($years as $year) {
-            $select->add_option($year, $year);
+            $select->addOption($year, $year);
         }
         if (isset($_GET['invoice_year']) && $_GET['invoice_year'] !== '') {
-            $select->set_value($_GET['invoice_year'] ?? '');
+            $select->setValue($_GET['invoice_year'] ?? '');
         } else {
-            $select->set_value(date('Y'));
+            $select->setValue(date('Y'));
         }
         return $select;
     }

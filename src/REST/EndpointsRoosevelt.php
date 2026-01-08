@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
 use WP_REST_Request;
 use WP_REST_Response;
@@ -20,12 +20,10 @@ class EndpointsRoosevelt
     {
         $data = $request->get_json_params();
 
-        // ✅ Validar solo mensaje y email
         if (!isset($data['message'], $data['email'])) {
             return new WP_REST_Response(['error' => 'Faltan campos: message y email'], 400);
         }
 
-        // ✅ Sanitizar datos
         $message = sanitize_textarea_field($data['message']);
         $sender_email = sanitize_email($data['email']);
 
@@ -33,23 +31,19 @@ class EndpointsRoosevelt
             return new WP_REST_Response(['error' => 'Mensaje y email son requeridos'], 400);
         }
 
-        // ✅ Asunto automático
         $subject = $data['subject'] ?? "Nuevo mensaje de contacto - " . date('Y-m-d H:i');
 
-        // ✅ Mensaje simple y claro
         $email_body = "Nuevo mensaje de contacto:\n\n";
         $email_body .= "De: {$sender_email}\n";
         $email_body .= "Fecha: " . current_time('Y-m-d H:i:s') . "\n\n";
         $email_body .= "Mensaje:\n";
         $email_body .= $message;
 
-        // ✅ Headers básicos
         $headers = [
             "From: Contacto <noreply@" . parse_url(get_site_url(), PHP_URL_HOST) . ">",
             "Reply-To: {$sender_email}"
         ];
 
-        // ✅ Enviar email
         $sent = wp_mail(
             'rooseveltabrigo@gmail.com',
             $subject,

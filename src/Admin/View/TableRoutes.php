@@ -1,15 +1,15 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormRoute;
-use CentralTickets\Route;
-use CentralTickets\Services\RouteService;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\PaginationComponent;
-use CentralTickets\Components\Constants\AlignmentConstants;
+use CentralBooking\Admin\Form\FormRoute;
+use CentralBooking\Data\Route;
+use CentralBooking\Data\Services\RouteService;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\GUI\Constants\AlignmentConstants;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\PaginationComponent;
 
-final class TableRoutes implements Displayer
+final class TableRoutes implements DisplayerInterface
 {
     /**
      * @var array<Route>
@@ -28,17 +28,16 @@ final class TableRoutes implements Displayer
     private function fetchServices(): array
     {
         $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
-        $service = new RouteService();
-        $result = $service->paginated(
-            order_by: $_GET['order_by'] ?? 'id',
-            order: $_GET['order'] ?? 'DESC',
-            page_number: $page_number,
-            page_size: $this->per_page
-        );
-        $this->total_items = $result['pagination']['total_elements'] ?? 0;
-        $this->total_pages = $result['pagination']['total_pages'] ?? 0;
-        $this->current_page = $result['pagination']['current_page'] ?? 1;
-        return $result['data'] ?? [];
+        $result = git_routes_result_set([
+            'order_by' => $this->get_current_order_by(),
+            'order' => $this->get_current_order(),
+            'limit' => $this->per_page,
+            'offset' => ($page_number - 1) * $this->per_page,
+        ]);
+        $this->total_items = $result->getTotalItems();
+        $this->total_pages = $result->getTotalPages();
+        $this->current_page = $result->getCurrentPage();
+        return $result->getItems();
     }
 
     private function get_current_order_by()
@@ -64,7 +63,7 @@ final class TableRoutes implements Displayer
         ]);
     }
 
-    public function display()
+    public function render()
     {
         $pagination = new PaginationComponent(false, AlignmentConstants::RIGHT);
         $pagination->set_data(
@@ -127,17 +126,6 @@ final class TableRoutes implements Displayer
                                 </span>
                             </a>
                         </th>
-                        <th scope="col" style="width: 100px;"
-                            class="manage-column <?= $this->get_current_order_by() === 'duration_trip' ? 'sorted' : 'sortable' ?> <?= $this->get_current_order() === 'ASC' ? 'asc' : 'desc' ?>">
-                            <a
-                                href="<?= $this->create_order_link('duration_trip', $this->get_current_order() === 'ASC' ? 'DESC' : 'ASC') ?>">
-                                <span>Duración</span>
-                                <span class="sorting-indicators">
-                                    <span class="sorting-indicator asc"></span>
-                                    <span class="sorting-indicator desc"></span>
-                                </span>
-                            </a>
-                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -146,7 +134,7 @@ final class TableRoutes implements Displayer
                             <td>
                                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="bi bi-geo"></i>
-                                    <span><?= esc_html($route->get_origin()->name) ?></span>
+                                    <span><?= esc_html($route->getOrigin()->name) ?></span>
                                 </span>
                                 <div class="row-actions visible">
                                     <span class="edit">
@@ -156,7 +144,7 @@ final class TableRoutes implements Displayer
                                     <span class="edit">
                                         <a href="#transport-container-<?= $route->id ?>" class="git-row-action-link"
                                             data-route="<?= esc_attr($route->id) ?>">
-                                            Transportes (<?= count($route->get_transports()) ?>)
+                                            Transportes (<?= count($route->getTransports()) ?>)
                                         </a>
                                     </span>
                                     <span>|</span>
@@ -169,18 +157,17 @@ final class TableRoutes implements Displayer
                             <td>
                                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="bi bi-arrow-right"></i>
-                                    <span><?= esc_html($route->get_destiny()->name) ?></span>
+                                    <span><?= esc_html($route->getDestiny()->name) ?></span>
                                 </span>
                             </td>
-                            <td><?= esc_html(git_get_text_by_type($route->type)) ?></td>
-                            <td><?= git_time_format($route->departure_time) ?></td>
-                            <td><?= git_duration_format($route->duration_trip) ?></td>
+                            <td><?= esc_html($route->type->label()) ?></td>
+                            <td><?= git_time_format($route->getDepartureTime()->format('H:i')) ?></td>
                         </tr>
                         <tr id="actions-container-<?= $route->id ?>" class="git-row-actions">
                             <td colspan="4">
                                 <div id="transport-container-<?= $route->id ?>" class="git-item-container hidden"
                                     data-parent="#actions-container-<?= $route->id ?>">
-                                    <?php foreach ($route->get_transports() as $transport): ?>
+                                    <?php foreach ($route->getTransports() as $transport): ?>
                                         <div class="git-item">
                                             <?= esc_html($transport->nicename) ?>
                                         </div>
@@ -191,7 +178,7 @@ final class TableRoutes implements Displayer
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->display() ?>
+            <?php $pagination->render() ?>
         </div>
         <?php
     }

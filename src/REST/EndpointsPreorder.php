@@ -1,5 +1,5 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
 use CentralTickets\Preorder\PreorderCreator;
 use WP_REST_Request;

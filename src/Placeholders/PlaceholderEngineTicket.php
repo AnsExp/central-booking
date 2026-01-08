@@ -1,9 +1,9 @@
 <?php
-namespace CentralTickets\Placeholders;
+namespace CentralBooking\Placeholders;
 
-use CentralTickets\Components\StandaloneComponent;
-use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Ticket;
+use CentralBooking\Data\Ticket;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\GUI\StandaloneComponent;
 
 final class PlaceholderEngineTicket extends PlaceholderEngine
 {
@@ -14,26 +14,26 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
 
     private function add_placeholders()
     {
-        $this->add_placeholder('name_buyer', fn(array $params) => $this->ticket->get_order()->get_billing_first_name() . ' ' . $this->ticket->get_order()->get_billing_last_name());
+        $this->add_placeholder('name_buyer', fn(array $params) => $this->ticket->getOrder()->get_billing_first_name() . ' ' . $this->ticket->getOrder()->get_billing_last_name());
         $this->add_description('name_buyer', [
             'title' => 'Nombre del Comprador',
             'description' => 'Nombre completo del comprador',
             'parameters' => [],
         ]);
-        $this->add_placeholder('phone_buyer', fn(array $params) => $this->ticket->get_order()->get_billing_phone());
+        $this->add_placeholder('phone_buyer', fn(array $params) => $this->ticket->getOrder()->get_billing_phone());
         $this->add_description('phone_buyer', [
             'title' => 'Teléfono del Comprador',
             'description' => 'Número de teléfono del comprador',
             'parameters' => [],
         ]);
-        $this->add_placeholder('order_number', fn(array $params) => $this->ticket->get_order()->get_id());
+        $this->add_placeholder('order_number', fn(array $params) => $this->ticket->getOrder()->get_id());
         $this->add_description('order_number', [
             'title' => 'Número de Orden',
             'description' => 'Identificador único de la orden',
             'parameters' => [],
         ]);
         $this->add_placeholder('date_buyer', function (array $params) {
-            $date_obj = $this->ticket->get_order()->get_date_created();
+            $date_obj = $this->ticket->getOrder()->get_date_created();
             if (!$date_obj) {
                 return 'Fecha no disponible';
             }
@@ -92,7 +92,7 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
             ],
         ]);
         $this->add_placeholder('passengers_count', function (array $params) {
-            return count($this->ticket->get_passengers());
+            return count($this->ticket->getPassengers());
         });
         $this->add_description('passengers_count', [
             'title' => 'Cantidad de Pasajeros',
@@ -100,7 +100,7 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
             'parameters' => [],
         ]);
         $this->add_placeholder('status_ticket', function (array $params) {
-            return git_get_text_by_status($this->ticket->status);
+            return $this->ticket->status->label();
         });
         $this->add_description('status_ticket', [
             'title' => 'Estado del Ticket',
@@ -115,24 +115,24 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
                 if (str_contains($width, 'px')) {
                     $width = (int) str_replace('px', '', $width);
                 }
-                $img->set_attribute('width', $width . 'px');
+                $img->attributes->set('width', $width . 'px');
             }
             if ($height !== null) {
                 if (str_contains($height, 'px')) {
                     $height = (int) str_replace('px', '', $height);
                 }
-                $img->set_attribute('height', $height . 'px');
+                $img->attributes->set('height', $height . 'px');
             }
-            $img->set_attribute('alt', 'Logo de la Venta');
+            $img->attributes->set('alt', 'Logo de la Venta');
             $brand_media_url = git_get_map_setting('ticket_viewer.default_media') ?? '';
-            if ($this->ticket->status === TicketConstants::PAYMENT) {
-                if ($this->ticket->get_coupon() === null) {
-                    $brand_media_url = $this->ticket->get_passengers()[0]->get_transport()->get_operator()->brand_media ?: $brand_media_url;
+            if ($this->ticket->status === TicketStatus::PAYMENT) {
+                if ($this->ticket->getCoupon() === null) {
+                    $brand_media_url = $this->ticket->getPassengers()[0]->getTransport()->getOperator()->brand_media ?: $brand_media_url;
                 } else {
-                    $brand_media_url = get_post_meta($this->ticket->get_coupon()->ID,'brand_media', true) ?: $brand_media_url;
+                    $brand_media_url = get_post_meta($this->ticket->getCoupon()->ID,'brand_media', true) ?: $brand_media_url;
                 }
             }
-            $img->set_attribute('src', $brand_media_url);
+            $img->attributes->set('src', $brand_media_url);
             return $img->compact();
         });
         $this->add_description('brand_media', [
@@ -169,8 +169,8 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
                 return 'QR no disponible';
             }
             $img = new StandaloneComponent('img');
-            $img->set_attribute('src', $url);
-            $img->set_attribute('alt', 'Código QR del Ticket');
+            $img->attributes->set('src', $url);
+            $img->attributes->set('alt', 'Código QR del Ticket');
             return $img->compact();
         });
         $this->add_description('qr_ticket', [
@@ -215,7 +215,7 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
             ],
         ]);
         $this->add_placeholder('coupon_code', function (array $params) {
-            $coupon = $this->ticket->get_coupon();
+            $coupon = $this->ticket->getCoupon();
             if ($coupon === null) {
                 return '';
             }

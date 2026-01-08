@@ -1,13 +1,21 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormZone;
-use CentralTickets\Components\Displayer;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormZone;
+use CentralBooking\Data\Services\ZoneService;
+use CentralBooking\GUI\DisplayerInterface;
 
-final class TableZones implements Displayer
+final class TableZones implements DisplayerInterface
 {
-    public function display()
+    private ZoneService $zoneService;
+
+    public function __construct()
+    {
+        $this->zoneService = new ZoneService();
+    }
+
+    public function render()
     {
         ?>
         <div style="max-width: 200px;">
@@ -18,7 +26,7 @@ final class TableZones implements Displayer
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach (git_get_zones() as $zone): ?>
+                    <?php foreach ($this->getZones() as $zone): ?>
                         <tr>
                             <td>
                                 <span><?= esc_html($zone->name) ?></span>
@@ -39,6 +47,10 @@ final class TableZones implements Displayer
             </table>
         </div>
         <?php
+    }
 
+    private function getZones()
+    {
+        return git_zones();
     }
 }

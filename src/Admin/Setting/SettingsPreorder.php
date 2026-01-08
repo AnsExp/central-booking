@@ -1,71 +1,63 @@
 <?php
-namespace CentralTickets\Admin\Setting;
+namespace CentralBooking\Admin\Setting;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\REST\RegisterRoute;
-use CentralTickets\Constants\TransportConstants;
-use CentralTickets\Components\InputComponent;
-use CentralTickets\Persistence\RouteRepository;
-use CentralTickets\Services\Actions\DateTrip;
+use CentralBooking\Data\Constants\TransportConstants;
+use CentralBooking\Data\Services\RouteService;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\REST\RegisterRoute;
 
-final class SettingsPreorder implements Displayer
+final class SettingsPreorder implements DisplayerInterface
 {
     private InputComponent $secret_key;
 
     public function __construct()
     {
         $this->secret_key = new InputComponent('secret_key', 'text');
-        $this->secret_key->set_value(git_get_secret_key());
+        $this->secret_key->setValue(git_get_secret_key());
         $this->secret_key->styles->set('width', '300px');
     }
 
-    public function display()
+    public function render()
     {
-        $route_sample = (new RouteRepository)->find_first();
+        $result = (new RouteService)->find();
+        $result = $result->hasItems() ? $result->getItems()[0] : null;
         ?>
-        <form id="git-settings-form"
-            action="<?= esc_url(add_query_arg('action', 'git_settings', admin_url('admin-ajax.php'))) ?>" method="post">
-            <input type="hidden" name="nonce" value="<?= wp_create_nonce('git_settings_nonce') ?>" />
-            <input type="hidden" name="scope" value="preorder">
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row">Llave secreta</th>
-                    <td>
-                        <?= $this->secret_key->compact() ?>
-                        <button type="button" class="button-secondary" id="git-generate-button">Generar</button>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Body para generar una preorden</th>
-                    <td>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row">Body para generar una preorden</th>
+                <td>
 <pre id="git_sample_request">{
-    "secret_key": "<?= git_get_setting('preorder_secret_key', '') ?>",
-    "origin": "<?= $route_sample ? $route_sample->get_origin()->get_zone()->name : 'Pichincha' ?>",
-    "destiny": "<?= $route_sample ? $route_sample->get_destiny()->get_zone()->name : 'Guayas' ?>",
-    "type": "<?= $route_sample ? $route_sample->type : TransportConstants::MARINE ?>",
-    "date_trip": "<?= DateTrip::min_date() ?>",
-    "departure_time": "<?= $route_sample ? $route_sample->departure_time : date('H:i:s') ?>",
+    "secret_key": "<?= git_get_secret_key() ?>",
+    "origin": "<?= $result ? $result->getOrigin()->getZone()->name : 'Pichincha' ?>",
+    "destiny": "<?= $result ? $result->getDestiny()->getZone()->name : 'Guayas' ?>",
+    "type": "<?= $result ? $result->type->value : TransportConstants::MARINE->value ?>",
+    "date_trip": "<?= git_date_trip_min()->format('Y-m-d') ?>",
+    "departure_time": "<?= $result ? $result->getDepartureTime()->format() : date('H:i:s') ?>",
     "pax": 1
 }</pre>
-                        <button style="display: inline-block;" type="button" class="button git-copy-button" data-target="#git_sample_request">Copiar</button>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Endpoint generador de preorden</th>
-                    <td>
-                        <code>POST</code>
-                        <pre style="display: inline-block;"
-                            id="git_sample_endpoint"><?= site_url('/wp-json/' . RegisterRoute::prefix . 'preorder') ?></pre>
-                        <button style="display: block;" type="button" class="button git-copy-button" data-target="#git_sample_endpoint">Copiar</button>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">Llamada a la API en javascript</th>
-                    <td>
-<pre style="display: inline-block;" id="git_sample_js">/**
+                    <button style="display: inline-block;" type="button" class="button git-copy-button"
+                        data-target="#git_sample_request">Copiar</button>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">Endpoint generador de preorden</th>
+                <td>
+                    <code>POST</code>
+                    <pre style="display: inline-block;"
+                        id="git_sample_endpoint"><?= site_url('/wp-json/' . RegisterRoute::prefix . 'preorder') ?></pre>
+                    <button style="display: block;" type="button" class="button git-copy-button"
+                        data-target="#git_sample_endpoint">Copiar</button>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">Llamada a la API en javascript</th>
+                <td>
+                    <pre style="display: inline-block;" id="git_sample_js">
+/**
  * Lista de origenes displonibles:
 <?php
-$zones = git_get_zones();
+$zones = git_zones();
 foreach ($zones as $zone) {
     echo " * - {$zone->name}\n";
 }
@@ -97,13 +89,13 @@ let departureTime = '';
 
 /** Tipo de transporte:
 <?php
-$type = TransportConstants::all();
-foreach ($type as $t) {
-    if (in_array($t, [TransportConstants::LAND])) {
+$types = TransportConstants::cases();
+foreach ($types as $type) {
+    if (in_array($type, [TransportConstants::LAND])) {
         continue;
     }
-    $display = git_get_text_by_type($t);
-    echo " * - {$t} ({$display})\n";
+    $display = $type->label();
+    echo " * - {$type->value} ({$display})\n";
 }
 ?>
  */
@@ -144,44 +136,35 @@ fetch('<?= site_url('/wp-json/' . RegisterRoute::prefix . 'preorder') ?>', {
             preorderFailed();
         }
     });</pre>
-                        <button style="display: block;" type="button" class="button git-copy-button" data-target="#git_sample_js">Copiar</button>
-                    </td>
-                </tr>
-            </table>
-            <p class="submit">
-                <button type="submit" class="button-primary" id="git-save-button">
-                    Guardar configuraciones
-                </button>
-            </p>
-            <script>
-                document.querySelectorAll('.git-copy-button').forEach(button => {
-                    button.addEventListener('click', () => {
-                        const targetSelector = button.getAttribute('data-target');
-                        const targetElement = targetSelector ? document.querySelector(targetSelector) : button.previousElementSibling;
-                        if (targetElement) {
-                            const textToCopy = targetElement.textContent || targetElement.innerText;
-                            navigator.clipboard.writeText(textToCopy).then(() => {
-                                button.textContent = '¡Copiado!';
-                                setTimeout(() => {
-                                    button.textContent = 'Copiar';
-                                }, 2000);
-                            }).catch(err => {
-                                console.error('Error al copiar al portapapeles: ', err);
-                            });
-                        }
-                    });
+            <button style="display: block;" type="button" class="button git-copy-button"
+                data-target="#git_sample_js">Copiar</button>
+        </td>
+            </tr>
+        </table>
+        <p class="submit">
+            <button type="submit" class="button-primary" id="git-save-button">
+                Guardar configuraciones
+            </button>
+        </p>
+        <script>
+            document.querySelectorAll('.git-copy-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetSelector = button.getAttribute('data-target');
+                    const targetElement = targetSelector ? document.querySelector(targetSelector) : button.previousElementSibling;
+                    if (targetElement) {
+                        const textToCopy = targetElement.textContent || targetElement.innerText;
+                        navigator.clipboard.writeText(textToCopy).then(() => {
+                            button.textContent = '¡Copiado!';
+                            setTimeout(() => {
+                                button.textContent = 'Copiar';
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Error al copiar al portapapeles: ', err);
+                        });
+                    }
                 });
-                function generarClaveSecreta(longitud = 32) {
-                    const array = new Uint8Array(longitud);
-                    window.crypto.getRandomValues(array);
-                    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
-                }
-                document.getElementById('git-generate-button').addEventListener('click', function () {
-                    const nuevaClave = generarClaveSecreta(16);
-                    document.getElementById('<?= $this->secret_key->id ?>').value = nuevaClave;
-                });
-            </script>
-        </form>
+            });
+        </script>
         <?php
     }
 }

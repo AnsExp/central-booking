@@ -1,17 +1,14 @@
 <?php
-namespace CentralTickets\Client;
+namespace CentralBooking\Client;
 
-use CentralTickets\Ticket;
+use CentralBooking\Data\Ticket;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\CompositeComponent;
+use CentralBooking\GUI\TextComponent;
 use CentralTickets\Placeholders\PlaceholderEngineTicket;
 use CentralTickets\Placeholders\PlaceholderEnginePassenger;
 
-use CentralTickets\Components\Component;
-use CentralTickets\Components\TextComponent;
-use CentralTickets\Components\CompositeComponent;
-
-use CentralTickets\Persistence\TicketRepository;
-
-class TicketViewer implements Component
+class TicketViewer implements ComponentInterface
 {
     private Ticket $ticket;
     private string $ticket_template;
@@ -21,7 +18,7 @@ class TicketViewer implements Component
 
     public function __construct($ticket_id)
     {
-        $ticket = (new TicketRepository)->find($ticket_id);
+        $ticket = git_ticket_by_id($ticket_id);
         if ($ticket !== null) {
             $this->ticket = $ticket;
         }
@@ -37,8 +34,8 @@ class TicketViewer implements Component
         if (empty($this->ticket)) {
             return (new TicketViewerNotAvailable)->compact();
         }
-        $container = new CompositeComponent;
-        $container->add_child($this->card());
+        $container = new CompositeComponent();
+        $container->addChild($this->card());
         return $container->compact();
     }
 
@@ -47,7 +44,7 @@ class TicketViewer implements Component
         $engine = new PlaceholderEngineTicket($this->ticket);
         $result = $engine->process($template);
 
-        foreach ($this->ticket->get_passengers() as $passenger) {
+        foreach ($this->ticket->getPassengers() as $passenger) {
             $passenger_engine = new PlaceholderEnginePassenger($passenger);
             $result .= $passenger_engine->process($this->passenger_template);
         }

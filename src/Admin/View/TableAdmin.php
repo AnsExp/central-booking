@@ -1,17 +1,17 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\PaginationComponent;
-use CentralTickets\Persistence\ResultSet;
+use CentralBooking\Data\Repository\ResultSetInterface;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\PaginationComponent;
 
-abstract class TableAdmin implements Displayer
+abstract class TableAdmin implements DisplayerInterface
 {
     protected function __construct(private bool $add_pagination_controls = true)
     {
     }
 
-    public function display()
+    public function render()
     {
         if (empty($this->get_result_set()->has_items)) {
             $this->no_content();
@@ -27,9 +27,9 @@ abstract class TableAdmin implements Displayer
     {
         $pagination = new PaginationComponent();
         $pagination->set_data(
-            $this->get_result_set()->total_items,
-            $this->get_result_set()->current_page,
-            $this->get_result_set()->total_pages,
+            $this->get_result_set()->getTotalItems(),
+            $this->get_result_set()->getCurrentPage(),
+            $this->get_result_set()->getTotalPages(),
         );
         $pagination->set_links(
             $this->get_pagination_links()['first'],
@@ -44,7 +44,7 @@ abstract class TableAdmin implements Displayer
      */
     abstract protected function get_pagination_links();
     /**
-     * @return ResultSet
+     * @return ResultSetInterface
      */
     abstract protected function get_result_set();
     /**

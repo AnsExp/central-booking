@@ -1,4 +1,3 @@
-import { domain } from "./domain.js";
 import { createOptionPane } from "../options.js";
 import { createThirdContainer } from "./create-third-container.js";
 

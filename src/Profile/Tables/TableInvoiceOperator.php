@@ -1,18 +1,15 @@
 <?php
-namespace CentralTickets\Profile\Tables;
+namespace CentralBooking\Profile\Tables;
 
-use CentralTickets\Components\Constants\ButtonStyleConstants;
-use CentralTickets\Components\ModalComponent;
-use CentralTickets\Operator;
-use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Components\Component;
-use CentralTickets\Services\Actions\InvoiceInfoPagination;
-use DateTime;
-use WP_Post;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\GUI\ComponentBuilder;
+use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\Constants\ButtonStyleConstants;
+use CentralBooking\GUI\ModalComponent;
+use CentralBooking\Utils\Actions\InvoiceInfoPagination;
 
-class TableInvoiceOperator implements Component
+class TableInvoiceOperator implements ComponentInterface
 {
-    private Operator $operator;
     private ModalComponent $download_modal;
     private InvoiceInfoPagination $invoice_pagination;
 
@@ -25,22 +22,16 @@ class TableInvoiceOperator implements Component
     private function get_operator()
     {
         $operator_id = $_GET['operator'] ?? 0;
-        if (empty($operator_id) || !is_numeric($operator_id)) {
-            return new Operator();
+        if (!is_numeric($operator_id)) {
+            return null;
         }
-
-        $operator = git_get_operator_by_id((int) $operator_id);
-        if (!$operator) {
-            return new Operator();
-        }
-
-        return $operator;
+        return git_operator_by_id((int) $operator_id);
     }
 
     public function compact()
     {
         ob_start();
-        $this->download_modal->display();
+        $this->download_modal->render();
         ?>
         <table class="table table-striped table-hover">
             <thead>
@@ -59,14 +50,14 @@ class TableInvoiceOperator implements Component
             <tbody>
                 <?php $tickets = $this->fetch_tickets();
                 foreach ($tickets as $ticket):
-                    $proof_payment = $ticket->get_meta('proof_payment');
+                    $proof_payment = $ticket->getProofPayment();
                     $abono = 0;
-                    if ($ticket->get_coupon() !== null) {
-                        if ($ticket->status === TicketConstants::PAYMENT) {
+                    if ($ticket->getCoupon() !== null) {
+                        if ($ticket->status === TicketStatus::PAYMENT) {
                             $abono = $ticket->total_amount;
-                        } elseif ($ticket->status === TicketConstants::PARTIAL) {
+                        } elseif ($ticket->status === TicketStatus::PARTIAL) {
                             $abono = $proof_payment['amount'] ?? 0;
-                        } elseif ($ticket->status === TicketConstants::CANCEL) {
+                        } elseif ($ticket->status === TicketStatus::CANCEL) {
                             $abono = 0;
                         } else {
                             $abono = $proof_payment['amount'] ?? 0;
@@ -79,16 +70,16 @@ class TableInvoiceOperator implements Component
                     <tr class="<?= $saldo !== 0 ? 'table-danger' : '' ?>">
                         <td><?= $ticket->id; ?></td>
                         <td>
-                            <time datetime="<?= $ticket->get_order()->get_date_created()->format('Y-m-d H:i:s'); ?>">
-                                <?= git_datetime_format($ticket->get_order()->get_date_created()->format('Y-m-d H:i:s')); ?>
+                            <time datetime="<?= $ticket->getOrder()->get_date_created()->format('Y-m-d H:i:s'); ?>">
+                                <?= git_datetime_format($ticket->getOrder()->get_date_created()->format('Y-m-d H:i:s')); ?>
                             </time>
                         </td>
-                        <td><?= $ticket->get_order()->get_id(); ?></td>
-                        <td><?= $ticket->get_order()->get_billing_first_name(); ?></td>
+                        <td><?= $ticket->getOrder()->get_id(); ?></td>
+                        <td><?= $ticket->getOrder()->get_billing_first_name(); ?></td>
                         <td><?= git_currency_format($ticket->total_amount, true); ?></td>
-                        <td><?= $ticket->get_coupon() ? $ticket->get_coupon()->post_title : '—'; ?></td>
+                        <td><?= $ticket->getCoupon() ? $ticket->getCoupon()->post_title : '—'; ?></td>
                         <td><?= git_currency_format($abono, true); ?></td>
-                        <td><?= git_get_text_by_status($ticket->status) ?></td>
+                        <td><?= $ticket->status->label() ?></td>
                         <td><?= git_currency_format($saldo, true); ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -151,8 +142,14 @@ class TableInvoiceOperator implements Component
             }
         }
 
+        $operator = $this->get_operator();
+
+        if ($operator === null) {
+            return [];
+        }
+
         $this->invoice_pagination = new InvoiceInfoPagination(
-            $this->get_operator(),
+            $operator,
             $limits['start'],
             $limits['end'],
             $coupon
@@ -203,7 +200,7 @@ class TableInvoiceOperator implements Component
         </form>
         <?php
         $string = ob_get_clean();
-        $this->download_modal->set_body_component(git_string_to_component($string));
+        $this->download_modal->set_body_component(ComponentBuilder::create($string));
     }
 
     private function render_pagination(): void
@@ -212,9 +209,9 @@ class TableInvoiceOperator implements Component
         <div class="row">
             <div class="col">
                 <?php
-                $button = $this->download_modal->create_button_launch(git_string_to_component('Descargar en formato CSV <i class="bi bi-download"></i>'));
+                $button = $this->download_modal->create_button_launch(ComponentBuilder::create('Descargar en formato CSV <i class="bi bi-download"></i>'));
                 $button->set_style(ButtonStyleConstants::WARNING);
-                $button->display();
+                $button->render();
                 ?>
             </div>
             <div class="col">

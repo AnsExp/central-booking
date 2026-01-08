@@ -1,14 +1,11 @@
 <?php
-namespace CentralTickets\Preorder;
+namespace CentralBooking\Preorder;
 
-use CentralTickets\Zone;
-use CentralTickets\Location;
-use CentralTickets\Constants\TransportConstants;
-use CentralTickets\Persistence\LocationRepository;
-use CentralTickets\Persistence\RouteRepository;
-use CentralTickets\Persistence\ZoneRepository;
-use CentralTickets\Services\Actions\DateTrip;
+use CentralBooking\Data\Constants\TransportConstants;
+use CentralBooking\Data\Services\Actions\DateTrip;
+use CentralBooking\Data\Zone;
 use WP_Error;
+
 class PreorderCreator
 {
     private function __construct(
@@ -17,7 +14,7 @@ class PreorderCreator
         private string $origin,
         private string $destiny,
         private string $date_trip,
-        private string $type,
+        TransportConstants $type,
         private string $departure_time,
         private array $passengers_info = []
     ) {
@@ -56,11 +53,11 @@ class PreorderCreator
         return $order;
     }
 
-    private function get_routes(Zone $origin, Zone $destiny, string $departure_time, string $type)
+    private function get_routes(Zone $origin, Zone $destiny, string $departure_time, TransportConstants $type)
     {
-        return git_get_query_persistence()->get_route_repository()->find_by([
+        return git_routes([
             'departure_time' => $departure_time,
-            'type' => $type,
+            'type' => $type->value,
             'id_zone_origin' => $origin->id,
             'id_zone_destiny' => $destiny->id,
         ]);
@@ -68,7 +65,7 @@ class PreorderCreator
 
     private function get_zone(string $location)
     {
-        return git_get_query_persistence()->get_zone_repository()->find_first(['name' => $location]);
+        return git_zone_by_name($location);
     }
 
     public static function create(
@@ -77,13 +74,10 @@ class PreorderCreator
         string $origin,
         string $destiny,
         string $date_trip,
-        string $type = TransportConstants::MARINE,
+        TransportConstants $type = TransportConstants::MARINE,
         string $departure_time = '00:00:00',
         array $passengers_info = []
     ) {
-        if (!TransportConstants::is_valid($type)) {
-            return null;
-        }
         if (!DateTrip::valid($date_trip)) {
             return null;
         }

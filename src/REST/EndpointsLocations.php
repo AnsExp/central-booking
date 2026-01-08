@@ -1,8 +1,8 @@
 <?php
-namespace CentralTickets\REST;
+namespace CentralBooking\REST;
 
-use CentralTickets\REST\Controllers\LocationController;
-use CentralTickets\Location;
+use CentralBooking\Data\Location;
+use CentralBooking\REST\Controllers\LocationController;
 
 /**
  * @extends parent<Location>

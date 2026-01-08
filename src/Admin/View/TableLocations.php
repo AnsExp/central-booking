@@ -1,20 +1,19 @@
 <?php
-namespace CentralTickets\Admin\View;
+namespace CentralBooking\Admin\View;
 
-use CentralTickets\Admin\AdminRouter;
-use CentralTickets\Admin\Form\FormLocation;
-use CentralTickets\Admin\Form\FormTransport;
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\PaginationComponent;
-use CentralTickets\Services\LocationService;
-use CentralTickets\Location;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormLocation;
+use CentralBooking\Data\Location;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\Data\Services\LocationService;
+use CentralBooking\GUI\PaginationComponent;
 
-final class TableLocations implements Displayer
+final class TableLocations implements DisplayerInterface
 {
     /**
      * @var array<Location>
      */
-    private array $zones;
+    private array $locations;
     private int $total_items;
     private int $per_page = 10;
     private int $total_pages;
@@ -22,23 +21,23 @@ final class TableLocations implements Displayer
 
     public function __construct()
     {
-        $this->zones = $this->fetchLocations();
+        $this->locations = $this->fetchLocations();
     }
 
-    private function fetchLocations(): array
+    private function fetchLocations()
     {
         $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
         $service = new LocationService();
-        $result = $service->paginated(
-            order_by: $_GET['order_by'] ?? 'id',
+        $result = $service->find(
+            orderBy: $_GET['order_by'] ?? 'id',
             order: $_GET['order'] ?? 'DESC',
-            page_number: $page_number,
-            page_size: $this->per_page,
+            offset: ($page_number - 1) * $this->per_page,
+            limit: $this->per_page,
         );
-        $this->total_items = $result['pagination']['total_elements'] ?? 0;
-        $this->total_pages = $result['pagination']['total_pages'] ?? 0;
-        $this->current_page = $result['pagination']['current_page'] ?? 1;
-        return $result['data'] ?? [];
+        $this->total_items = $result->getTotalItems();
+        $this->total_pages = $result->getTotalPages();
+        $this->current_page = $result->getCurrentPage();
+        return $result->getItems();
     }
 
     private function get_current_order_by()
@@ -64,7 +63,7 @@ final class TableLocations implements Displayer
         ]);
     }
 
-    public function display()
+    public function render()
     {
         $pagination = new PaginationComponent();
         $pagination->set_data(
@@ -108,7 +107,10 @@ final class TableLocations implements Displayer
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($this->zones as $location): ?>
+                    <?php foreach ($this->locations as $location): ?>
+                        <script>
+                            console.log('<?= git_serialize($location->id) ?>');
+                        </script>
                         <tr>
                             <td>
                                 <span><?= esc_html($location->name) ?></span>
@@ -123,12 +125,12 @@ final class TableLocations implements Displayer
                                     </span>
                                 </div>
                             </td>
-                            <td><?= esc_html($location->get_zone()->name) ?></td>
+                            <td><?= esc_html($location->getZone()->name) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->display() ?>
+            <?php $pagination->compact() ?>
         </div>
         <?php
     }

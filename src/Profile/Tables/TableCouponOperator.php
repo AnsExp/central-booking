@@ -1,11 +1,11 @@
 <?php
-namespace CentralTickets\Profile\Tables;
+namespace CentralBooking\Profile\Tables;
 
-use CentralTickets\Constants\TicketConstants;
-use CentralTickets\Components\Component;
-use CentralTickets\Services\TicketService;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\Data\Services\TicketService;
+use CentralBooking\GUI\ComponentInterface;
 
-class TableCouponOperator implements Component
+class TableCouponOperator implements ComponentInterface
 {
     private string $danger_hex = '#F8D7DA';
     private string $warning_hex = '#FFF3CD';
@@ -28,7 +28,7 @@ class TableCouponOperator implements Component
 
             $service = new TicketService();
 
-            $result = $service->paginated(
+            $result = $service->find(
                 [
                     'id_coupon' => $coupon,
                     'date_creation_from' => $date_start,
@@ -36,13 +36,12 @@ class TableCouponOperator implements Component
                 ],
                 'date_creation',
                 'DESC',
-                $_GET['page_number'] ?? 1,
-                10
+                -1
             );
 
-            $tickets = $result['data'];
-            $this->total_pages = $result['pagination']['total_pages'] ?? 1;
-            $this->current_page = $result['pagination']['current_page'] ?? 1;
+            $tickets = $result->getItems();
+            $this->total_pages = $result->getTotalPages();
+            $this->current_page = $result->getCurrentPage();
         }
         return $tickets;
     }
@@ -56,24 +55,24 @@ class TableCouponOperator implements Component
             <div class="p-2 d-flex align-items-center">
                 <div class="me-2"
                     style="width: 15px; height: 15px; border: solid 1px gray; background-color: <?= $this->base_hex ?>"></div>
-                <span><?= git_get_text_by_status(TicketConstants::PENDING) ?></span>
+                <span><?= TicketStatus::PENDING->label() ?></span>
             </div>
             <div class="p-2 d-flex align-items-center">
                 <div class="me-2"
                     style="width: 15px; height: 15px; border: solid 1px gray; background-color: <?= $this->success_hex ?>">
                 </div>
-                <span><?= git_get_text_by_status(TicketConstants::PAYMENT) ?></span>
+                <span><?= TicketStatus::PAYMENT->label() ?></span>
             </div>
             <div class="p-2 d-flex align-items-center">
                 <div class="me-2"
                     style="width: 15px; height: 15px; border: solid 1px gray; background-color: <?= $this->warning_hex ?>">
                 </div>
-                <span><?= git_get_text_by_status(TicketConstants::PARTIAL) ?></span>
+                <span><?= TicketStatus::PARTIAL->label() ?></span>
             </div>
             <div class="p-2 d-flex align-items-center">
                 <div class="me-2"
                     style="width: 15px; height: 15px; border: solid 1px gray; background-color: <?= $this->danger_hex ?>"></div>
-                <span><?= git_get_text_by_status(TicketConstants::CANCEL) ?></span>
+                <span><?= TicketStatus::CANCEL->label() ?></span>
             </div>
         </div>
         <table class="table table-striped table-bordered table-hover">
@@ -87,12 +86,12 @@ class TableCouponOperator implements Component
             </tr>
             <?php foreach ($tickets as $ticket):
                 $colors = [
-                    TicketConstants::PENDING => 'table-light',
-                    TicketConstants::PAYMENT => 'table-success',
-                    TicketConstants::PARTIAL => 'table-warning',
-                    TicketConstants::CANCEL => 'table-danger',
+                    TicketStatus::PENDING->name => 'table-light',
+                    TicketStatus::PAYMENT->name => 'table-success',
+                    TicketStatus::PARTIAL->name => 'table-warning',
+                    TicketStatus::CANCEL->name => 'table-danger',
                 ];
-                $back = $colors[$ticket->status] ?? 'table-light';
+                $back = $colors[$ticket->status->name] ?? 'table-light';
                 ?>
                 <tr class="<?= $back ?>">
                     <td>
@@ -105,9 +104,9 @@ class TableCouponOperator implements Component
                         ) ?>" class="button-primary">Editar Cupon</a>
                     </td>
                     <td><?= $ticket->id ?></td>
-                    <td>#<?= $ticket->get_order()->get_id() ?></td>
-                    <td><?= git_datetime_format($ticket->get_order()->get_date_created()) ?></td>
-                    <td><?= git_get_text_by_status($ticket->status) ?></td>
+                    <td>#<?= $ticket->getOrder()->get_id() ?></td>
+                    <td><?= git_datetime_format($ticket->getOrder()->get_date_created()) ?></td>
+                    <td><?= $ticket->status->label() ?></td>
                     <td><?= git_currency_format($ticket->total_amount, true) ?></td>
                 </tr>
             <?php endforeach; ?>

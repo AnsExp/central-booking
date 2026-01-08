@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             syncDateConstraints();
         });
+        radioOneWay.click();
     }
 
     if (radioDoubleWay) {

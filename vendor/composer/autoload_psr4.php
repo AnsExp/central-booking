@@ -11,5 +11,10 @@ return array(
     'Masterminds\\' => array($vendorDir . '/masterminds/html5/src'),
     'FontLib\\' => array($vendorDir . '/dompdf/php-font-lib/src/FontLib'),
     'Dompdf\\' => array($vendorDir . '/dompdf/dompdf/src'),
-    'CentralTickets\\' => array($baseDir . '/src'),
+    'CentralBooking\\Webhook\\' => array($baseDir . '/packages/webhook/src'),
+    'CentralBooking\\QR\\' => array($baseDir . '/packages/qr/src'),
+    'CentralBooking\\PDF\\' => array($baseDir . '/packages/pdf/src'),
+    'CentralBooking\\GUI\\' => array($baseDir . '/packages/gui/src'),
+    'CentralBooking\\Data\\' => array($baseDir . '/packages/data/src'),
+    'CentralBooking\\' => array($baseDir . '/src'),
 );

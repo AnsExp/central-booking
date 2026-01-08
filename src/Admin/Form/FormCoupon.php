@@ -1,23 +1,23 @@
 <?php
-namespace CentralTickets\Admin\Form;
+namespace CentralBooking\Admin\Form;
 
-use CentralTickets\Components\Displayer;
-use CentralTickets\Components\Implementation\CouponSelect;
-use CentralTickets\Components\InputComponent;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\Implementation\GUI\CouponSelect;
 
-final class FormCoupon implements Displayer
+final class FormCoupon implements DisplayerInterface
 {
-    public function display()
+    public function render()
     {
         $id = (int) ($_GET['id'] ?? '0');
         $coupon_input = (new CouponSelect('coupon'))->create();
         $logo_sale_input = new InputComponent('brand_media', 'text');
-        $coupon_input->set_required(true);
-        $logo_sale_input->set_required(true);
-        $coupon = git_get_coupon_by_id($id);
+        $coupon_input->setRequired(true);
+        $logo_sale_input->setRequired(true);
+        $coupon = git_coupon_by_id($id);
         if ($coupon) {
-            $coupon_input->set_value($id);
-            $logo_sale_input->set_value(git_get_url_logo_by_coupon($coupon));
+            $coupon_input->setValue($id);
+            $logo_sale_input->setValue(git_get_url_logo_by_coupon($coupon));
         }
         ob_start();
         ?>
@@ -26,7 +26,7 @@ final class FormCoupon implements Displayer
                 <tbody>
                     <tr class="form-field">
                         <th scope="row">
-                            <?= $coupon_input->get_label('Comercializador')->compact() ?>
+                            <?= $coupon_input->getLabel('Comercializador')->compact() ?>
                         </th>
                         <td>
                             <?= $coupon_input->compact() ?>
@@ -34,7 +34,7 @@ final class FormCoupon implements Displayer
                     </tr>
                     <tr class="form-field">
                         <th scope="row">
-                            <?= $logo_sale_input->get_label('Logo de la venta')->compact() ?>
+                            <?= $logo_sale_input->getLabel('Logo de la venta')->compact() ?>
                         </th>
                         <td>
                             <?= $logo_sale_input->compact() ?>

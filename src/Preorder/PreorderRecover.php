@@ -1,7 +1,6 @@
 <?php
-namespace CentralTickets\Preorder;
+namespace CentralBooking\Preorder;
 
-use CentralTickets\Persistence\RouteRepository;
 class PreorderRecover
 {
     private function __construct(private int $id_preorder)
@@ -20,7 +19,7 @@ class PreorderRecover
             return null;
         }
         $preorder = new Preorder();
-        $transport = git_get_transport_by_id((int) get_post_meta($order_id, 'transport_id', true));
+        $transport = git_transport_by_id((int) get_post_meta($order_id, 'transport_id', true));
         $routes = $this->get_routes(get_post_meta($order_id, 'routes_id'));
         $preorder->pax = get_post_meta($order_id, 'pax', true);
         $preorder->date_trip = get_post_meta($order_id, 'date_trip', true);
@@ -38,10 +37,9 @@ class PreorderRecover
 
     private function get_routes(array $ids)
     {
-        $repository = new RouteRepository;
         $routes = [];
         foreach ($ids as $id) {
-            $route = $repository->find((int) $id);
+            $route = git_route_by_id((int) $id);
             if ($route !== null) {
                 $routes[] = $route;
             }
