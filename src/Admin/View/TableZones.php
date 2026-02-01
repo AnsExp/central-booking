@@ -5,6 +5,9 @@ use CentralBooking\Admin\AdminRouter;
 use CentralBooking\Admin\Form\FormZone;
 use CentralBooking\Data\Services\ZoneService;
 use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class TableZones implements DisplayerInterface
 {
@@ -17,6 +20,7 @@ final class TableZones implements DisplayerInterface
 
     public function render()
     {
+        $this->showMessage();
         ?>
         <div style="max-width: 200px;">
             <table class="wp-list-table widefat fixed striped">
@@ -29,17 +33,11 @@ final class TableZones implements DisplayerInterface
                     <?php foreach ($this->getZones() as $zone): ?>
                         <tr>
                             <td>
-                                <span><?= esc_html($zone->name) ?></span>
-                                <div class="row-actions visible">
-                                    <span class="edit">
-                                        ID: <?= $zone->id ?>
-                                    </span>
-                                    <span> | </span>
-                                    <span class="edit">
-                                        <a
-                                            href="<?= AdminRouter::get_url_for_class(FormZone::class, ['id' => $zone->id]) ?>">Editar</a>
-                                    </span>
-                                </div>
+                                <a href="<?= AdminRouter::get_url_for_class(FormZone::class, ['id' => $zone->id]) ?>">
+                                    <strong>
+                                        <?= esc_html($zone->name) ?>
+                                    </strong>
+                                </a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -52,5 +50,20 @@ final class TableZones implements DisplayerInterface
     private function getZones()
     {
         return git_zones();
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal)->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

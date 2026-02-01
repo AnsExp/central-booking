@@ -1,7 +1,7 @@
 <?php
 namespace CentralBooking\Utils\Senders;
 
-use CentralBooking\Data\Configurations;
+use CentralBooking\Admin\Setting\SettingsKeys;
 use CentralBooking\Data\Ticket;
 use CentralBooking\Placeholders\PlaceholderEngineTicket;
 
@@ -13,8 +13,8 @@ class EmailTicketSender implements TicketSender
         $parsed = parse_url($url);
         $subfix = '@' . ($parsed['host'] ?? $url);
         $order = $ticket->getOrder();
-        $title = Configurations::get_map('notification_email.title', "Central Reservas - Ticket # {$ticket->id}");
-        $sender = Configurations::get_map('notification_email.sender', 'admin');
+        $title = git_get_setting(SettingsKeys::NOTIFICATION_CHECKOUT_EMAIL_TITLE, "Central Reservas - Ticket # {$ticket->id}");
+        $sender = git_get_setting(SettingsKeys::NOTIFICATION_CHECKOUT_EMAIL_SENDER, 'admin');
         return wp_mail(
             $order->get_billing_email(),
             $title,
@@ -29,7 +29,7 @@ class EmailTicketSender implements TicketSender
     private function create_message(Ticket $ticket)
     {
         $placeholder_engine = new PlaceholderEngineTicket($ticket);
-        $content = Configurations::get_map('notification_email.content', "");
+        $content = git_get_setting(SettingsKeys::NOTIFICATION_CHECKOUT_EMAIL_CONTENT, "");
         return $placeholder_engine->process($content);
     }
 }

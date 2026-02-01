@@ -15,7 +15,7 @@ final class RouteRepository
     public function save(Route $entity)
     {
         $data = [
-            'type' => $entity->type->value,
+            'type' => $entity->type->slug(),
             'id_origin' => $entity->getOrigin()->id,
             'id_destiny' => $entity->getDestiny()->id,
             'arrival_time' => $entity->getArrivalTime()->format(),
@@ -105,6 +105,7 @@ final class RouteRepository
             limit: $limit,
             offset: $offset
         );
+        // echo $sql;
         $results = $this->wpdb->get_results($sql, ARRAY_A);
         if ($results) {
             $items = array_map([$orm, 'mapper'], $results);
@@ -150,13 +151,15 @@ final class RouteRepository
         LEFT JOIN {$tableMeta} tm ON (tm.meta_id = r.id AND tm.meta_type = %s)
         LEFT JOIN {$tableLocations} lo ON lo.id = r.id_origin
         LEFT JOIN {$tableLocations} ld ON ld.id = r.id_destiny
-        LEFT JOIN {$tableRoutesTransports} rt ON rt.id_route = r.id
+        -- LEFT JOIN {$tableRoutesTransports} rt ON rt.id_route = r.id
+        -- LEFT JOIN {$tablePassengers} p ON p.id_route = r.id
         WHERE 1=1";
-        // LEFT JOIN {$tablePassengers} p ON p.id_route = r.id
         $sql = $this->wpdb->prepare($sql, MetaManager::ROUTE);
         $filters_allowed = [
             'id' => 'r.id = %d',
             'id_passenger' => 'p.id = %d',
+            'name_origin' => 'lo.name = %s',
+            'name_destiny' => 'ld.name = %s',
             'id_origin' => 'r.id_origin = %d',
             'id_destiny' => 'r.id_destiny = %d',
             'id_transport' => 'rt.id_transport = %d',

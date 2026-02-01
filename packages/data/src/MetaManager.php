@@ -10,6 +10,7 @@ final class MetaManager
     public const ROUTE = 'route';
     public const COUPON = 'coupon';
     public const TICKET = 'ticket';
+    public const SERVICE = 'service';
     public const SETTING = 'setting';
     public const LOCATION = 'location';
     public const OPERATOR = 'operator';
@@ -40,7 +41,7 @@ final class MetaManager
         );
 
         if ($result !== null) {
-            $result_parsed = Serializer::unserialize($result);
+            $result_parsed = self::unserialize($result);
             self::$cache[$cache_key] = $result_parsed;
             return $result_parsed;
         }
@@ -136,7 +137,7 @@ final class MetaManager
                 'meta_type' => $meta_type,
                 'meta_id' => $meta_id,
                 'meta_key' => $meta_key,
-                'meta_value' => Serializer::serialize($meta_value)
+                'meta_value' => self::serialize($meta_value)
             ], [
                 '%s', // meta_type
                 '%d', // meta_id
@@ -146,7 +147,7 @@ final class MetaManager
         } else {
             $wpdb->update(
                 $table_name,
-                ['meta_value' => Serializer::serialize($meta_value)],
+                ['meta_value' => self::serialize($meta_value)],
                 ['id' => $result->id],
                 ['%s'], // meta_value format
                 ['%d']  // id format
@@ -182,15 +183,57 @@ final class MetaManager
         unset(self::$cache[$cache_key]);
     }
 
-    public static function get_stats(): array
+    private static function serialize(mixed $data)
     {
-        global $wpdb;
+        if (is_string($data)) {
+            return $data;
+        }
 
-        return $wpdb->get_results(
-            "SELECT meta_type, COUNT(*) as total 
-             FROM {$wpdb->prefix}git_meta 
-             GROUP BY meta_type",
-            ARRAY_A
-        );
+        if (is_bool($data)) {
+            return $data ? 'true' : 'false';
+        }
+
+        if (is_null($data)) {
+            return 'null';
+        }
+
+        if (is_scalar($data)) {
+            return (string) $data;
+        }
+
+        if (is_array($data)) {
+            $arrayString = json_encode($data);
+            if (is_bool($arrayString)) {
+                return '[]';
+            }
+            return $arrayString;
+        }
+
+        return serialize($data);
+    }
+
+    private static function unserialize(string $value)
+    {
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $decoded;
+        }
+
+        $unserialized = @unserialize($value);
+        if ($unserialized !== false) {
+            return $unserialized;
+        }
+
+        if ($value === 'true')
+            return true;
+        if ($value === 'false')
+            return false;
+        if ($value === 'null')
+            return null;
+        if (is_numeric($value)) {
+            return strpos($value, '.') !== false ? (float) $value : (int) $value;
+        }
+
+        return $value;
     }
 }

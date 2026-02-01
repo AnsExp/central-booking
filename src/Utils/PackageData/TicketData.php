@@ -36,7 +36,7 @@ class TicketData implements PackageData
             $ticket->setOrder($order);
         }
 
-        $ticket->status =  TicketStatus::from($this->status);
+        $ticket->status =  TicketStatus::fromSlug($this->status);
         $ticket->flexible = $this->flexible;
         $ticket->total_amount = $this->total_amount;
 

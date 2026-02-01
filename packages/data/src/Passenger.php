@@ -3,6 +3,7 @@ namespace CentralBooking\Data;
 
 use CentralBooking\Data\Constants\PassengerConstants;
 use CentralBooking\Data\Repository\LazyLoader;
+use CentralBooking\Data\Services\ErrorService;
 
 class Passenger
 {
@@ -20,6 +21,34 @@ class Passenger
     private Ticket $ticket;
     private Route $route;
     private Transport $transport;
+    private array $metadata = [];
+
+    public function getMeta(string $key)
+    {
+        if (!isset($this->metadata[$key])) {
+            $metaValue = MetaManager::getMeta(
+                MetaManager::PASSENGER,
+                $this->id,
+                $key
+            );
+            $this->metadata[$key] = $metaValue;
+        }
+        return $this->metadata[$key] ?? null;
+    }
+
+    public function setMeta(string $key, mixed $value)
+    {
+        $this->metadata[$key] = $value;
+    }
+
+    public function saveMeta()
+    {
+        MetaManager::setMetadata(
+            MetaManager::PASSENGER,
+            $this->id,
+            $this->metadata
+        );
+    }
 
     public function getTicket()
     {
@@ -78,5 +107,47 @@ class Passenger
     public function setDateTrip(Date $dateTrip)
     {
         $this->dateTrip = $dateTrip;
+    }
+
+    public function transfer(Transport $transport, Route $route, Date $dateTrip)
+    {
+        if ($this->canTransfer() === false) {
+            return false;
+        }
+        if ($this->getTicket()->flexible === false) {
+            return ErrorService::TICKET_NOT_FLEXIBLE;
+        }
+
+        $isAvailability = $transport->checkAvaility(
+            $route,
+            $dateTrip,
+            1
+        );
+
+        if ($isAvailability === true) {
+            $this->setRoute($route);
+            $this->setDateTrip($dateTrip);
+            $this->setTransport($transport);
+            return true;
+        }
+
+        return $isAvailability;
+    }
+
+    public function canTransfer()
+    {
+        if ($this->getTicket()->flexible === false) {
+            return false;
+        }
+        return $this->approved === true && $this->served === false;
+
+        // $canTransfer = apply_filters('central_booking_passenger_can_transfer', $this->approved === true && $this->served === false, $this);
+
+        // return (bool) $canTransfer;
+    }
+
+    public function save()
+    {
+        git_passenger_save($this);
     }
 }

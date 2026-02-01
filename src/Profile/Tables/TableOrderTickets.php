@@ -1,12 +1,11 @@
 <?php
 namespace CentralBooking\Profile\Tables;
 
-use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Data\Ticket;
-use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\DisplayerInterface;
 
-
-class TableOrderTickets implements ComponentInterface
+final class TableOrderTickets implements DisplayerInterface
 {
     /**
      * @var array<Ticket>
@@ -18,12 +17,12 @@ class TableOrderTickets implements ComponentInterface
         $this->tickets = git_tickets(['id_order' => isset($_GET['order']) ? (int) $_GET['order'] : 0]);
     }
 
-    public function compact()
+    public function render()
     {
         if (empty($this->tickets)) {
             return $this->order_empty();
         }
-        if (!git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
+        if (!git_current_user_has_role(UserRole::ADMINISTRATOR)) {
             $current_user = wp_get_current_user();
             $user = $this->tickets[0]->getOrder()->get_user();
             if ($user === false) {
@@ -38,7 +37,6 @@ class TableOrderTickets implements ComponentInterface
 
     private function order_with_owner_mistake()
     {
-        ob_start();
         ?>
         <div class="alert alert-danger text-center" role="alert">
             <h5 class="alert-heading">Acceso denegado</h5>
@@ -48,12 +46,10 @@ class TableOrderTickets implements ComponentInterface
             </a>
         </div>
         <?php
-        return ob_get_clean();
     }
 
     private function order_whitout_owner()
     {
-        ob_start();
         ?>
         <div class="alert alert-warning text-center" role="alert">
             <h5 class="alert-heading">Pedido sin cliente asignado</h5>
@@ -63,12 +59,10 @@ class TableOrderTickets implements ComponentInterface
             </a>
         </div>
         <?php
-        return ob_get_clean();
     }
 
     private function order_info()
     {
-        ob_start();
         foreach ($this->tickets as $ticket): ?>
             <table class="table table-bordered table-striped">
                 <tbody>
@@ -106,17 +100,14 @@ class TableOrderTickets implements ComponentInterface
                 </tbody>
             </table>
         <?php endforeach;
-        return ob_get_clean();
     }
 
     private function order_empty()
     {
-        ob_start();
         ?>
         <p class="m-0">No hay tickets en esta orden. </p>
         <a class="btn btn-primary" href="<?= esc_url(remove_query_arg(['order', 'action'])) ?>">Volver a la lista de
             órdenes</a>
         <?php
-        return ob_get_clean();
     }
 }

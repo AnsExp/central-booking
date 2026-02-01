@@ -14,6 +14,7 @@ formsAvailability.forEach(form => {
                 if (response.ok) {
                     return json;
                 }
+                console.log(json);
                 let errorMessage = '';
                 errorMessage += `<div class="notice notice-error">`;
                 errorMessage += json.message;

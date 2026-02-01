@@ -1,14 +1,27 @@
 <?php
 namespace CentralBooking\Data\Services;
 
+use CentralBooking\Data\MetaManager;
 use CentralBooking\Data\Operator;
 use CentralBooking\Data\Repository\CouponRepository;
+use CentralBooking\Data\Repository\LazyLoader;
 use CentralBooking\Data\Repository\OperatorRepository;
+use WP_Post;
 
 class OperatorService
 {
     private CouponRepository $coupon_repository;
     private OperatorRepository $operator_repository;
+
+    private static ?OperatorService $instance = null;
+
+    public static function getInstance(): OperatorService
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
     public function __construct()
     {
@@ -18,11 +31,35 @@ class OperatorService
 
     public function save(Operator $operator)
     {
-        $operatorSaved = $this->operator_repository->save($operator);
-        foreach ($operator->getCoupons() as $coupon) {
-            $this->coupon_repository->assignCouponToOperator($coupon, $operatorSaved);
+        wp_update_user($operator->getUser());
+        $operator->saveMeta();
+        $couponRepository = new CouponRepository();
+        $coupons = LazyLoader::loadCouponsByOperator($operator);
+        foreach ($coupons as $coupon) {
+            $couponRepository->unassignCouponToOperator($coupon, $operator);
         }
-        return $operatorSaved;
+        foreach ($operator->getCoupons() as $coupon) {
+            $couponRepository->assignCouponToOperator($coupon, $operator);
+        }
+        return $operator;
+    }
+
+    public function findByCoupon(WP_Post $coupon)
+    {
+        $operatorId = MetaManager::getMeta(
+            MetaManager::COUPON,
+            $coupon->ID,
+            'coupon_assigned_operator',
+        );
+        if ($operatorId === null) {
+            return null;
+        }
+        return $this->operator_repository->findById((int) $operatorId);
+    }
+
+    function findById(int $id)
+    {
+        return $this->operator_repository->findById($id);
     }
 
     public function findAll()

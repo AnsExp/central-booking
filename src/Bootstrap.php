@@ -1,13 +1,13 @@
 <?php
 namespace CentralBooking;
 
-use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Admin\TestPage;
+use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Admin\AdminRouter;
 use CentralBooking\Client\TicketViewer;
 use CentralBooking\GUI\CompositeComponent;
 use CentralBooking\Preorder\PreorderDashboard;
 use CentralBooking\Profile\ProfileDashboard;
-use CentralBooking\REST\EndpointsPDF;
 use CentralBooking\REST\EndpointsPreorder;
 use CentralBooking\REST\EndpointsRoosevelt;
 use DateTime;
@@ -45,7 +45,6 @@ final class Bootstrap
     private function init_rest()
     {
         add_action('rest_api_init', function () {
-            (new EndpointsPDF())->init_endpoints();
             (new EndpointsPreorder())->init_endpoints();
             (new EndpointsRoosevelt())->init_endpoints();
         });
@@ -66,16 +65,12 @@ final class Bootstrap
 
     private function init_admin_shortcuts()
     {
+        add_shortcode('git_profile', fn() => (new ProfileDashboard)->compact());
         add_shortcode('git_ticket_preview', function () {
             wp_enqueue_style('bootstrap-css', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
             wp_enqueue_script('bootstrap-js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', ['jquery'], null, true);
             return (new TicketViewer($_GET['data'] ?? -1))->compact();
         });
-
-        add_shortcode('git_profile', fn() =>
-            git_user_logged_in() ?
-            (new ProfileDashboard())->compact() :
-            wp_login_form(['echo' => false]));
 
         add_shortcode('git_interactive_map', function ($atts) {
             $attributes = shortcode_atts([
@@ -95,18 +90,13 @@ final class Bootstrap
             return $component->compact();
         });
 
-        add_shortcode('git_preorder', function () {
-            wp_enqueue_style('bootstrap-icon', 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css');
-            wp_enqueue_style('bootstrap-css', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
-            wp_enqueue_script('bootstrap-js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', ['jquery'], null, true);
-            return (new PreorderDashboard())->compact();
-        });
+        add_shortcode('git_preorder', fn() => (new PreorderDashboard)->compact());
     }
 
     private function init_admin_menu()
     {
-        add_role(UserConstants::OPERATOR->value, 'Operador', ['read' => true]);
-        add_role(UserConstants::MARKETER->value, 'Comercializador', ['read' => true]);
+        add_role(UserRole::OPERATOR->slug(), 'Operador', ['read' => true]);
+        add_role(UserRole::MARKETER->slug(), 'Comercializador', ['read' => true]);
         add_action('admin_menu', function () {
             wp_enqueue_style(
                 'icons-bootstrap',
@@ -136,7 +126,7 @@ final class Bootstrap
                             $_GET['action'] ?? null,
                         );
                         ?>
-                    <div class="notice notice-info" style="padding:16px; margin-bottom:16px;">
+                    <div class="notice notice-info is-dismissible" style="padding:16px; margin-bottom:16px;">
                         <h2 style="margin-top:0;">Central Reservas - Versión del Plugin</h2>
                         <p>
                             <strong>Versión actual:</strong> 1.0
@@ -264,6 +254,16 @@ final class Bootstrap
                             AdminRouter::PAGE_LOGS,
                             $_GET['action'] ?? null,
                         );
+                    }
+                );
+                add_submenu_page(
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
+                    'Campo de pruebas',
+                    'Campo de pruebas',
+                    'manage_options',
+                    'test_field',
+                    function () {
+                        (new TestPage)->render();
                     }
                 );
             }

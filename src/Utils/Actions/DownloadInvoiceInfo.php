@@ -7,6 +7,17 @@ use WP_Post;
 
 final class DownloadInvoiceInfo
 {
+    public const COLUMNS = [
+        'ticket_num' => 'Número de Ticket',
+        'name' => 'Nombre del cliente',
+        'order_num' => 'Número de Pedido',
+        'purchase_date' => 'Fecha de Compra',
+        'coupon_code' => 'Código de Cupon',
+        'ticket_status' => 'Estado del ticket',
+        'total_amount' => 'Total',
+        'passengers' => 'Pasajeros',
+    ];
+
     public function download_csv(
         Operator $operator,
         string $date_start,
@@ -65,21 +76,10 @@ final class DownloadInvoiceInfo
 
     private function get_columns_name(array $columns): array
     {
-        $all_columns = [
-            'ticket_num' => 'Número de Ticket',
-            'name' => 'Nombre del cliente',
-            'order_num' => 'Número de Pedido',
-            'purchase_date' => 'Fecha de Compra',
-            'coupon_code' => 'Código de Cupon',
-            'ticket_status' => 'Estado del ticket',
-            'total_amount' => 'Total',
-            'passengers' => 'Pasajeros',
-        ];
-
         $selected_columns = [];
         foreach ($columns as $column_key) {
-            if (isset($all_columns[$column_key])) {
-                $selected_columns[] = $all_columns[$column_key];
+            if (isset(self::COLUMNS[$column_key])) {
+                $selected_columns[] = self::COLUMNS[$column_key];
             }
         }
 

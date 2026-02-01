@@ -1,7 +1,7 @@
 <?php
 namespace CentralBooking\Implementation\Document;
 
-use CentralBooking\Data\Passenger;
+use CentralBooking\Data\Date;
 use CentralBooking\Data\Route;
 use CentralBooking\Data\Transport;
 use CentralBooking\PDF\DocumentInterface;
@@ -12,21 +12,15 @@ final class DocumentTrip implements DocumentInterface
 {
     private Route $route;
     private Transport $transport;
-    /**
-     * @var array<Passenger> $passenger
-     */
-    private array $passengers;
-    private string $date_trip;
+    private Date $date_trip;
 
     public function __construct(
         Route $route,
         Transport $transport,
-        array $passengers,
-        string $date_trip
+        Date $date_trip
     ) {
         $this->route = $route;
         $this->transport = $transport;
-        $this->passengers = $passengers;
         $this->date_trip = $date_trip;
     }
 
@@ -76,6 +70,13 @@ final class DocumentTrip implements DocumentInterface
 
     public function getBodyHtml(): string
     {
+        $passengers = git_passengers(
+            [
+                'date_trip' => $this->date_trip->format('Y-m-d'),
+                'id_route' => $this->route->id,
+                'id_transport' => $this->transport->id,
+            ]
+        );
         ob_start();
         ?>
         <table>
@@ -92,11 +93,11 @@ final class DocumentTrip implements DocumentInterface
             <tbody>
                 <tr>
                     <td>Fecha:</td>
-                    <td><?= git_date_format($this->date_trip) ?></td>
+                    <td><?= git_date_format($this->date_trip->format()) ?></td>
                     <td>Puerto de zarpe:</td>
                     <td><?= $this->route->getOrigin()->name ?></td>
                     <td>Hora estimada de zarpe:</td>
-                    <td><?= git_time_format($this->route->getDepartureTime()->format()) ?></td>
+                    <td><?= $this->route->getDepartureTime()->pretty() ?></td>
                     <td>Nombre:</td>
                     <td><?= $this->transport->nicename; ?></td>
                     <td>Ap. tripulantes:</td>
@@ -108,7 +109,7 @@ final class DocumentTrip implements DocumentInterface
                     <td>Puerto de arribo:</td>
                     <td><?= $this->route->getDestiny()->name ?></td>
                     <td>Hora estimada de arribo:</td>
-                    <td><?= git_time_format($this->route->getArrivalTime()->format()) ?></td>
+                    <td><?= $this->route->getArrivalTime()->pretty() ?></td>
                     <td>Matrícula:</td>
                     <td><?= $this->transport->code; ?></td>
                     <td>Cap. pasajeros:</td>
@@ -184,7 +185,7 @@ final class DocumentTrip implements DocumentInterface
             <tbody>
                 <?php
                 $index = 1;
-                foreach ($this->passengers as $passenger):
+                foreach ($passengers as $passenger):
                     ?>
                     <tr>
                         <td></td>

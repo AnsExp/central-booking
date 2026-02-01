@@ -1,6 +1,8 @@
 <?php
 namespace CentralBooking\Admin\Setting;
 
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormWebhook;
 use CentralBooking\GUI\DisplayerInterface;
 use CentralBooking\Webhook\WebhookManager;
 
@@ -29,16 +31,12 @@ final class SettingsWebhooks implements DisplayerInterface
                         ?>
                         <tr>
                             <td>
-                                <span><?= esc_html($webhook->name) ?></span>
-                                <div class="row-actions visible">
-                                    <span class="edit">
-                                        ID: <?= $webhook->id ?>
-                                    </span>
-                                    <span> | </span>
-                                    <span class="edit">
-                                        <a href="<?= add_query_arg(['action' => 'edit', 'id' => $webhook->id]) ?>">Editar</a>
-                                    </span>
-                                </div>
+                                <strong>
+                                    <a
+                                        href="<?= esc_url(AdminRouter::get_url_for_class(FormWebhook::class, ['id' => $webhook->id])) ?>">
+                                        <?= esc_html($webhook->name) ?>
+                                    </a>
+                                </strong>
                             </td>
                             <td><?= esc_html($webhook->status->label()) ?></td>
                             <td><?= esc_html($webhook->topic->label()) ?></td>

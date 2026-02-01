@@ -11,18 +11,18 @@ final class TablePassengersLog implements DisplayerInterface
     public function render()
     {
         $logs = LogService::get_logs_with_pagination(
-            source: LogSource::PASSENGER->label(),
+            source: LogSource::PASSENGER->slug(),
             id_source: $_GET['id'] ?? 0,
             page: $_GET['page_number'] ?? 1,
             per_page: $_GET['page_size'] ?? 10
         );
         $pagination = new PaginationComponent();
-        $pagination->set_data(
+        $pagination->setData(
             $logs['pagination']['total_items'],
             $logs['pagination']['current_page'],
             $logs['pagination']['total_pages'],
         );
-        $pagination->set_links(
+        $pagination->setLinks(
             link_first: add_query_arg(['page_number' => 1, 'page_size' => $logs['pagination']['per_page']]),
             link_prev: add_query_arg(['page_number' => $logs['pagination']['current_page'] - 1, 'page_size' => $logs['pagination']['per_page']]),
             link_next: add_query_arg(['page_number' => $logs['pagination']['current_page'] + 1, 'page_size' => $logs['pagination']['per_page']]),

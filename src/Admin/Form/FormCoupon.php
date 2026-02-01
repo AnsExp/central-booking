@@ -1,37 +1,40 @@
 <?php
 namespace CentralBooking\Admin\Form;
 
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\View\TableCoupons;
 use CentralBooking\GUI\DisplayerInterface;
-use CentralBooking\GUI\InputComponent;
-use CentralBooking\Implementation\GUI\CouponSelect;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class FormCoupon implements DisplayerInterface
 {
     public function render()
     {
-        $id = (int) ($_GET['id'] ?? '0');
-        $coupon_input = (new CouponSelect('coupon'))->create();
-        $logo_sale_input = new InputComponent('brand_media', 'text');
-        $coupon_input->setRequired(true);
-        $logo_sale_input->setRequired(true);
-        $coupon = git_coupon_by_id($id);
-        if ($coupon) {
-            $coupon_input->setValue($id);
-            $logo_sale_input->setValue(git_get_url_logo_by_coupon($coupon));
-        }
-        ob_start();
+        $coupon = $this->loadData();
+
+        $logo_sale_input = git_input_field([
+            'name' => 'brand_media',
+            'type' => 'url',
+            'value' => git_recover_url_brand_media_from_coupon($coupon),
+            'required' => true,
+        ]);
+
+        $action = add_query_arg(
+            ['action' => 'git_edit_coupon',],
+            admin_url('admin-ajax.php')
+        );
+
+        $this->showMessage();
+
         ?>
-        <form id="form-location" method="post" action="<?= esc_url(admin_url('admin-ajax.php?action=git_edit_coupon')) ?>">
+        <form method="post" action="<?= esc_url($action) ?>">
+            <?php git_nonce_field(); ?>
+            <?php git_referer_field(); ?>
+            <input type="hidden" name="id" value="<?= esc_attr($coupon->ID) ?>">
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tbody>
-                    <tr class="form-field">
-                        <th scope="row">
-                            <?= $coupon_input->getLabel('Comercializador')->compact() ?>
-                        </th>
-                        <td>
-                            <?= $coupon_input->compact() ?>
-                        </td>
-                    </tr>
                     <tr class="form-field">
                         <th scope="row">
                             <?= $logo_sale_input->getLabel('Logo de la venta')->compact() ?>
@@ -45,6 +48,32 @@ final class FormCoupon implements DisplayerInterface
             <button type="submit" class="button button-primary">Guardar</button>
         </form>
         <?php
-        echo ob_get_clean();
+    }
+
+    public function loadData()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
+        $coupon = git_coupon_by_id($id);
+        if ($coupon === null) {
+            $redirect = AdminRouter::get_url_for_class(TableCoupons::class);
+            wp_safe_redirect($redirect);
+            exit;
+        }
+        return $coupon;
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal)->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

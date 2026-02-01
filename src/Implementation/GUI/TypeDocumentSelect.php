@@ -1,10 +1,7 @@
 <?php
 namespace CentralBooking\Implementation\GUI;
 
-use CentralBooking\GUI\MultipleSelectComponent;
-use CentralBooking\GUI\SelectComponent;
-
-class TypeDocumentSelect
+final class TypeDocumentSelect
 {
     private static array $types;
 
@@ -14,9 +11,7 @@ class TypeDocumentSelect
 
     public function create(bool $multiple = false)
     {
-        $selectComponent = $multiple
-            ? new MultipleSelectComponent($this->name)
-            : new SelectComponent($this->name);
+        $selectComponent = $multiple ? git_multiselect_field(['name' => $this->name]) : git_select_field(['name' => $this->name]);
 
         $selectComponent->addOption('Seleccione...', '');
 
@@ -33,17 +28,17 @@ class TypeDocumentSelect
             return self::$types;
         }
 
-        $jsonFilePath = CENTRAL_BOOKING_DIR . '/assets/data/documents.json';
+        $jsonFilePath = CENTRAL_BOOKING_DIR . 'assets/data/documents.json';
         $jsonString = file_get_contents($jsonFilePath);
 
         if ($jsonString === false) {
-            die('Error: No se pudo leer el archivo JSON.');
+            return [];
         }
 
         $data = json_decode($jsonString, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            die('Error al decodificar el JSON: ' . json_last_error_msg());
+            return [];
         }
 
         self::$types = $data;

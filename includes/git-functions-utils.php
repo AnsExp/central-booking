@@ -1,33 +1,234 @@
 <?php
 
-use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Admin\Setting\SettingsKeys;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Data\Date;
 
-function git_get_secret_key()
+function git_date_trip_field(string $name = 'date_trip')
 {
-    return git_get_setting('secret_key', 'default_secret_key');
+    $input = git_input_field(['name' => $name, 'type' => 'date']);
+    $date_min = git_date_trip_min();
+    $input->attributes->set('min', $date_min->format('Y-m-d'));
+    return $input;
 }
 
-function git_set_secret_key(string $key)
+function git_file_field(string $name = 'file')
 {
-    return git_set_setting('secret_key', $key);
+    $input = git_input_field(['name' => $name, 'type' => 'file']);
+    $input->attributes->set(
+        'accept',
+        join(
+            ',',
+            git_get_setting(SettingsKeys::GENERAL_FILE_EXTENSION, [])
+        )
+    );
+    return $input;
 }
 
-function git_set_days_without_sale(int $days_without_sale)
+function git_location_select_field(string $name = 'file', bool $multiple = false)
 {
-    git_set_setting('days_without_sale', $days_without_sale);
-    return true;
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    foreach (git_locations(['order_by' => 'name']) as $location) {
+        $selectComponent->addOption(
+            $location->name,
+            $location->id
+        );
+    }
+    return $selectComponent;
 }
 
-function git_get_days_without_sale()
+function git_operator_select_field(string $name = 'operator', bool $multiple = false)
 {
-    return git_get_setting('days_without_sale', 0);
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    foreach (git_operators() as $operator) {
+        $selectComponent->addOption(
+            $operator->getUser()->user_login,
+            $operator->getUser()->ID
+        );
+    }
+
+    return $selectComponent;
+}
+
+function git_route_select_field(string $name = 'route', bool $multiple = false)
+{
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    foreach (git_routes(['order_by' => 'name_origin']) as $route) {
+        $selectComponent->addOption(
+            "{$route->getOrigin()->name} » {$route->getDestiny()->name} | {$route->getDepartureTime()->format()}",
+            $route->id
+        );
+    }
+
+    return $selectComponent;
+}
+
+function git_transport_select_field(string $name = 'transport', bool $multiple = false)
+{
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    $args = ['order_by' => 'nicename'];
+
+    if (git_current_user_has_role(UserRole::OPERATOR)) {
+        $current_user = wp_get_current_user();
+        $args['operator_user_id'] = $current_user->ID;
+    }
+
+    foreach (git_transports($args) as $transport) {
+        $selectComponent->addOption(
+            $transport->nicename,
+            $transport->id
+        );
+    }
+
+    return $selectComponent;
+}
+
+function git_service_select_field(string $name = 'service', bool $multiple = false)
+{
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    $args = ['order_by' => 'name'];
+
+    foreach (git_services($args) as $service) {
+        $selectComponent->addOption(
+            $service->name,
+            $service->id
+        );
+    }
+
+    return $selectComponent;
+}
+
+function git_ticket_status_select_field(string $name = 'status', bool $multiple = false)
+{
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption(
+        'Seleccione...',
+        ''
+    );
+
+    $valuesToSkip = [TicketStatus::NONE, TicketStatus::PERORDER];
+
+    foreach (TicketStatus::cases() as $status) {
+        if (in_array($status, $valuesToSkip, true)) {
+            continue;
+        }
+
+        $selectComponent->addOption(
+            $status->label(),
+            $status->slug()
+        );
+    }
+
+    return $selectComponent;
+}
+
+function git_country_select_field(string $name = 'country', bool $multiple = false)
+{
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    if (!defined('GIT_COUNTRIES')) {
+        $jsonFilePath = CENTRAL_BOOKING_DIR . 'assets/data/countries.json';
+        $jsonString = file_get_contents($jsonFilePath);
+        if ($jsonString === false) {
+            define('GIT_COUNTRIES', []);
+        } else {
+            $countries = json_decode($jsonString, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                define('GIT_COUNTRIES', []);
+            } else {
+                define('GIT_COUNTRIES', $countries);
+            }
+        }
+    }
+
+    foreach (GIT_COUNTRIES as $country) {
+        $selectComponent->addOption($country, $country);
+    }
+
+    return $selectComponent;
+}
+
+function git_get_profile_page_url()
+{
+    $profile_page_id = git_get_setting(SettingsKeys::GENERAL_PROFILE_PAGE);
+
+    if ($profile_page_id === null) {
+        return false;
+    }
+
+    $permalink = get_permalink((int) $profile_page_id);
+
+    if ($permalink === false) {
+        return false;
+    }
+
+    return $permalink;
+}
+
+function git_nonce_field(string $name = 'git_nonce', bool $display = true)
+{
+    $name = esc_attr($name);
+    $nonce_field = '<input type="hidden" name="' . $name . '" value="' . git_create_nonce() . '" />';
+    if ($display) {
+        echo $nonce_field;
+    }
+    return $nonce_field;
+}
+
+function git_referer_field(string $name = 'git_referer', bool $display = true)
+{
+    $request_url = remove_query_arg('_wp_http_referer');
+    $referer_field = '<input type="hidden" name="' . $name . '" value="' . esc_url($request_url) . '" />';
+    if ($display) {
+        echo $referer_field;
+    }
+    return $referer_field;
+}
+
+function git_create_nonce()
+{
+    return wp_create_nonce(git_get_secret_key());
+}
+
+function git_api_key()
+{
+    $key = 'api_key_git_' . git_get_secret_key();
+    return substr(hash('sha256', $key), 0, 32);
+}
+
+function git_check_api_key(string $api_key)
+{
+    return git_api_key() === $api_key;
+}
+
+function git_verify_nonce(string $nonce)
+{
+    return wp_verify_nonce($nonce, git_get_secret_key());
 }
 
 function git_date_trip_min()
 {
-    $offset = git_get_days_without_sale();
-    $min_date = new Date;
+    $offset = git_get_setting(SettingsKeys::FORM_DAYS_WITHOUT_SALE, 0);
+    $min_date = git_date_create();
     if ($offset > 0) {
         $min_date->addDays($offset);
     }
@@ -48,29 +249,6 @@ function git_date_create(string $Ymd = 'today')
     return new Date($Ymd);
 }
 
-function git_sanitize_html_content($content)
-{
-    $allowed_html = wp_kses_allowed_html('post');
-
-    $allowed_html['img'] = [
-        'src' => true,
-        'alt' => true,
-        'class' => true,
-        'id' => true,
-        'width' => true,
-        'height' => true,
-        'style' => true,
-    ];
-
-    $allowed_html['div'] = [
-        'class' => true,
-        'id' => true,
-        'style' => true,
-    ];
-
-    return wp_kses($content, $allowed_html);
-}
-
 /**
  * Crear QR code para tickets
  */
@@ -85,34 +263,24 @@ function git_create_code_qr(mixed $data, int $size = 350)
     return "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&data={$data_serialized}";
 }
 
-function git_get_ticket_viewer_url($data, int $size = 350)
+function git_get_ticket_viewer_page()
 {
-    $ticket_viewer_data = git_get_setting('ticket_viewer');
-
+    $ticket_viewer_data = git_get_setting(SettingsKeys::TICKET_VIEWER);
     if ($ticket_viewer_data === null) {
-        return '#';
-    }
-
-    $permalink = get_permalink($ticket_viewer_data['page_viewer']);
-
-    if ($permalink === false) {
         return null;
     }
-
-    $url = add_query_arg('data', git_serialize($data), $permalink);
-
-    return git_create_code_qr(urlencode($url), $size);
+    return get_permalink((int) $ticket_viewer_data);
 }
 
 function git_get_ticket_viewer_qr_url($data)
 {
-    $ticket_viewer_data = git_get_setting('ticket_viewer');
+    $ticket_viewer_data = git_get_setting(SettingsKeys::TICKET_VIEWER);
 
     if ($ticket_viewer_data === null) {
         return '#';
     }
 
-    $permalink = get_permalink($ticket_viewer_data['page_viewer']);
+    $permalink = get_permalink($ticket_viewer_data);
 
     if ($permalink === false) {
         return null;
@@ -120,15 +288,6 @@ function git_get_ticket_viewer_qr_url($data)
 
     $url = add_query_arg('data', git_serialize($data), $permalink);
 
-    return $url;
-}
-
-function git_get_url_logo_by_coupon(WP_Post $coupon)
-{
-    $url = get_post_meta($coupon->ID, 'logo_sale', true);
-    if ($url === '') {
-        return CENTRAL_BOOKING_URL . 'assets/img/logo-placeholder.png';
-    }
     return $url;
 }
 
@@ -143,12 +302,6 @@ function git_currency_format($amount, bool $is_cent = true)
 function git_time_format(string $time)
 {
     return date_format(date_create($time), 'H:i a');
-}
-
-function git_duration_format(string $time)
-{
-    list($hours, $minutes) = explode(":", $time);
-    return sprintf("%02dh%02d", $hours, $minutes);
 }
 
 function git_date_format(string $date, bool $short = false)
@@ -249,63 +402,27 @@ function git_user_logged_in()
 }
 
 /**
- * @param UserConstants|string $role Roles pertinentes a la aplicación: 'operator', 'administrator', 'customer'.
+ * @param UserRole|UserRole[] $role
  * @return bool
  */
-function git_current_user_has_role(UserConstants|string $role)
+function git_current_user_has_role($role)
 {
-    if (!is_user_logged_in()) {
+    if (is_user_logged_in() === false) {
         return false;
     }
-
     $user = wp_get_current_user();
-    return in_array($role instanceof UserConstants ? $role->value : $role, $user->roles, true);
-}
-
-function git_role_user()
-{
-    if (!is_user_logged_in()) {
-        return null;
-    }
-
-    $user = wp_get_current_user();
-    return $user->roles[0] ?? null;
-}
-
-function sanitize_operator_file_size($input): int|false
-{
-    $input = trim($input);
-
-    if (empty($input)) {
-        return false;
-    }
-
-    $size = filter_var($input, FILTER_VALIDATE_INT, [
-        'options' => [
-            'min_range' => 1,
-            'max_range' => 1024
-        ]
-    ]);
-
-    if ($size === false) {
-        $float_size = filter_var($input, FILTER_VALIDATE_FLOAT, [
-            'options' => [
-                'min_range' => 0.1,
-                'max_range' => 1024.0
-            ]
-        ]);
-
-        if ($float_size !== false) {
-            return (int) ceil($float_size);
+    if (is_array($role)) {
+        foreach ($role as $r) {
+            if (in_array($r->slug(), $user->roles, true)) {
+                return true;
+            }
         }
-
         return false;
     }
-
-    return $size;
+    return in_array($role->slug(), $user->roles, true);
 }
 
-function sanitize_operator_file_extensions($input): array|false
+function git_sanitize_file_extensions($input): array|false
 {
     $input = trim($input);
 
@@ -335,47 +452,7 @@ function sanitize_operator_file_extensions($input): array|false
 
         $extension = strtolower($extension);
 
-        $allowed_extensions = [
-            '.jpg',
-            '.jpeg',
-            '.png',
-            '.gif',
-            '.webp',
-            '.svg',
-            '.bmp',
-            '.ico',
-            '.tiff',
-            '.pdf',
-            '.doc',
-            '.docx',
-            '.xls',
-            '.xlsx',
-            '.ppt',
-            '.pptx',
-            '.txt',
-            '.rtf',
-            '.zip',
-            '.rar',
-            '.7z',
-            '.tar',
-            '.gz',
-            '.mp4',
-            '.avi',
-            '.mov',
-            '.wmv',
-            '.flv',
-            '.webm',
-            '.mp3',
-            '.wav',
-            '.ogg',
-            '.m4a',
-            '.flac',
-            '.css',
-            '.js',
-            '.html',
-            '.xml',
-            '.json'
-        ];
+        $allowed_extensions = git_get_file_allowed_extensions();
 
         if (in_array($extension, $allowed_extensions)) {
             $sanitized_extensions[] = $extension;
@@ -385,4 +462,49 @@ function sanitize_operator_file_extensions($input): array|false
     $sanitized_extensions = array_values(array_unique($sanitized_extensions));
 
     return $sanitized_extensions;
+}
+
+function git_get_file_allowed_extensions()
+{
+    return [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.webp',
+        '.svg',
+        '.bmp',
+        '.ico',
+        '.tiff',
+        '.pdf',
+        '.doc',
+        '.docx',
+        '.xls',
+        '.xlsx',
+        '.ppt',
+        '.pptx',
+        '.txt',
+        '.rtf',
+        '.zip',
+        '.rar',
+        '.7z',
+        '.tar',
+        '.gz',
+        '.mp4',
+        '.avi',
+        '.mov',
+        '.wmv',
+        '.flv',
+        '.webm',
+        '.mp3',
+        '.wav',
+        '.ogg',
+        '.m4a',
+        '.flac',
+        '.css',
+        '.js',
+        '.html',
+        '.xml',
+        '.json'
+    ];
 }

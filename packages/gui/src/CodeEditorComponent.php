@@ -13,6 +13,11 @@ class CodeEditorComponent extends TextareaComponent
         $this->id = 'code-editor-' . uniqid();
     }
 
+    // public function setValue(mixed $value)
+    // {
+    //     parent::setValue(stripslashes($value));
+    // }
+
     public function set_language(string $language): self
     {
         $this->language = $language;

@@ -1,8 +1,7 @@
 <?php
 namespace CentralBooking\Data\Repository;
 
-use CentralBooking\Data\Constants\UserConstants;
-use CentralBooking\Data\MetaManager;
+use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Data\Operator;
 use WP_Post;
 use WP_User;
@@ -14,34 +13,6 @@ class OperatorRepository
     {
         $operator = new Operator();
         $operator->setUser($user);
-        $phone = MetaManager::getMeta(
-            MetaManager::OPERATOR,
-            $user->ID,
-            'phone_number',
-        );
-        $brand_media = MetaManager::getMeta(
-            MetaManager::OPERATOR,
-            $user->ID,
-            'brand_media',
-        );
-        $business_plan = [
-            'limit' => MetaManager::getMapMeta(
-                MetaManager::OPERATOR,
-                $user->ID,
-                'business_plan.limit',
-            ),
-            'counter' => MetaManager::getMapMeta(
-                MetaManager::OPERATOR,
-                $user->ID,
-                'business_plan.counter',
-            ),
-        ];
-        $operator->setPhone($phone ?? '');
-        $operator->setBrandMedia($brand_media ?? '');
-        $operator->setBusinessPlan(
-            $business_plan['limit'] ?? 0,
-            $business_plan['counter'] ?? 0
-        );
         return $operator;
     }
 
@@ -66,7 +37,7 @@ class OperatorRepository
     public function findAll()
     {
         $user_query = new WP_User_Query([
-            'role' => UserConstants::OPERATOR->value,
+            'role' => UserRole::OPERATOR->slug(),
             'orderby' => 'ID',
             'order' => 'ASC',
             'fields' => 'all_with_meta',
@@ -76,23 +47,5 @@ class OperatorRepository
             $operators[] = $this->userToOperator($user);
         }
         return $operators;
-    }
-
-    public function save(Operator $operator)
-    {
-        wp_update_user($operator->getUser());
-        MetaManager::setMetadata(
-            MetaManager::OPERATOR,
-            $operator->getUser()->ID,
-            [
-                'phone_number' => $operator->getPhone(),
-                'brand_media' => $operator->brand_media,
-                'business_plan' => [
-                    'limit' => $operator->getBusinessPlan()['limit'],
-                    'counter' => $operator->getBusinessPlan()['counter'],
-                ],
-            ]
-        );
-        return $operator;
     }
 }

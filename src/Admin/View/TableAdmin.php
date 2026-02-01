@@ -26,12 +26,12 @@ abstract class TableAdmin implements DisplayerInterface
     private function display_pagination_controls()
     {
         $pagination = new PaginationComponent();
-        $pagination->set_data(
+        $pagination->setData(
             $this->get_result_set()->getTotalItems(),
             $this->get_result_set()->getCurrentPage(),
             $this->get_result_set()->getTotalPages(),
         );
-        $pagination->set_links(
+        $pagination->setLinks(
             $this->get_pagination_links()['first'],
             $this->get_pagination_links()['last'],
             $this->get_pagination_links()['prev'],

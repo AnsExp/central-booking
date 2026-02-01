@@ -50,9 +50,14 @@ class SelectComponent extends FormControlComponent
         $this->options[] = $option;
     }
 
-    public function getOptions()
+    public function removeOption(string|int $value = '')
     {
-        return $this->options;
+        foreach ($this->options as $index => $option) {
+            if ($option->getText() == $value) {
+                unset($this->options[$index]);
+                break;
+            }
+        }
     }
 
     public function compact()

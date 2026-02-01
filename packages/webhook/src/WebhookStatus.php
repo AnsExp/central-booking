@@ -16,4 +16,24 @@ enum WebhookStatus: string
             default => 'Estado desconocido',
         };
     }
+
+    public function slug(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'active',
+            self::IN_PAUSE => 'in_pause',
+            self::DISABLED => 'disabled',
+            default => $this->name,
+        };
+    }
+
+    public static function fromSlug(string $slug)
+    {
+        return match ($slug) {
+            'active' => self::ACTIVE,
+            'in_pause' => self::IN_PAUSE,
+            'disabled' => self::DISABLED,
+            default => null,
+        };
+    }
 }

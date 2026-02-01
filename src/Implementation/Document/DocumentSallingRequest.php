@@ -1,6 +1,7 @@
 <?php
 namespace CentralBooking\Implementation\Document;
 
+use CentralBooking\Data\Date;
 use CentralBooking\Data\Route;
 use CentralBooking\Data\Transport;
 use CentralBooking\PDF\DocumentInterface;
@@ -9,18 +10,11 @@ use CentralBooking\PDF\DocumentPageSize;
 
 final class DocumentSallingRequest implements DocumentInterface
 {
-    private Route $route;
-    private Transport $transport;
-    private string $date_trip;
-
     public function __construct(
-        Route $route,
-        Transport $transport,
-        string $date_trip
+        private readonly Route $route,
+        private readonly Transport $transport,
+        private readonly Date $date_trip
     ) {
-        $this->route = $route;
-        $this->transport = $transport;
-        $this->date_trip = $date_trip;
     }
 
     public function getPageSize(): DocumentPageSize
@@ -144,13 +138,13 @@ final class DocumentSallingRequest implements DocumentInterface
                         <td><b>Fecha y hora de despacho:</b></td>
                         <td><?= git_datetime_format(date('Y-m-d H:i:s')) ?></td>
                         <td><b>Fecha y hora de zarpe:</b></td>
-                        <td><?= git_date_format($this->date_trip) . ' ' . $this->route->getDepartureTime()->format() ?></td>
+                        <td><?= $this->date_trip->pretty() . ' ' . $this->route->getDepartureTime()->pretty() ?></td>
                     </tr>
                     <tr>
                         <td></td>
                         <td></td>
                         <td><b>Fecha y hora de estimada de arribo:</b></td>
-                        <td><?= git_date_format($this->date_trip) . ' ' . git_time_format($this->route->getDepartureTime()->format()) ?>
+                        <td><?= $this->date_trip->pretty() . ' ' . $this->route->getDepartureTime()->pretty() ?>
                         </td>
                     </tr>
                 </tbody>

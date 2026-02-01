@@ -1,7 +1,7 @@
 <?php
 namespace CentralBooking\Data\ORM;
 
-use CentralBooking\Data\Constants\TransportConstants;
+use CentralBooking\Data\Constants\TypeOperation;
 use CentralBooking\Data\Transport;
 
 /**
@@ -15,7 +15,7 @@ final class TransportORM implements ORMInterface
         $transport->id = (int) ($data['id'] ?? 0);
         $transport->code = (string) ($data['code'] ?? '');
         $transport->nicename = (string) ($data['nicename'] ?? '');
-        $transport->type = TransportConstants::from((string) ($data['type'] ?? ''));
+        $transport->type = TypeOperation::fromSlug(($data['type'] ?? '')) ?? TypeOperation::NONE;
         return $transport;
     }
 }

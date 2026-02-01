@@ -24,10 +24,12 @@ form.addEventListener('submit', (e) => {
         return Array.from(inputs).some((input) => input.value === 'double_way' && input.checked);
     };
 
+    const flexible = () => {
+        return form.querySelector('input[name="flexible"]').checked;
+    };
+
     const body = {
-        nonce: form.querySelector('input[name="nonce"]').value,
-        round_trip: roundTrip() ? '1' : '0',
-        flexible: form.querySelector('input[name="flexible"]').checked ? '1' : '0',
+        nonce: form.querySelector('input[name="_gitnonce"]').value,
         product: form.querySelector('input[name="product"]').value,
         pax: {
             kid: window.CentralTickets.formProduct.getPax().kid,
@@ -35,6 +37,8 @@ form.addEventListener('submit', (e) => {
             extra: window.CentralTickets.formProduct.getPax().extra,
             standard: window.CentralTickets.formProduct.getPax().standard
         },
+        flexible: flexible(),
+        round_trip: roundTrip(),
         goes: {
             date_trip: form.querySelector('input[name="date_trip_goes"]').value,
             id_route: window.CentralTickets.formProduct.getRoutes().goes.id,
@@ -45,26 +49,25 @@ form.addEventListener('submit', (e) => {
             id_route: window.CentralTickets.formProduct.getRoutes().returns.id,
             id_transport: window.CentralTickets.formProduct.getTransports().returns.id
         } : { date_trip: '', id_route: 0, id_transport: 0 },
-        passengers: Array.from(document.getElementsByClassName('form_passenger')).map((pane) => ({
-            name: pane.querySelector('input[name="passenger[name]"]').value,
-            birthday: pane.querySelector('input[name="passenger[birthday]"]').value,
-            nationality: pane.querySelector('select[name="passenger[nationality]"]').value,
-            type_document: pane.querySelector('select[name="passenger[type_document]"]').value,
-            data_document: pane.querySelector('input[name="passenger[data_document]"]').value
+        passengers: Array.from(document.getElementsByClassName('form_passenger')).map((pane, index) => ({
+            name: pane.querySelector('input[name="passengers[' + index + '][name]"]').value,
+            birthday: pane.querySelector('input[name="passengers[' + index + '][birthday]"]').value,
+            nationality: pane.querySelector('select[name="passengers[' + index + '][nationality]"]').value,
+            type_document: pane.querySelector('select[name="passengers[' + index + '][type_document]"]').value,
+            data_document: pane.querySelector('input[name="passengers[' + index + '][data_document]"]').value
         }))
     };
 
     form.innerHTML = `
         <h3>Estamos procesando su solicitud...
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+        <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+        </div>
         </h3>
         `;
 
-    form.appendChild(createInputHidden('nonce', body.nonce));
-    form.appendChild(createInputHidden('flexible', body.flexible));
-    form.appendChild(createInputHidden('round_trip', body.round_trip));
+    form.appendChild(createInputHidden('_gitnonce', body.nonce));
+
     form.appendChild(createInputHidden('product', body.product));
     form.appendChild(createInputHidden('pax[kid]', body.pax.kid));
     form.appendChild(createInputHidden('pax[rpm]', body.pax.rpm));
@@ -83,6 +86,8 @@ form.addEventListener('submit', (e) => {
         form.appendChild(createInputHidden(`passengers[${index}][type_document]`, passenger.type_document));
         form.appendChild(createInputHidden(`passengers[${index}][data_document]`, passenger.data_document));
     });
+    if (body.round_trip) form.appendChild(createInputHidden('round_trip', 'on'));
+    if (body.flexible) form.appendChild(createInputHidden('flexible', 'on'));
 });
 
 window.CentralTickets.formProduct = {

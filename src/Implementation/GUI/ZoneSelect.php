@@ -1,10 +1,7 @@
 <?php
 namespace CentralBooking\Implementation\GUI;
 
-use CentralBooking\Data\Services\ZoneService;
 use CentralBooking\Data\Zone;
-use CentralBooking\GUI\MultipleSelectComponent;
-use CentralBooking\GUI\SelectComponent;
 
 class ZoneSelect
 {
@@ -20,9 +17,7 @@ class ZoneSelect
 
     public function create(bool $multiple = false)
     {
-        $selectComponent = $multiple
-            ? new MultipleSelectComponent($this->name)
-            : new SelectComponent($this->name);
+        $selectComponent = $multiple ? git_multiselect_field(['name' => $this->name]) : git_select_field(['name' => $this->name]);
 
         $selectComponent->addOption('Seleccione...', '');
 

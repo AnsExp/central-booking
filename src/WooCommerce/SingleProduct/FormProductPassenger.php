@@ -1,15 +1,17 @@
 <?php
 namespace CentralBooking\WooCommerce\SingleProduct;
 
-use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputFloatingLabelComponent;
+use CentralBooking\Implementation\GUI\PassengerCombine;
 
-class FormProductPassenger implements ComponentInterface
+class FormProductPassenger implements DisplayerInterface
 {
     public function __construct()
     {
     }
 
-    public function compact()
+    public function render()
     {
         $id_prev_button = uniqid();
         $id_submit_button = uniqid();
@@ -28,9 +30,11 @@ class FormProductPassenger implements ComponentInterface
                 'passengersFormContainer' => $id_passengers_form_container,
             ],
         ]);
-        ob_start();
         ?>
         <div id="git-form-product-passengers" style="display: none;">
+            <template id="git_template_passenger_form">
+                <?php $this->formPassenger(); ?>
+            </template>
             <div id="<?= $id_passengers_form_container ?>"></div>
             <div class="mt-2">
                 <button id="<?= $id_prev_button ?>" class="me-2 btn btn-secondary" type="button">Atrás</button>
@@ -38,6 +42,32 @@ class FormProductPassenger implements ComponentInterface
             </div>
         </div>
         <?php
-        return ob_get_clean();
+    }
+
+    private function formPassenger()
+    {
+        $passenger_form = new PassengerCombine();
+        $name_input = $passenger_form->getNameInput("passengers[{{INDEX}}][name]");
+        $birthday_input = $passenger_form->getBirthdayInput("passengers[{{INDEX}}][birthday]");
+        $data_document_input = $passenger_form->getDataDocumentInput("passengers[{{INDEX}}][data_document]");
+        $nationality_select = $passenger_form->getNationalitySelect("passengers[{{INDEX}}][nationality]");
+        $type_document_select = $passenger_form->getTypeDocumentSelect("passengers[{{INDEX}}][type_document]");
+        $floating_name = new InputFloatingLabelComponent($name_input, 'Nombre');
+        $floating_birthday = new InputFloatingLabelComponent($birthday_input, 'Fecha de Nacimiento');
+        $floating_nationality = new InputFloatingLabelComponent($nationality_select, 'Nacionalidad');
+        $floating_data_document = new InputFloatingLabelComponent($data_document_input, 'Número de Documento');
+        $floating_type_document = new InputFloatingLabelComponent($type_document_select, 'Tipo de Documento');
+
+        ?>
+        <div class="form_passenger mb-4">
+            <?php
+            $floating_name->render();
+            $floating_nationality->render();
+            $floating_type_document->render();
+            $floating_data_document->render();
+            $floating_birthday->render();
+            ?>
+        </div>
+        <?php
     }
 }

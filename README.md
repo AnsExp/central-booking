@@ -32,7 +32,7 @@ El plugin tiene una arquitectura modular. Cada modulo controla una parte indepen
 - **`data` (Datos)**: Controla el acceso de datos del sistema y la conección a la base de datos. <small>[Ver documentación](packages/data/README.md)</small>.
 - **`gui` (Interfaz gráfica de usuario)**: Dispone de elementos visuales predefinidos para el su uso en la vista del usuario.
 - **`pdf` (Controlador de archivos pdf)**: Crea documentos en formato .pdf.
-- **`qr` (Creador de códigos QR)**: Crea y renderiza códigos QR con cierto grado de flexibilidad.
+- **`qr` (Creador de códigos QR)**: Crea y renderiza códigos QR con cierto grado de flexibilidad. <small>[Ver documentación](packages/qr/README.md)</small>.
 - **`webhook` (Disparadores de Webhooks)**: Ejecuta webhook según ciertas partes del sistema.
 
 Cada modulo incluye un archivo `functions.php` preparado para externalizar las funciones de los módulos. Es decir, no se recomienda instanciar clases pertenecientes a los módulos, lo que se recomienda es usar funciones preparadas dentro de los archivos functions.
@@ -44,5 +44,5 @@ Por ejemplo, al crear un objeto de tipo `Ticket`:
 $ticket = new Ticket();
 
 // RECOMENDADA
-$ticket = git_create_ticket();
+$ticket = git_ticket_create();
 ```

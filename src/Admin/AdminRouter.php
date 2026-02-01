@@ -7,15 +7,17 @@ use CentralBooking\Admin\Form\FormOperator;
 use CentralBooking\Admin\Form\FormQRCode;
 use CentralBooking\Admin\Form\FormRoute;
 use CentralBooking\Admin\Form\FormService;
+use CentralBooking\Admin\Form\FormTicket;
 use CentralBooking\Admin\Form\FormTransfer;
 use CentralBooking\Admin\Form\FormTransport;
 use CentralBooking\Admin\Form\FormWebhook;
-use CentralBooking\Admin\Setting\SettingsClients;
+use CentralBooking\Admin\Form\FormZone;
+use CentralBooking\Admin\Setting\SettingsBooking;
 use CentralBooking\Admin\Setting\SettingsGeneral;
 use CentralBooking\Admin\Setting\SettingsNotifications;
-use CentralBooking\Admin\Setting\SettingsOperators;
-use CentralBooking\Admin\Setting\SettingsTexts;
-use CentralBooking\Admin\Setting\SettingsTickets;
+use CentralBooking\Admin\Setting\SettingsLabels;
+use CentralBooking\Admin\Setting\SettingsSecretKey;
+use CentralBooking\Admin\Setting\SettingsViewer;
 use CentralBooking\Admin\Setting\SettingsWebhooks;
 use CentralBooking\Admin\View\TableCoupons;
 use CentralBooking\Admin\View\TableLocations;
@@ -27,8 +29,7 @@ use CentralBooking\Admin\View\TableServices;
 use CentralBooking\Admin\View\TableTickets;
 use CentralBooking\Admin\View\TableTicketsLog;
 use CentralBooking\Admin\View\TableTransports;
-use CentralBooking\Admin\View\TableZones;
-use CentralBooking\Admin\Setting\SettingsPreorder;
+use CentralBooking\Admin\Setting\SettingsAPIDoc;
 
 final class AdminRouter
 {
@@ -56,27 +57,22 @@ final class AdminRouter
                 ],
                 'booking' => [
                     'tab_label' => 'Reseva',
-                    'target' => SettingsClients::class,
+                    'target' => SettingsBooking::class,
                     'is_tab' => true,
                 ],
                 'tickets' => [
-                    'tab_label' => 'Tickets',
-                    'target' => SettingsTickets::class,
-                    'is_tab' => true,
-                ],
-                'operators' => [
-                    'tab_label' => 'Operadores',
-                    'target' => SettingsOperators::class,
+                    'tab_label' => 'Visor',
+                    'target' => SettingsViewer::class,
                     'is_tab' => true,
                 ],
                 'labels' => [
                     'tab_label' => 'Etiquetas',
-                    'target' => SettingsTexts::class,
+                    'target' => SettingsLabels::class,
                     'is_tab' => true,
                 ],
-                'preorder' => [
-                    'tab_label' => 'Preorder',
-                    'target' => SettingsPreorder::class,
+                'api_doc' => [
+                    'tab_label' => 'API Doc',
+                    'target' => SettingsAPIDoc::class,
                     'is_tab' => true,
                 ],
                 'webhooks' => [
@@ -99,6 +95,18 @@ final class AdminRouter
                     'tab_label' => 'Editar Webhook',
                     'target' => FormWebhook::class,
                     'is_tab' => false,
+                    'redirects' => [
+                        [
+                            'label' => 'Regresar a la lista',
+                            'to' => SettingsWebhooks::class,
+                        ]
+                    ],
+                ],
+                'secret_key' => [
+                    'tab_label' => 'Clave Secreta',
+                    'target' => SettingsSecretKey::class,
+                    'is_tab' => false,
+                    'redirects' => [],
                 ],
             ],
         ],
@@ -111,12 +119,12 @@ final class AdminRouter
                     'is_tab' => true,
                     'tab_label' => 'Flyer de Comercializador',
                     'target' => TableCoupons::class,
-                    'redirects' => [
-                        [
-                            'label' => 'Asignar Flyer',
-                            'to' => FormCoupon::class,
-                        ]
-                    ],
+                    // 'redirects' => [
+                    //     [
+                    //         'label' => 'Asignar Flyer',
+                    //         'to' => FormCoupon::class,
+                    //     ]
+                    // ],
                 ],
                 'edit_coupon' => [
                     'is_tab' => false,
@@ -165,6 +173,15 @@ final class AdminRouter
             'actions' => [
                 'list' => [
                     'target' => TableTickets::class,
+                ],
+                'edit' => [
+                    'target' => FormTicket::class,
+                    'redirects' => [
+                        [
+                            'label' => 'Volver a la lista',
+                            'to' => TableTickets::class,
+                        ]
+                    ],
                 ],
             ],
         ],
@@ -242,18 +259,20 @@ final class AdminRouter
         ],
         self::PAGE_LOCATIONS => [
             'header' => 'Ubicaciones',
-            'tabpane' => true,
-            'default_action' => 'list_locations',
+            'default_action' => 'list',
             'actions' => [
-                'list_locations' => [
+                'list' => [
                     'tab_label' => 'Ubicaciones',
                     'target' => TableLocations::class,
-                    'is_tab' => true,
                     'redirects' => [
                         [
-                            'label' => 'Añadir nuevo',
+                            'label' => 'Nueva locación',
                             'to' => FormLocation::class,
-                        ]
+                        ],
+                        [
+                            'label' => 'Nueva zona',
+                            'to' => FormZone::class,
+                        ],
                     ],
                 ],
                 'edit_location' => [
@@ -265,23 +284,12 @@ final class AdminRouter
                         ]
                     ],
                 ],
-                'list_zones' => [
-                    'tab_label' => 'Zonas',
-                    'target' => TableZones::class,
-                    'is_tab' => true,
-                    'redirects' => [
-                        [
-                            'label' => 'Añadir nuevo',
-                            'to' => FormZone::class,
-                        ]
-                    ],
-                ],
                 'edit_zone' => [
                     'target' => FormZone::class,
                     'redirects' => [
                         [
                             'label' => 'Regresar a la lista',
-                            'to' => TableZones::class,
+                            'to' => TableLocations::class,
                         ]
                     ],
                 ],

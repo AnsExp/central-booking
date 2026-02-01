@@ -54,14 +54,6 @@ abstract class BaseComponent implements ComponentInterface, DisplayerInterface
         return $output;
     }
 
-    // protected function serializeValue(int|string|bool $value)
-    // {
-    //     if (is_bool($value)) {
-    //         return $value ? 'true' : 'false';
-    //     }
-    //     return (string) $value;
-    // }
-
     public function render()
     {
         echo $this->compact();

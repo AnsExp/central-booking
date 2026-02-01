@@ -14,10 +14,10 @@
 
 namespace CentralBooking\Data;
 
-use CentralBooking\Data\Constants\TransportConstants;
+use CentralBooking\Data\Constants\TypeOperation;
 use CentralBooking\Data\Constants\TransportCustomeFieldConstants;
 use CentralBooking\Data\Repository\LazyLoader;
-use DateTime;
+use CentralBooking\Data\Services\ErrorService;
 
 /**
  * Transport represents a transportation vehicle or vessel in the booking system.
@@ -51,8 +51,8 @@ class Transport
     /** @var string Human-readable name for the transport */
     public string $nicename = '';
 
-    /** @var TransportConstants Type of transportation (marine, land, air, etc.) */
-    public TransportConstants $type = TransportConstants::MARINE;
+    /** @var TypeOperation Type of transportation (marine, land, air, etc.) */
+    public TypeOperation $type = TypeOperation::MARINE;
 
     /** @var array<string, mixed> Internal metadata storage for custom attributes */
     private array $metadata = [];
@@ -65,6 +65,8 @@ class Transport
 
     /** @var Operator The operator/company that manages this transport */
     private Operator $operator;
+    private bool $routesLoaded = false;
+    private bool $servicesLoaded = false;
 
     /**
      * Retrieves all services offered by this transport.
@@ -86,11 +88,9 @@ class Transport
      */
     public function getServices()
     {
-        if ($this->id <= 0) {
-            return [];
-        }
-        if (!isset($this->services)) {
+        if ($this->servicesLoaded === false) {
             $this->services = LazyLoader::loadServicesByTransport($this);
+            $this->servicesLoaded = true;
         }
         return $this->services;
     }
@@ -114,6 +114,7 @@ class Transport
     public function setServices(array $services)
     {
         $this->services = $services;
+        $this->servicesLoaded = true;
     }
 
     /**
@@ -254,6 +255,7 @@ class Transport
     public function setRoutes(array $routes)
     {
         $this->routes = $routes;
+        $this->routesLoaded = true;
     }
 
     /**
@@ -274,11 +276,9 @@ class Transport
      */
     public function getRoutes()
     {
-        if ($this->id <= 0) {
-            return [];
-        }
-        if (!isset($this->routes)) {
+        if ($this->routesLoaded === false) {
             $this->routes = LazyLoader::loadRoutesByTransport($this);
+            $this->routesLoaded = true;
         }
         return $this->routes;
     }
@@ -533,7 +533,7 @@ class Transport
      * @param Date $date_start Start date of maintenance period
      * @param Date $date_end End date of maintenance period
      * 
-     * @return void
+     * @return bool|ErrorService
      * 
      * @since 1.0.0
      * 
@@ -544,10 +544,24 @@ class Transport
      */
     public function setMaintenanceDates(Date $date_start, Date $date_end)
     {
-        $this->metadata['maintenance_dates'] = [
+        if ($date_end->format('Y-m-d') < $date_start->format('Y-m-d')) {
+            return ErrorService::INVALID_DATE_RANGE;
+        }
+        $passengers = git_passengers([
+            'id_transport' => $this->id,
+            'date_trip_from' => $date_start->format('Y-m-d'),
+            'date_trip_to' => $date_end->format('Y-m-d'),
+            'served' => false,
+            'approved' => true,
+        ]);
+        if (count($passengers) > 0) {
+            return ErrorService::PASSENGERS_PENDING_TRIPS;
+        }
+        $this->setMeta('maintenance_dates', [
             'date_start' => $date_start->format('Y-m-d'),
             'date_end' => $date_end->format('Y-m-d')
-        ];
+        ]);
+        return true;
     }
 
     /**
@@ -588,7 +602,7 @@ class Transport
      */
     public function getCapacity(): int
     {
-        return (int) $this->getMeta('capacity');
+        return (int) ($this->getMeta('capacity') ?? 0);
     }
 
     /**
@@ -606,7 +620,7 @@ class Transport
      */
     public function getCaptain(): string
     {
-        return (string) $this->getMeta('captain');
+        return (string) ($this->getMeta('captain') ?? '');
     }
 
     /**
@@ -744,8 +758,30 @@ class Transport
         $this->setMeta('photo_url', $url);
     }
 
+    public function checkAvaility(Route $route, Date $dateTrip, int $passengersCount = 1)
+    {
+        if ($this->takeRoute($route) === false) {
+            return ErrorService::TRANSPORT_DOES_NOT_TAKE_ROUTE;
+        }
+        if ($this->isAvailable($dateTrip) === false) {
+            return ErrorService::TRANSPORT_NOT_AVAILABLE;
+        }
+        $passengers = git_passengers([
+            'id_route' => $route->id,
+            'id_transport' => $this->id,
+            'date_trip' => $dateTrip->format('Y-m-d'),
+            'served' => false,
+            'approved' => true,
+        ]);
+        $capacity = $this->getCapacity();
+        if (count($passengers) + $passengersCount > $capacity) {
+            return false;
+        }
+        return true;
+    }
+
     public function save()
     {
-        git_transport_save($this);
+        return git_transport_save($this) !== false;
     }
 }

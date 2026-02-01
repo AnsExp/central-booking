@@ -112,6 +112,8 @@ class CartItem implements CartItemInterface
     public function getHash()
     {
         $product = [
+            'key' => git_get_secret_key(),
+            'date_created'=> date('Y-m-d H:i:s'),
             'route' => $this->route->id,
             'transport' => $this->transport->id,
             'date_trip' => $this->dateTrip->format(),
@@ -130,6 +132,6 @@ class CartItem implements CartItemInterface
             ),
         ];
 
-        return hash('sha256', git_serialize($product));
+        return hash('sha256', (string) json_encode($product));
     }
 }

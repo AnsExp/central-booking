@@ -5,7 +5,7 @@ class Webhook
 {
     public int $id = 0;
     public string $name = '';
-    public WebhookStatus $status = WebhookStatusConstants::ACTIVE;
+    public WebhookStatus $status = WebhookStatus::ACTIVE;
     public WebhookTopic $topic = WebhookTopic::NONE;
     public string $url_delivery = '';
 
@@ -21,5 +21,10 @@ class Webhook
         ];
         $response = wp_remote_post($this->url_delivery, $args);
         return $response['response']['code'] >= 200 && $response['response']['code'] < 300;
+    }
+
+    public function save()
+    {
+        return WebhookManager::getInstance()->save($this) !== null;
     }
 }

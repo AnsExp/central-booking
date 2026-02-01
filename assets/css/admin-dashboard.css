@@ -40,3 +40,30 @@
     margin: 0 15px;
     text-align: left;
 }
+
+.extensions_preview {
+    padding: 10px;
+    background: #f1f1f1;
+    border-left: 4px solid #0073aa;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.extensions_preview:empty {
+    display: none;
+}
+
+.extension-tag {
+    display: inline-block;
+    background: #0073aa;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin: 2px;
+    font-size: 11px;
+}
+
+.extension-tag.invalid {
+    background: #dc3232;
+}

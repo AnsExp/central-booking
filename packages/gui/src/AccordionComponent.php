@@ -22,7 +22,7 @@ class AccordionComponent extends BaseComponent
         );
     }
 
-    public function add_item($label, ComponentInterface $content, bool $is_open = false)
+    public function addItem($label, ComponentInterface $content, bool $is_open = false)
     {
         $this->items[] = [
             'label' => $label,

@@ -13,7 +13,17 @@ enum PassengerConstants: string
             self::KID => 'Niño',
             self::RPM => 'Movilidad Reducida',
             self::STANDARD => 'Estándar',
-            default => $this->value,
+            default => $this->name,
+        };
+    }
+
+    public function slug()
+    {
+        return match ($this) {
+            self::KID => 'kid',
+            self::RPM => 'rpm',
+            self::STANDARD => 'standard',
+            default => $this->name,
         };
     }
 }

@@ -9,15 +9,45 @@ final class Service
     public string $name = '';
     public string $icon = '';
     public int $price = 0;
-    /**
-     * @var array<Transport>
-     */
-    private array $transports;
+
+    // Campos privados
+
+    private array $metadata = [];
+    private array $transports = [];
+    private bool $transportsLoaded = false;
+
+    public function getMeta(string $key)
+    {
+        if (isset($this->metadata[$key]) === false) {
+            $value = MetaManager::getMeta(
+                MetaManager::LOCATION,
+                $this->id,
+                $key
+            );
+            $this->metadata[$key] = $value;
+        }
+        return $this->metadata[$key];
+    }
+
+    public function setMeta(string $key, mixed $value)
+    {
+        $this->metadata[$key] = $value;
+    }
+
+    public function saveMeta()
+    {
+        MetaManager::setMetadata(
+            MetaManager::LOCATION,
+            $this->id,
+            $this->metadata
+        );
+    }
 
     public function getTransports()
     {
-        if (!isset($this->transports)) {
+        if ($this->transportsLoaded === false) {
             $this->transports = LazyLoader::loadTransportsByService($this);
+            $this->transportsLoaded = true;
         }
         return $this->transports;
     }
@@ -29,5 +59,11 @@ final class Service
     public function setTransports(array $transports)
     {
         $this->transports = $transports;
+        $this->transportsLoaded = true;
+    }
+
+    public function save()
+    {
+        return git_service_save($this) !== null;
     }
 }

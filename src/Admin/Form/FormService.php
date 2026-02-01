@@ -1,93 +1,124 @@
 <?php
 namespace CentralBooking\Admin\Form;
 
-use CentralBooking\Data\Services\ServiceService;
+use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\View\TableServices;
 use CentralBooking\GUI\DisplayerInterface;
 use CentralBooking\GUI\InputComponent;
-use CentralBooking\GUI\MultipleSelectComponent;
-use CentralBooking\Implementation\GUI\TransportSelect;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class FormService implements DisplayerInterface
 {
-    private InputComponent $input_id;
-    private InputComponent $input_name;
-    private InputComponent $input_price;
-    private InputComponent $input_icon;
-    private MultipleSelectComponent $select_transport;
-
-    public function __construct()
-    {
-        $this->input_id = new InputComponent('id', 'hidden');
-        $this->input_icon = new InputComponent('icon', 'text');
-        $this->input_name = new InputComponent('name', 'text');
-        $this->input_price = new InputComponent('price', 'number');
-        $this->select_transport = (new TransportSelect('transport'))->create(true);
-    }
+    public const NONCE_ACTION = 'git_edit_service_action';
 
     public function render()
     {
-        $this->input_name->setRequired(true);
-        $this->input_price->setRequired(true);
-        $this->input_icon->setRequired(true);
-        if ($_GET['id'] ?? -1 > 0) {
-            $repository = new ServiceService();
-            $service = $repository->findById((int) $_GET['id']);
-            if ($service !== null) {
-                $this->input_id->setValue($service->id);
-                $this->input_name->setValue($service->name);
-                $this->input_icon->setValue($service->icon);
-                $this->input_price->setValue($service->price);
-                foreach ($service->getTransports() as $transport) {
-                    $this->select_transport->setValue($transport->id);
-                }
-            }
+        $service = $this->loadData();
+
+        $input_icon = new InputComponent('icon', 'url');
+        $input_name = new InputComponent('name', 'text');
+        $input_price = new InputComponent('price', 'number');
+        $select_transport = git_transport_select_field('transport_ids', true);
+
+        $input_name->setRequired(true);
+        $input_price->setRequired(true);
+        $input_icon->setRequired(true);
+
+        $input_name->setValue($service->name);
+        $input_icon->setValue($service->icon);
+        $input_price->setValue($service->price);
+
+        foreach ($service->getTransports() as $transport) {
+            $select_transport->setValue($transport->id);
         }
-        ob_start();
+
+        $urlAction = add_query_arg(
+            ['action' => 'git_edit_service'],
+            admin_url('admin-ajax.php')
+        );
+
+        $this->showMessage();
         ?>
-        <div id="form-message-container"></div>
-        <form id="form-service" method="post" action="<?= admin_url('admin-ajax.php?action=git_edit_service') ?>">
-            <?php $this->input_id->render() ?>
+        <form id="form-service" method="post" action="<?= $urlAction ?>">
+            <input type="hidden" name="id" value="<?= esc_attr($service->id) ?>">
+            <?php git_nonce_field() ?>
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">
-                        <?php $this->input_name->getLabel('Nombre')->render(); ?>
+                        <?php $input_name->getLabel('Nombre')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->input_name->render(); ?>
+                        <?php $input_name->render(); ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_price->getLabel('Precio')->render(); ?>
+                        <?php $input_price->getLabel('Precio')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->input_price->render(); ?>
+                        <?php $input_price->render(); ?>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->input_icon->getLabel('Icono')->render(); ?>
+                        <?php $input_icon->getLabel('Icono')->render(); ?>
                     </th>
                     <td>
-                        <?php $this->input_icon->render(); ?>
+                        <?php $input_icon->render(); ?>
                         <p>Ingrese la direccion URL del ícono.</p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <?php $this->select_transport->getLabel('Transportes')->render(); ?>
+                        <?php $select_transport->getLabel('Transportes')->render(); ?>
                     </th>
                     <td>
                         <?php
-                        $this->select_transport->render();
-                        $this->select_transport->getOptionsContainer()->render();
+                        $select_transport->render();
+                        $select_transport->getOptionsContainer()->render();
                         ?>
                     </td>
                 </tr>
             </table>
-            <?= get_submit_button('Guardar servicio'); ?>
+            <button class="button button-primary" type="submit">Guardar</button>
         </form>
         <?php
-        echo ob_get_clean();
+    }
+
+    private function loadData()
+    {
+        if (isset($_GET['id']) === false) {
+            return git_service_create();
+        }
+
+        $id = (int) $_GET['id'];
+        $service = git_service_by_id($id);
+
+        if ($service === null) {
+
+            TableServices::writeMessage('Se intentó cargar un servicio inexistente.', MessageLevel::WARNING);
+            wp_safe_redirect(AdminRouter::get_url_for_class(TableServices::class));
+            exit;
+
+        }
+
+        return $service;
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(FormService::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal)->writeTemporalMessage(
+            $message,
+            FormService::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

@@ -1,6 +1,7 @@
 <?php
 namespace CentralBooking\Data\Repository;
 
+use CentralBooking\Data\Constants\TicketStatus;
 use CentralBooking\Data\ORM\ORMInterface;
 use CentralBooking\Data\Passenger;
 use wpdb;
@@ -127,30 +128,6 @@ class PassengerRepository
         );
     }
 
-    /**
-     * @param ORMInterface<Passenger> $orm
-     * @param int $id
-     * @return Passenger|null
-     */
-    public function findById(ORMInterface $orm, int $id)
-    {
-        return $this->findFirst($orm, ['id' => $id]);
-    }
-
-    /**
-     * @param ORMInterface<Passenger> $orm
-     * @param array $args
-     * @return Passenger|null
-     */
-    public function findFirst(ORMInterface $orm, array $args = [])
-    {
-        $result = $this->find($orm, $args, limit: 1, offset: 0);
-        if ($result->hasItems()) {
-            return $result->getItems()[0];
-        }
-        return null;
-    }
-
     private function getQuery(
         array $args = [],
         string $orderBy = 'id',
@@ -180,6 +157,7 @@ class PassengerRepository
             'id_origin' => 'r.id_origin = %d',
             'id_destiny' => 'r.id_destiny = %d',
             'ticket_status' => 't.status = %s',
+            'ticket_status_not' => 't.status != %s',
             'ticket_flexible' => 't.flexible = %d',
             'id_route' => 'r.id = %d',
             'departure_time' => 'r.departure_time = %s',
@@ -201,6 +179,28 @@ class PassengerRepository
 
         if (isset($args['approved'])) {
             $args['approved'] = $args['approved'] === 'true' || $args['approved'] === true ? 1 : 0;
+        }
+
+        if (isset($args['ticket_status'])) {
+            $args['ticket_status'] = $args['ticket_status'] instanceof TicketStatus ? $args['ticket_status']->slug() : $args['ticket_status'];
+        }
+
+        if (isset($args['ticket_status_not'])) {
+            $args['ticket_status_not'] = $args['ticket_status_not'] instanceof TicketStatus ? $args['ticket_status_not']->slug() : $args['ticket_status_not'];
+        }
+
+        if (isset($args['date_trip']) === false) {
+            if (isset($args['date_trip_from']) && isset($args['date_trip_to'])) {
+                $filters['date_trip_between'] = 'p.date_trip BETWEEN %s AND %s';
+                $args['date_trip_between'] = [$args['date_trip_from'], $args['date_trip_to']];
+                unset($args['date_trip_from'], $args['date_trip_to']);
+            }
+            if (isset($args['date_trip_from']) && !isset($args['date_trip_to'])) {
+                $filters['date_trip_from'] = 'p.date_trip >= %s';
+            }
+            if (!isset($args['date_trip_from']) && isset($args['date_trip_to'])) {
+                $filters['date_trip_to'] = 'p.date_trip <= %s';
+            }
         }
 
         $orders = [

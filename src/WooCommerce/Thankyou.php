@@ -34,7 +34,7 @@ class Thankyou
             $data = git_ticket_create([
                 'flexible' => $ticket->isFlexible(),
                 'total_amount' => $ticket->calculatePrice() * 100,
-                'status' => $coupon_id === -1 ? TicketStatus::PAYMENT->value : TicketStatus::PENDING->value,
+                'status' => $coupon_id === -1 ? TicketStatus::PAYMENT : TicketStatus::PENDING,
             ]);
 
             $data->setOrder($order);
@@ -43,9 +43,9 @@ class Thankyou
                 $coupon = get_post($coupon_id);
                 $data->setCoupon($coupon);
             }
-            
+
             $passengers = [];
-            
+
             foreach ($ticket->getPassengers() as $passenger) {
                 $passenger_data = git_passenger_create([
                     'name' => $passenger->name,
@@ -68,7 +68,7 @@ class Thankyou
                 }
                 $passengers[] = $passenger_data;
             }
-            
+
             $data->setPassengers($passengers);
 
             $response = (new TicketService)->save($data);

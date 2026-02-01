@@ -1,7 +1,7 @@
 <?php
 namespace CentralBooking\Data\ORM;
 
-use CentralBooking\Data\Constants\TransportConstants;
+use CentralBooking\Data\Constants\TypeOperation;
 use CentralBooking\Data\Route;
 use CentralBooking\Data\Time;
 
@@ -14,9 +14,9 @@ final class RouteORM implements ORMInterface
     {
         $route = new Route();
         $route->id = (int) ($data['id'] ?? 0);
-        $route->type = TransportConstants::tryFrom($data['type'] ?? '') ?? TransportConstants::MARINE;
-        $route->setDepartureTime(new Time((string) ($data['departure_time'] ?? '00:00:00')));
+        $route->type = TypeOperation::fromSlug($data['type'] ?? '') ?? TypeOperation::MARINE;
         $route->setArrivalTime(new Time((string) ($data['arrival_time'] ?? '00:00:00')));
+        $route->setDepartureTime(new Time((string) ($data['departure_time'] ?? '00:00:00')));
         return $route;
     }
 }

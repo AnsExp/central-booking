@@ -1,19 +1,32 @@
 <?php
 namespace CentralBooking\Preorder;
 
+use CentralBooking\Admin\Form\FormService;
 use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 class PreorderDashboard implements ComponentInterface
 {
     public function compact()
     {
+        $this->loadScripts();
         ob_start();
+        $this->showMessage();
         if ($this->verify_preorder()) {
-            (new PreorderForm($this->get_preorder()))->render();
+            (new PreorderForm)->render();
         } else {
             $this->not_preorder();
         }
         return ob_get_clean();
+    }
+
+    private function loadScripts()
+    {
+        wp_enqueue_style('bootstrap-icon', 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css');
+        wp_enqueue_style('bootstrap-css', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
+        wp_enqueue_script('bootstrap-js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', ['jquery'], null, true);
     }
 
     private function not_preorder()
@@ -40,19 +53,28 @@ class PreorderDashboard implements ComponentInterface
 
     private function verify_preorder()
     {
-        if (!isset($_GET['preorder'])) {
+        if (isset($_GET['preorder']) === false) {
             return false;
         }
-        $preorder = $this->get_preorder();
-        if ($preorder === null) {
-            return false;
-        }
-        return true;
+        $id = (int) $_GET['preorder'];
+
+        $ticket = git_ticket_by_id($id);
+
+        return $ticket !== null;
     }
 
-    private function get_preorder()
+    private function showMessage()
     {
-        $preorder_id = intval($_GET['preorder']);
-        return PreorderRecover::recover($preorder_id);
+        MessageAlert::getInstance(FormService::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal())->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

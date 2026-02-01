@@ -41,7 +41,7 @@ final class CodeQr
         }
     }
 
-    public function render(string $title = 'QR Code')
+    public function compact(string $title = 'QR Code')
     {
         $url = $this->getUrlCode();
         return '<img src="' . esc_url($url) . '" alt="' . esc_attr($title) . '">';
@@ -53,7 +53,7 @@ final class CodeQr
         $apiUrl = add_query_arg([
             'data' => $this->data->getData(),
             'size' => $this->size . 'x' . $this->size,
-            'ecc' => $this->errorCorrectionCode->value,
+            'ecc' => $this->errorCorrectionCode->slug(),
             'margin' => $this->margin,
             'color' => join('-', array_values($this->color->getColorRGB() ?? [0, 0, 0])),
             'bgcolor' => join('-', array_values($this->bgColor->getColorRGB() ?? [255, 255, 255])),

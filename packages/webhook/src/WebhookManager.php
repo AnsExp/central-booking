@@ -20,12 +20,12 @@ final class WebhookManager
     public function save(Webhook $webhook)
     {
         if (!filter_var($webhook->url_delivery, FILTER_VALIDATE_URL)) {
-            return false;
+            return null;
         }
         $data = [
             'name' => $webhook->name,
-            'topic' => $webhook->topic->value,
-            'status' => $webhook->status->value,
+            'topic' => $webhook->topic->slug(),
+            'status' => $webhook->status->slug(),
             'delivery_url' => $webhook->url_delivery
         ];
         global $wpdb;
@@ -90,9 +90,8 @@ final class WebhookManager
         $webhook = new Webhook();
         $webhook->id = $data['id'];
         $webhook->name = $data['name'];
-        $webhook->topic = $data['topic'];
-        $webhook->secret = $data['secret'];
-        $webhook->status = $data['status'];
+        $webhook->topic = WebhookTopic::fromSlug($data['topic']) ?? WebhookTopic::NONE;
+        $webhook->status = WebhookStatus::fromSlug($data['status']) ?? WebhookStatus::DISABLED;
         $webhook->url_delivery = $data['delivery_url'];
         return $webhook;
     }

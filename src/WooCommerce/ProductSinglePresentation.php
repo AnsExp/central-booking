@@ -1,8 +1,6 @@
 <?php
 namespace CentralBooking\WooCommerce;
 
-use CentralBooking\Data\Date;
-
 final class ProductSinglePresentation
 {
     /**
@@ -17,10 +15,18 @@ final class ProductSinglePresentation
      */
     public function addToCart(int $id_transport, int $id_route, string $date_trip, int $product_id, bool $flexible, array $passengers, array $pax)
     {
+        // echo json_encode([
+        //     'id_transport' => $id_transport,
+        //     'id_route' => $id_route,
+        //     'date_trip' => $date_trip,
+        //     'product_id' => $product_id,
+        //     'flexible' => $flexible,
+        // ]);
+        // exit;
         $product = wc_get_product($product_id);
         $route = git_route_by_id($id_route);
         $transport = git_transport_by_id($id_transport);
-        $date = new Date($date_trip);
+        $date = git_date_create($date_trip);
         $passengersArray = [];
         foreach ($passengers as $passengerData) {
             $passenger = new CartPassenger;

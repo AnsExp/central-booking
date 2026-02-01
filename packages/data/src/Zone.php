@@ -34,6 +34,36 @@ final class Zone
      */
     private array $locations = [];
 
+    private array $metadata = [];
+    private bool $locationsLoaded = false;
+
+    public function getMeta(string $key)
+    {
+        if (isset($this->metadata[$key]) === false) {
+            $value = MetaManager::getMeta(
+                MetaManager::ZONE,
+                $this->id,
+                $key
+            );
+            $this->metadata[$key] = $value;
+        }
+        return $this->metadata[$key];
+    }
+
+    public function setMeta(string $key, mixed $value)
+    {
+        $this->metadata[$key] = $value;
+    }
+
+    public function saveMeta()
+    {
+        MetaManager::setMetadata(
+            MetaManager::ZONE,
+            $this->id,
+            $this->metadata
+        );
+    }
+
     /**
      * Obtiene las ubicaciones asociadas a esta zona.
      * Si no están cargadas, se obtienen mediante LazyLoader.
@@ -42,8 +72,9 @@ final class Zone
      */
     public function getLocations()
     {
-        if (empty($this->locations)) {
+        if ($this->locationsLoaded === false) {
             $this->locations = LazyLoader::loadLocationsByZone($this);
+            $this->locationsLoaded = true;
         }
         return $this->locations;
     }
@@ -57,5 +88,10 @@ final class Zone
     public function setLocations(array $locations)
     {
         $this->locations = $locations;
+    }
+
+    public function save()
+    {
+        return git_zone_save($this) !== null;
     }
 }

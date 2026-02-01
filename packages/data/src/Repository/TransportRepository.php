@@ -50,8 +50,6 @@ final class TransportRepository
                 ['%d']
             );
 
-            echo git_serialize($transport->getServices());
-
         } else {
             $this->wpdb->insert(
                 $this->formatTable(DatabaseTable::TABLE_TRANSPORTS->value),

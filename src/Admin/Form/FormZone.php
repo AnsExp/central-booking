@@ -3,31 +3,34 @@ namespace CentralBooking\Admin\Form;
 
 use CentralBooking\GUI\DisplayerInterface;
 use CentralBooking\GUI\InputComponent;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class FormZone implements DisplayerInterface
 {
     public function render()
     {
-        $input_id = new InputComponent('id', 'hidden');
-        $input_name = new InputComponent('name', 'text');
+        $zone = $this->loadData();
 
-        $input_id->setValue(0);
-        if (isset($_GET['id'])) {
-            $zone = git_zone_by_id((int) $_GET['id']);
-            if ($zone) {
-                $input_id->setValue($zone->id);
-                $input_name->setValue($zone->name);
-            }
-        }
-        $input_name->setPlaceholder('Zona');
-        $input_name->setRequired(true);
-        $input_name->styles->set('width', '100%');
-        ob_start();
-        $action = admin_url('admin-ajax.php?action=git_edit_zone');
+        $input_name = git_input_field([
+            'name' => 'name',
+            'type' => 'text',
+            'required' => true,
+            'value' => $zone->name,
+        ]);
+
+        $action = add_query_arg(
+            ['action' => 'git_edit_zone'],
+            admin_url('admin-ajax.php')
+        );
+
+        $this->showMessage();
+
         ?>
         <form method="post" action="<?= $action ?>">
-            <?php $input_id->render() ?>
-            <?php wp_nonce_field('edit_zone', 'nonce') ?>
+            <?php git_nonce_field() ?>
+            <input type="hidden" name="id" value="<?= esc_attr($zone->id) ?>">
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">
@@ -38,9 +41,29 @@ final class FormZone implements DisplayerInterface
                     </td>
                 </tr>
             </table>
-            <?= get_submit_button('Guardar'); ?>
+            <button type="submit" class="button button-primary">Guardar</button>
         </form>
         <?php
-        echo ob_get_clean();
+    }
+
+    private function loadData()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
+        return git_zone_by_id($id) ?? git_zone_create();
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal())->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

@@ -1,85 +1,91 @@
-const templates = document.getElementById(formElements.templates);
-const accordionCrew = document.getElementById(formElements.accordionCrew);
-const buttonAddAlias = document.getElementById(formElements.buttonAddAlias);
-const buttonAddCrewMember = document.getElementById(formElements.buttonAddCrewMember);
-const containerAliasFields = document.getElementById(formElements.containerAliasFields);
+const templateAlias = document.getElementById('template-form-alias');
+const templateCrewMember = document.getElementById('template-form-crew-member');
+const containerAlias = document.getElementById('container-alias-fields');
+const containerCrewMember = document.getElementById('container-crew-member-fields');
 
-document.querySelectorAll('.remove-crew-member').forEach(memberDimiss => {
-    memberDimiss.addEventListener('click', () => {
-        dimissCrewMemberEvent(memberDimiss.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.id);
-    });
-});
+function addAliasField() {
+    const newId = 'alias_index_' + Math.random().toString(36).substring(2, 15);
+    const field = templateAlias.querySelector('.alias_input_form').cloneNode(true);
 
-document.querySelectorAll('.button-remove-alias').forEach(memberDimiss => {
-    memberDimiss.addEventListener('click', removeAliasEvent);
-});
+    field.id = newId;
+    field.querySelector('button').dataset.target = newId;
 
-accordionCrew.querySelectorAll('.accordion-item').forEach(item => {
-    const header = item.querySelector('.accordion-header');
-    const content = item.querySelector('.accordion-collapse');
-
-    content.querySelector('input[name="crew_member_name[]"]').addEventListener('input', (e) => {
-        header.querySelector('[data-tag-name]').textContent = e.target.value;
-    });
-
-    content.querySelector('input[name="crew_member_role[]"]').addEventListener('input', (e) => {
-        header.querySelector('[data-tag-role]').textContent = e.target.value;
-    });
-});
-
-function dimissCrewMemberEvent(itemId) {
-    document.getElementById(itemId).parentNode.remove();
+    containerAlias.appendChild(field);
 }
 
-buttonAddAlias.addEventListener('click', () => {
-    const content = templates.content.querySelector('#form-transport-alias-field').cloneNode(true);
-    content.querySelector('button.button-remove-alias').addEventListener('click', removeAliasEvent);
-    containerAliasFields.appendChild(content);
-});
-
-function removeAliasEvent(e) {
-    e.target.parentNode.remove();
+function addCrewMemberField(name = '', role = '', contact = '', license = '') {
+    const newId = Math.random().toString(36).substring(2, 15);
+    const totalForms = containerCrewMember.querySelectorAll('.crew_member_input_form').length;
+    let field = templateCrewMember.querySelector('.crew_member_input_form').outerHTML;
+    field = field.replaceAll('{{ID}}', newId);
+    field = field.replaceAll('{{INDEX}}', totalForms);
+    
+    // Crear el contenedor y agregar al DOM primero
+    const container = document.createElement('div');
+    container.innerHTML = field;
+    containerCrewMember.appendChild(container.firstElementChild);
+    
+    // Ahora buscar y establecer valores en el DOM real
+    const nameInput = containerCrewMember.querySelector(`input[name="crew[${totalForms}][name]"]:last-of-type`);
+    const roleInput = containerCrewMember.querySelector(`input[name="crew[${totalForms}][role]"]:last-of-type`);
+    const contactInput = containerCrewMember.querySelector(`input[name="crew[${totalForms}][contact]"]:last-of-type`);
+    const licenseInput = containerCrewMember.querySelector(`input[name="crew[${totalForms}][license]"]:last-of-type`);
+    
+    if (nameInput) {
+        nameInput.value = name;
+    }
+    if (roleInput) {
+        roleInput.value = role;
+    }
+    if (contactInput) {
+        contactInput.value = contact;
+    }
+    if (licenseInput) {
+        licenseInput.value = license;
+    }
 }
 
-buttonAddCrewMember.addEventListener('click', () => {
-    const header = document.createElement('span');
-    header.innerHTML =
-        `<span data-tag-name=""></span>
-        <i class="bi bi-caret-right"></i>
-        <span data-tag-role=""></span>`;
-    const content = templates.content.querySelector('#template-form-crew-member>table').cloneNode(true);
-    content.querySelector('input[name="crew[name][]"]').addEventListener('input', (e) => {
-        header.querySelector('[data-tag-name]').textContent = e.target.value;
-    });
-    content.querySelector('input[name="crew[role][]"]').addEventListener('input', (e) => {
-        header.querySelector('[data-tag-role]').textContent = e.target.value;
-    });
-    const itemId = window.AccordionComponentAPI.addItem(accordionCrew, header, content);
-    content
-        .querySelector('button.remove-crew-member')
-        .addEventListener('click', () => {
-            dimissCrewMemberEvent(itemId);
-        });
-});
+function removeAliasField(buttonRemove) {
+    const field = document.getElementById(buttonRemove.dataset.target);
+    if (field) {
+        field.remove();
+    }
+}
 
-document.querySelector('button[type="submit"]').addEventListener('click', function () {
-    for (const input of accordionCrew.querySelectorAll('input')) {
-        let accodionCollapse = null;
-        if (input.value.trim() === '') {
-            let iterator = input;
-            while (accodionCollapse === null) {
-                iterator = iterator.parentNode;
-                if (iterator.classList && iterator.classList.contains('accordion-collapse')) {
-                    accodionCollapse = iterator;
-                }
-            };
-            const idCollapse = accodionCollapse.id;
-            const buttonCollapse = document.querySelector(`button[data-target="#${idCollapse}"]`);
-            if (!iterator.classList.contains('show')) {
-                buttonCollapse.click();
-            }
-            input.focus();
-            return;
-        };
-    };
+function removeCrewMemberField(buttonRemove) {
+    const field = document.getElementById(buttonRemove.dataset.target);
+    if (field) {
+        field.remove();
+        reorganizeCrewMemberIndices();
+    }
+}
+
+function reorganizeCrewMemberIndices() {
+    const crewMemberForms = containerCrewMember.querySelectorAll('.crew_member_input_form');
+    crewMemberForms.forEach((form, index) => {
+        const indexForm = form.dataset.index;
+        const nameInput = form.querySelector(`input[name="crew[${indexForm}][name]"]`);
+        const roleInput = form.querySelector(`input[name="crew[${indexForm}][role]"]`);
+        const contactInput = form.querySelector(`input[name="crew[${indexForm}][contact]"]`);
+        const licenseInput = form.querySelector(`input[name="crew[${indexForm}][license]"]`);
+        if (nameInput) {
+            nameInput.setAttribute('name', `crew[${index}][name]`);
+        }
+        if (roleInput) {
+            roleInput.setAttribute('name', `crew[${index}][role]`);
+        }
+        if (contactInput) {
+            contactInput.setAttribute('name', `crew[${index}][contact]`);
+        }
+        if (licenseInput) {
+            licenseInput.setAttribute('name', `crew[${index}][license]`);
+        }
+        form.dataset.index = index;
+    });
+}
+
+transportFormData.crewMembers.forEach((crewMember) => {
+    console.log(crewMember);
+    
+    addCrewMemberField(crewMember.name, crewMember.role, crewMember.contact, crewMember.license);
 });

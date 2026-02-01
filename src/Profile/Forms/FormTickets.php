@@ -1,29 +1,25 @@
 <?php
 namespace CentralBooking\Profile\Forms;
 
-use CentralBooking\GUI\ComponentInterface;
-use CentralBooking\GUI\InputComponent;
+use CentralBooking\GUI\DisplayerInterface;
 use CentralBooking\GUI\InputFloatingLabelComponent;
-use CentralBooking\Implementation\GUI\DateTripInput;
 use CentralBooking\Implementation\GUI\SelectorRouteCombine;
 
-class FormTickets implements ComponentInterface
+class FormTickets implements DisplayerInterface
 {
-    public function compact()
+    public function render()
     {
         $ticket = git_ticket_by_id($_GET['ticket_number'] ?? -1);
-        ob_start();
         if ($ticket === null) {
             ?>
             <div class="alert alert-danger">
                 Ticket no encontrado.
             </div>
             <?php
-            return ob_get_clean();
         }
         $passengers = $ticket->getPassengers();
         $combine = new SelectorRouteCombine();
-        $date_trip_input = (new DateTripInput('date_trip'))->create();
+        $date_trip_input = git_date_trip_field('date_trip');
         $select_origin = $combine->get_origin_select('origin');
         $select_destiny = $combine->get_destiny_select('destiny');
         $select_schedule = $combine->get_time_select('time');
@@ -45,7 +41,7 @@ class FormTickets implements ComponentInterface
                     if (!$passenger->approved) {
                         continue;
                     }
-                    $checkbox = new InputComponent('passengers[]', 'checkbox');
+                    $checkbox = git_input_field(['name' => 'passengers[]', 'type' => 'checkbox']);
                     $checkbox->class_list->remove('form-control');
                     $checkbox->setValue($passenger->id);
                     $checkbox->class_list->add('me-3');
@@ -102,6 +98,5 @@ class FormTickets implements ComponentInterface
             <?php endif; ?>
         </form>
         <?php
-        return ob_get_clean();
     }
 }

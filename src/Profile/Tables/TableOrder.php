@@ -1,12 +1,12 @@
 <?php
 namespace CentralBooking\Profile\Tables;
 
-use CentralBooking\Data\Constants\UserConstants;
-use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\Data\Constants\UserRole;
+use CentralBooking\GUI\DisplayerInterface;
 use WP_User;
 use WC_Order;
 
-class TableOrder implements ComponentInterface
+final class TableOrder implements DisplayerInterface
 {
     private WP_User $current_user;
     /**
@@ -27,9 +27,8 @@ class TableOrder implements ComponentInterface
         $this->orders = $this->get_user_orders();
     }
 
-    public function compact(): string
+    public function render()
     {
-        ob_start();
         ?>
         <div class="container-fluid">
             <div class="row">
@@ -166,7 +165,6 @@ class TableOrder implements ComponentInterface
             </div>
         </div>
         <?php
-        return ob_get_clean();
     }
 
     private function get_user_orders(): array
@@ -185,7 +183,7 @@ class TableOrder implements ComponentInterface
             'status' => 'any'
         ];
 
-        if (!git_current_user_has_role(UserConstants::ADMINISTRATOR)) {
+        if (!git_current_user_has_role(UserRole::ADMINISTRATOR)) {
             $args['customer_id'] = $this->current_user->ID;
         }
 

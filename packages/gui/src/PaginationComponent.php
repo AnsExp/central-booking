@@ -29,7 +29,7 @@ class PaginationComponent extends BaseComponent
         );
     }
     
-    public function set_links(string $link_first, string $link_last, string $link_next, string $link_prev)
+    public function setLinks(string $link_first, string $link_last, string $link_next, string $link_prev)
     {
         $this->data['first'] = $link_first;
         $this->data['last'] = $link_last;
@@ -37,7 +37,7 @@ class PaginationComponent extends BaseComponent
         $this->data['prev'] = $link_prev;
     }
 
-    public function set_data(int $total_items, int $current_page, int $total_pages)
+    public function setData(int $total_items, int $current_page, int $total_pages)
     {
         $this->data['total_elements'] = $total_items;
         $this->data['current_page'] = $current_page;

@@ -17,13 +17,35 @@ class Operator
      */
     private array $transports;
     private WP_User $user;
-    public string $brand_media = '';
-    private string $phone = '';
+    private array $metadata = [];
+    private bool $couponsLoaded = false;
 
-    private array $business_plan = [
-        'limit' => 0,
-        'counter' => 0,
-    ];
+    public function getMeta(string $key)
+    {
+        if (isset($this->metadata[$key]) === false) {
+            $value = MetaManager::getMeta(
+                MetaManager::OPERATOR,
+                $this->getUser()->ID,
+                $key
+            );
+            $this->metadata[$key] = $value;
+        }
+        return $this->metadata[$key];
+    }
+
+    public function setMeta(string $key, mixed $value)
+    {
+        $this->metadata[$key] = $value;
+    }
+
+    public function saveMeta()
+    {
+        MetaManager::setMetadata(
+            MetaManager::OPERATOR,
+            $this->getUser()->ID,
+            $this->metadata
+        );
+    }
 
     public function getUser()
     {
@@ -40,9 +62,13 @@ class Operator
      */
     public function getBusinessPlan()
     {
+        $businessPlan = $this->getMeta('business_plan');
+        if (is_array($businessPlan) === false) {
+            return ['limit' => 0, 'counter' => 0];
+        }
         return [
-            'limit' => $this->business_plan['limit'],
-            'counter' => $this->business_plan['counter'],
+            'limit' => $businessPlan['limit'] ?? 0,
+            'counter' => $businessPlan['counter'] ?? 0,
         ];
     }
 
@@ -51,14 +77,17 @@ class Operator
         if ($limit < $counter) {
             throw new InvalidArgumentException('Business plan limit cannot be less than counter.');
         }
-        $this->business_plan['limit'] = $limit;
-        $this->business_plan['counter'] = $counter;
+        $this->setMeta('business_plan', [
+            'limit' => $limit,
+            'counter' => $counter,
+        ]);
     }
 
     public function getCoupons()
     {
-        if (!isset($this->coupons)) {
+        if ($this->couponsLoaded === false) {
             $this->coupons = LazyLoader::loadCouponsByOperator($this);
+            $this->couponsLoaded = true;
         }
 
         return $this->coupons;
@@ -71,6 +100,7 @@ class Operator
     public function setCoupons(array $coupons)
     {
         $this->coupons = $coupons;
+        $this->couponsLoaded = true;
     }
 
     public function getTransports()
@@ -88,21 +118,26 @@ class Operator
 
     public function setPhone(string $phone)
     {
-        $this->phone = $phone;
+        $this->setMeta('phone', $phone);
     }
 
     public function getPhone()
     {
-        return $this->phone;
+        return (string) ($this->getMeta('phone') ?? '');
     }
 
     public function getBrandMedia()
     {
-        return $this->brand_media;
+        return (string) ($this->getMeta('brand_media') ?? '');
     }
 
     public function setBrandMedia(string $brand_media)
     {
-        $this->brand_media = $brand_media;
+        $this->setMeta('brand_media', $brand_media);
+    }
+
+    public function save()
+    {
+        git_operator_save($this);
     }
 }

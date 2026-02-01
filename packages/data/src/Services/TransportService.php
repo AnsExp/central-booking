@@ -35,6 +35,7 @@ class TransportService
 
     public function save(Transport $transport)
     {
+        // echo json_encode((array)$transport);
         if ($this->validCode($transport) === false) {
             return null;
         }
@@ -130,16 +131,15 @@ class TransportService
         array $args = [],
         string $orderBy = 'id',
         string $order = 'ASC',
-        int $pageSize = 10,
-        int $pageNumber = 1,
+        int $limit = -1,
+        int $offset = 0,
     ) {
-        $offset = ($pageNumber - 1) * $pageSize;
         return $this->repository->find(
             $this->orm,
             $args,
             $orderBy,
             $order,
-            $pageSize,
+            $limit,
             $offset
         );
     }

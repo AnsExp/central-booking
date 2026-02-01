@@ -1,49 +1,43 @@
 <?php
 namespace CentralBooking\Admin\Form;
 
-use CentralBooking\Data\Services\LocationService;
 use CentralBooking\GUI\DisplayerInterface;
-use CentralBooking\GUI\InputComponent;
 use CentralBooking\Implementation\GUI\ZoneSelect;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class FormLocation implements DisplayerInterface
 {
-    private LocationService $locationService;
-
-    public function __construct()
-    {
-        $this->locationService = new LocationService();
-    }
     public function render()
     {
-        $input_id = new InputComponent('id', 'hidden');
-        $input_name = new InputComponent('name', 'text');
-        $select_zone = (new ZoneSelect())->create();
+        $location = $this->loadData();
 
-        $input_id->setValue(0);
-        $input_name->setPlaceholder('Ubicación');
-        $input_name->setRequired(true);
+        $input_name = git_input_field([
+            'name' => 'name',
+            'type' => 'text',
+            'value' => $location->name,
+            'required' => true,
+            'style' => 'width:100%;',
+        ]);
+
+        $select_zone = (new ZoneSelect('zone_id'))->create();
         $select_zone->setRequired(true);
-        $input_name->styles->set('width', '100%');
         $select_zone->styles->set('width', '100%');
+        $select_zone->setValue($location->getZone()->id);
 
-        $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        $location = git_location_by_id($id);
-        if ($location) {
-            $input_id->setValue($location->id);
-            $input_name->setValue(esc_html($location->name));
-            $select_zone->setValue($location->getZone()->id);
-        }
-        ob_start();
         $action = add_query_arg(
             ['action' => 'git_edit_location'],
             admin_url('admin-ajax.php')
         );
+
+        $this->showMessage();
+
         ?>
-        <div id="form-location-message-container"></div>
         <form id="form-location" method="post" action="<?= esc_url($action) ?>">
-            <?php $input_id->render() ?>
-            <?php wp_nonce_field('edit_location', 'nonce') ?>
+            <?php git_nonce_field() ?>
+            <?php git_referer_field() ?>
+            <input type="hidden" name="id" value="<?= esc_attr($location->id) ?>">
             <table class="form-table" role="presentation" style="max-width: 500px;">
                 <tr>
                     <th scope="row">
@@ -62,9 +56,29 @@ final class FormLocation implements DisplayerInterface
                     </td>
                 </tr>
             </table>
-            <?= get_submit_button('Guardar'); ?>
+            <button type="submit" class="button button-primary">Guardar</button>
         </form>
         <?php
-        echo ob_get_clean();
+    }
+
+    private function loadData()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
+        return git_location_by_id($id) ?? git_location_create();
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal())->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

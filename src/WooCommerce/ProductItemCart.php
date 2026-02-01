@@ -29,7 +29,7 @@ class ProductItemCart
         ];
         $itemData[] = [
             'name' => 'Viaje',
-            'value' => git_date_format($item->getDateTrip()->format()) . ' - ' . git_time_format($route->getDepartureTime()->format())
+            'value' => $item->getDateTrip()->pretty() . ' - ' . $route->getDepartureTime()->pretty()
         ];
         $itemData[] = [
             'name' => 'Transporte',

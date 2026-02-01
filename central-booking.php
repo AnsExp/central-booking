@@ -36,12 +36,10 @@ if (class_exists(\CentralBooking\Bootstrap::class)) {
     add_action('admin_notices', function () {
         echo '<div class="notice notice-error"><p>Central Tickets: Bootstrap class not found. Ensure <code>vendor/</code> is installed and plugin files are complete.</p></div>';
     });
-    error_log('[central-tickets] Bootstrap class not found. vendor present: ' . (file_exists($vendor) ? 'yes' : 'no') . '; bootstrap file present: ' . (file_exists($bootstrapFile) ? 'yes' : 'no'));
     return;
 }
 
 require_once 'includes/git-functions-utils.php';
-require_once 'includes/git-functions-hooks.php';
 require_once 'includes/git-hooks.php';
 
 require_once 'packages/qr/functions.php';

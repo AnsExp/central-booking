@@ -29,7 +29,7 @@ final class Ticket
     public TicketStatus $status = TicketStatus::PENDING;
 
     /** @var array Metadatos asociados al ticket. */
-    private array $metadata = [];
+    public array $metadata = [];
 
     /** @var WC_Order Pedido asociado al ticket. */
     private ?WC_Order $order = null;
@@ -150,19 +150,16 @@ final class Ticket
 
     public function getProofPayment()
     {
-        $proof = $this->getMeta('proof_payment') ?? [
-            'name' => '',
-            'path' => '',
-            'date' => '',
-            'code' => '',
-            'amount' => '',
-        ];
+        $proof = $this->getMeta('proof_payment');
+        if ($proof === null) {
+            return null;
+        }
         $proof_payment = new ProofPayment(
-            $proof['name'],
-            $proof['path'],
-            $proof['code'],
-            $proof['amount'],
-            $proof['date'],
+            $proof['filename'] ?? '',
+            $proof['url'] ?? '',
+            $proof['code'] ?? '',
+            $proof['amount'] ?? 0,
+            new Date($proof['date'] ?? 'now'),
         );
         return $proof_payment;
     }
@@ -170,26 +167,21 @@ final class Ticket
     /**
      * Establece los datos del comprobante de pago.
      *
-     * @param string $name
-     * @param string $url
-     * @param Date $date
-     * @param string $code
-     * @param int $amount
+     * @param ProofPayment|null $proof
      * @return void
      */
-    public function setProofPayment(
-        string $name,
-        string $url,
-        Date $date,
-        string $code,
-        int $amount
-    ) {
+    public function setProofPayment(?ProofPayment $proof)
+    {
+        if ($proof === null) {
+            $this->setMeta('proof_payment', null);
+            return;
+        }
         $this->setMeta('proof_payment', [
-            'name' => $name,
-            'path' => $url,
-            'date' => $date,
-            'code' => $code,
-            'amount' => $amount,
+            'filename' => $proof->filename,
+            'url' => $proof->url,
+            'date' => $proof->date->format(),
+            'code' => $proof->code,
+            'amount' => $proof->amount,
         ]);
     }
 
@@ -217,8 +209,14 @@ final class Ticket
         $this->passengers = $passengers;
     }
 
+    public function toggleFlexible(?bool $force = null)
+    {
+        $this->flexible = $force === null ? !$this->flexible : $force;
+    }
+
     public function save()
     {
-        git_ticket_save($this);
+        $saved = git_ticket_save($this);
+        return $saved !== null;
     }
 }

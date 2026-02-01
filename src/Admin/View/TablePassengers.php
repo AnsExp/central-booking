@@ -2,59 +2,48 @@
 namespace CentralBooking\Admin\View;
 
 use CentralBooking\Admin\AdminRouter;
+use CentralBooking\Admin\Form\FormTransfer;
+use CentralBooking\Data\Constants\TicketStatus;
 use CentralBooking\Data\Passenger;
+use CentralBooking\Data\Repository\ResultSetInterface;
 use CentralBooking\GUI\AccordionComponent;
 use CentralBooking\GUI\DisplayerInterface;
-use CentralBooking\GUI\InputComponent;
 use CentralBooking\GUI\PaginationComponent;
-use CentralBooking\GUI\SelectComponent;
 use CentralBooking\GUI\TextComponent;
-use CentralBooking\Implementation\GUI\LocationSelect;
-use CentralBooking\Implementation\GUI\NationalitySelect;
-use CentralBooking\Implementation\GUI\TicketStatusSelect;
-use CentralBooking\Implementation\GUI\TransportSelect;
 use CentralBooking\Implementation\GUI\TypeDocumentSelect;
 
 final class TablePassengers implements DisplayerInterface
 {
     /**
-     * @var array<Passenger>
+     * @var ResultSetInterface<Passenger>
      */
-    private array $passengers;
-    private int $total_items;
-    private int $per_page = 10;
-    private int $total_pages;
-    private int $current_page;
+    private ResultSetInterface $resultSet;
+    public const NONCE_ACTION = 'git_passengers_table_action';
 
     public function __construct()
     {
-        $this->passengers = $this->fetchTransports();
+        $this->resultSet = $this->fetchTransports();
     }
 
-    private function fetchTransports(): array
+    private function fetchTransports()
     {
-        $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
+        $pageNumber = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
+        $pageSize = isset($_GET['page_size']) ? (int) $_GET['page_size'] : 10;
         $filter = [];
 
         foreach ($_GET as $key => $value) {
-            if ($value !== '') {
-                $filter[$key] = $value;
-            }
+            $filter[$key] = $value;
         }
 
         $args = array_merge($filter, [
             'order_by' => $this->get_current_order_by(),
             'order' => $this->get_current_order(),
-            'offset' => ($page_number - 1) * $this->per_page,
-            'limit' => $this->per_page
+            'limit' => $pageSize,
+            'offset' => ($pageNumber - 1) * $pageSize,
+            'ticket_status_not' => TicketStatus::PERORDER,
         ]);
-        $result_set = git_passengers_result_set($args);
 
-        $this->total_items = $result_set->getTotalItems();
-        $this->total_pages = $result_set->getTotalPages();
-        $this->current_page = $result_set->getCurrentPage();
-
-        return $result_set->getItems();
+        return git_passengers_result_set($args);
     }
 
     private function filter_pad()
@@ -63,53 +52,65 @@ final class TablePassengers implements DisplayerInterface
         $accordion_title = new TextComponent('span');
         $accordion_title->append(git_string_to_component('<i class="bi bi-sliders"></i>'));
         $accordion_title->append(' Filtro');
-        $accordion->add_item($accordion_title, $this->filter_form());
+        $accordion->addItem($accordion_title, $this->filter_form());
         return $accordion;
     }
 
     private function filter_form()
     {
-        $name_filter = new InputComponent('name');
-        $ticket_status_filter = (new TicketStatusSelect('status'))->create();
+        $name_filter = git_input_field([
+            'name' => 'name',
+            'value' => $_GET['name'] ?? ''
+        ]);
+        $ticket_status_filter = git_ticket_status_select_field('status');
         $type_document_filter = (new TypeDocumentSelect(name: 'type_document'))->create();
-        $data_document_filter = new InputComponent('data_document');
-        $date_trip_filter = new InputComponent('date_trip', 'date');
-        $served_filter = new SelectComponent('served');
-        $approve_filter = new SelectComponent('approved');
-        $flexible_filter = new SelectComponent('ticket_flexible');
-        $nationality_filter = (new NationalitySelect('nationality'))->create();
-        $transport_filter = (new TransportSelect('id_transport'))->create();
-        $origin_filter = (new LocationSelect('id_origin'))->create();
-        $destiny_filter = (new LocationSelect('id_destiny'))->create();
+        $data_document_filter = git_input_field([
+            'name' => 'data_document',
+            'value' => $_GET['data_document'] ?? ''
+        ]);
+        $date_trip_filter = git_input_field([
+            'name' => 'date_trip',
+            'type' => 'date',
+            'value' => $_GET['date_trip'] ?? ''
+        ]);
+        $served_filter = git_select_field([
+            'name' => 'served',
+            'value' => $_GET['served'] ?? '',
+            'options' => [
+                'Seleccione...' => '',
+                'Sí' => 'true',
+                'No' => 'false'
+            ]
+        ]);
+        $approve_filter = git_select_field([
+            'name' => 'approved',
+            'value' => $_GET['approved'] ?? '',
+            'options' => [
+                'Seleccione...' => '',
+                'Sí' => 'true',
+                'No' => 'false'
+            ]
+        ]);
+        $flexible_filter = git_select_field([
+            'name' => 'ticket_flexible',,
+            'value' => $_GET['ticket_flexible'] ?? '',
+            'options' => [
+                'Seleccione...' => '',
+                'Sí' => 'true',
+                'No' => 'false'
+            ]
+        ]);
+        $nationality_filter = git_country_select_field('nationality');
+        $transport_filter = git_transport_select_field('id_transport');
+        $origin_filter = git_location_select_field('id_origin');
+        $destiny_filter = git_location_select_field('id_destiny');
 
-        $approve_filter->addOption('Seleccione...', '');
-        $approve_filter->addOption('Sí', 'true');
-        $approve_filter->addOption('No', 'false');
-
-        $served_filter->addOption('Seleccione...', '');
-        $served_filter->addOption('Sí', 'true');
-        $served_filter->addOption('No', 'false');
-        $flexible_filter->addOption('Seleccione...', '');
-        $flexible_filter->addOption('Sí', 'true');
-        $flexible_filter->addOption('No', 'false');
-
-        $name_filter->setValue($_GET['name'] ?? '');
         $ticket_status_filter->setValue($_GET['status'] ?? '');
         $type_document_filter->setValue($_GET['type_document'] ?? '');
-        $data_document_filter->setValue($_GET['data_document'] ?? '');
-        $date_trip_filter->setValue($_GET['date_trip'] ?? '');
-        $served_filter->setValue($_GET['served'] ?? '');
-        $approve_filter->setValue($_GET['approved'] ?? '');
-        $flexible_filter->setValue($_GET['ticket_flexible'] ?? '');
         $nationality_filter->setValue($_GET['nationality'] ?? '');
         $transport_filter->setValue($_GET['id_transport'] ?? '');
         $origin_filter->setValue($_GET['id_origin'] ?? '');
         $destiny_filter->setValue($_GET['id_destiny'] ?? '');
-
-        wp_enqueue_script(
-            'admin-table-passengers',
-            CENTRAL_BOOKING_URL . '/assets/js/admin/passengers-table.js'
-        );
 
         ob_start();
         ?>
@@ -235,19 +236,19 @@ final class TablePassengers implements DisplayerInterface
         ]);
     }
 
-    public function render(): void
+    public function render()
     {
         $pagination = new PaginationComponent();
-        $pagination->set_data(
-            $this->total_items,
-            $this->current_page,
-            $this->total_pages
+        $pagination->setData(
+            $this->resultSet->getTotalItems(),
+            $this->resultSet->getCurrentPage(),
+            $this->resultSet->getTotalPages()
         );
-        $pagination->set_links(
+        $pagination->setLinks(
             link_first: add_query_arg(['page_number' => 1]),
-            link_last: add_query_arg(['page_number' => $this->total_pages]),
-            link_next: add_query_arg(['page_number' => $this->current_page + 1]),
-            link_prev: add_query_arg(['page_number' => $this->current_page - 1])
+            link_last: add_query_arg(['page_number' => $this->resultSet->getTotalPages()]),
+            link_next: add_query_arg(['page_number' => $this->resultSet->getCurrentPage() + 1]),
+            link_prev: add_query_arg(['page_number' => $this->resultSet->getCurrentPage() - 1])
         );
         $this->filter_pad()->render();
         ?>
@@ -325,16 +326,18 @@ final class TablePassengers implements DisplayerInterface
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($this->passengers as $passenger): ?>
+                    <?php foreach ($this->resultSet->getItems() as $passenger): ?>
                         <tr>
                             <td>
-                                <input type="checkbox" class="transfer-check" <?= !$passenger->getTicket()->flexible || !$passenger->approved || $passenger->served ? 'disabled' : '' ?>
-                                    value="<?= esc_attr($passenger->id) ?>" name="transfer_passengers[]"
-                                    id="transfer-check-<?= esc_attr($passenger->id) ?>">
+                                <input type="checkbox" <?= $passenger->canTransfer() === false ? 'disabled' : '' ?>
+                                    data-id="<?= $passenger->id ?>" data-spinner-id="spinner-input-<?= $passenger->id ?>"
+                                    data-nonce="<?= git_create_nonce() ?>" class="checkbox-transfer"
+                                    id="transfer-check-<?= $passenger->id ?>" <?= FormTransfer::passengerInList($passenger->id) ? 'checked' : '' ?>>
+                                <span id="spinner-input-<?= $passenger->id ?>" class="spinner" style="margin: 0;"></span>
                             </td>
                             <td>
-                                <label for="transfer-check-<?= esc_attr($passenger->id) ?>">
-                                    <?= esc_html($passenger->name) ?>
+                                <label for="transfer-check-<?= $passenger->id ?>">
+                                    <?= $passenger->name ?>
                                 </label>
                                 <div class="row-actions visible">
                                     <span>ID: <?= esc_html($passenger->id) ?></span>
@@ -348,7 +351,7 @@ final class TablePassengers implements DisplayerInterface
                                     <span> | </span>
                                     <span>
                                         <a class="git-row-action-link" target="_blank"
-                                            href="<?= admin_url("admin.php?page=central_activity&tab=passengers&id={$passenger->id}") ?>">
+                                            href="<?= AdminRouter::get_url_for_class(TablePassengersLog::class, ['id' => $passenger->id]) ?>">
                                             Logs
                                         </a>
                                     </span>
@@ -366,9 +369,9 @@ final class TablePassengers implements DisplayerInterface
                                     </span>
                                 </div>
                             </td>
-                            <td><?= esc_html($passenger->nationality) ?></td>
-                            <td><?= esc_html($passenger->typeDocument) ?></td>
-                            <td><?= esc_html($passenger->dataDocument) ?></td>
+                            <td><?= $passenger->nationality ?></td>
+                            <td><?= $passenger->typeDocument ?></td>
+                            <td><?= $passenger->dataDocument ?></td>
                             <td><?= $passenger->served ? 'Sí' : 'No' ?></td>
                             <td><?= $passenger->approved ? 'Sí' : 'No' ?></td>
                         </tr>
@@ -386,20 +389,20 @@ final class TablePassengers implements DisplayerInterface
                                             <tbody>
                                                 <tr>
                                                     <td><b>Origen:</b></td>
-                                                    <td><?= esc_html($passenger->getRoute()->getOrigin()->name) ?></td>
+                                                    <td><?= $passenger->getRoute()->getOrigin()->name ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><b>Destino:</b></td>
-                                                    <td><?= esc_html($passenger->getRoute()->getDestiny()->name) ?></td>
+                                                    <td><?= $passenger->getRoute()->getDestiny()->name ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><b>Hora:</b></td>
-                                                    <td><?= git_time_format($passenger->getRoute()->getDepartureTime()->format()) ?>
+                                                    <td><?= $passenger->getRoute()->getDepartureTime()->pretty() ?>
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td><b>Fecha:</b></td>
-                                                    <td><?= git_date_format($passenger->getDateTrip()->format('Y-m-d')) ?></td>
+                                                    <td><?= $passenger->getDateTrip()->pretty() ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><b>Transporte:</b></td>
@@ -413,11 +416,10 @@ final class TablePassengers implements DisplayerInterface
                                     data-parent="#actions-container-<?= $passenger->id ?>">
                                     <div class="git-item">
                                         <div style="padding: 20px; text-align: center;">
-                                            <img src="<?= git_get_ticket_viewer_url($passenger->getTicket()->id, 250) ?>"
-                                                alt="Código QR">
+                                            <?php $url = git_get_ticket_viewer_qr_url($passenger->getTicket()->id); ?>
+                                            <?= git_qr_code(git_qr_data_url($url), ['size' => 250])->compact() ?>
                                         </div>
-                                        <a href="<?= git_get_ticket_viewer_qr_url($passenger->getTicket()->id) ?>"
-                                            target="_blank"><?= git_get_ticket_viewer_qr_url($passenger->getTicket()->id) ?></a>
+                                        <a href="<?= $url ?>" target="_blank"><?= $url ?></a>
                                     </div>
                                 </div>
                             </td>
@@ -427,6 +429,53 @@ final class TablePassengers implements DisplayerInterface
             </table>
             <?php $pagination->render() ?>
         </div>
+        <?php
+        $this->scriptTranferList();
+    }
+
+    private function scriptTranferList()
+    {
+        $urlAjax = add_query_arg(
+            ['action' => 'git_add_passenger_to_list_transfer'],
+            admin_url('admin-ajax.php')
+        );
+        ?>
+        <script>
+            jQuery(document).ready(($) => {
+                $('.checkbox-transfer').on('change', (checkbox) => {
+                    const dataset = checkbox.target.dataset;
+                    const $spinner = $(`#${dataset.spinnerId}`);
+
+                    const toggleCheckbox = () => {
+                        $spinner.toggleClass('is-active');
+                        if ($spinner.hasClass('is-active')) {
+                            $(checkbox.target).css('display', 'none');
+                        } else {
+                            $(checkbox.target).css('display', 'inline-block');
+                        }
+                    }
+
+                    const passengerId = dataset.id;
+                    const nonce = dataset.nonce;
+                    const isChecked = checkbox.target.checked;
+                    toggleCheckbox();
+
+                    $.ajax({
+                        url: '<?= $urlAjax ?>',
+                        method: 'POST',
+                        data: {
+                            id: passengerId,
+                            nonce: nonce,
+                            add_transfer: isChecked ? 1 : 0
+                        },
+                        success: (response) => {
+                            toggleCheckbox();
+                            checkbox.target.checked = response.data.in_list;
+                        }
+                    });
+                });
+            });
+        </script>
         <?php
     }
 }

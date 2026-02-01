@@ -13,7 +13,7 @@ enum LogSource
     case TRANSPORT;
     case PASSENGER;
 
-    public function label(): string
+    public function slug()
     {
         return match ($this) {
             self::ZONE => 'zones',
@@ -25,6 +25,7 @@ enum LogSource
             self::LOCATION => 'locations',
             self::TRANSPORT => 'transports',
             self::PASSENGER => 'passengers',
+            default => $this->name
         };
     }
 }

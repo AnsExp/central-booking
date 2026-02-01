@@ -1,6 +1,7 @@
 <?php
 namespace CentralBooking\Admin\View;
 
+use CentralBooking\Admin\AdminRouter;
 use CentralBooking\Data\Constants\LogSource;
 use CentralBooking\Data\Services\LogService;
 use CentralBooking\GUI\DisplayerInterface;
@@ -11,18 +12,18 @@ final class TableTicketsLog implements DisplayerInterface
     public function render()
     {
         $logs = LogService::get_logs_with_pagination(
-            source: LogSource::TICKET->label(),
+            source: LogSource::TICKET->slug(),
             id_source: $_GET['id'] ?? 0,
             page: $_GET['page_number'] ?? 1,
             per_page: $_GET['page_size'] ?? 10
         );
         $pagination = new PaginationComponent();
-        $pagination->set_data(
+        $pagination->setData(
             $logs['pagination']['total_items'],
             $logs['pagination']['current_page'],
             $logs['pagination']['total_pages'],
         );
-        $pagination->set_links(
+        $pagination->setLinks(
             link_first: add_query_arg(['page_number' => 1, 'page_size' => $logs['pagination']['per_page']]),
             link_prev: add_query_arg(['page_number' => $logs['pagination']['current_page'] - 1, 'page_size' => $logs['pagination']['per_page']]),
             link_next: add_query_arg(['page_number' => $logs['pagination']['current_page'] + 1, 'page_size' => $logs['pagination']['per_page']]),
@@ -53,10 +54,11 @@ final class TableTicketsLog implements DisplayerInterface
                             </td>
                             <td>
                                 <?php
+                                echo $log->message;
                                 if ($log->id_source) {
                                     echo '<div class="row-actions visible">';
                                     echo '<span class="dashicons dashicons-info"></span> ';
-                                    echo '<a target="_blank" href="' . esc_url(admin_url('admin.php?page=central_tickets&id=' . $log->id_source)) . '">Ver registro</a>';
+                                    echo '<a target="_blank" href="' . esc_url(AdminRouter::get_url_for_class(TableTickets::class,['id'=>$log->id_source])) . '">Ver registro</a>';
                                     echo '</div>';
                                 }
                                 ?>

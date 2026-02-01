@@ -1,13 +1,11 @@
 <?php
 namespace CentralBooking\Implementation\GUI;
 
-use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Data\Route;
-use CentralBooking\Data\Services\TransportService;
 use CentralBooking\Data\Transport;
-use CentralBooking\GUI\SelectComponent;
 
-class SelectorRouteCombine
+final class SelectorRouteCombine
 {
     /**
      * @var array<Transport>
@@ -32,7 +30,7 @@ class SelectorRouteCombine
 
     public function get_transport_select(string $name = 'transport')
     {
-        $select_component = new SelectComponent($name);
+        $select_component = git_select_field(['name' => $name]);
         $select_component->setRequired(true);
         $select_component->attributes->set('target', "selector_route_transport_$this->id");
         $select_component->addOption('Seleccione...', '');
@@ -50,7 +48,7 @@ class SelectorRouteCombine
 
     public function get_origin_select(string $name = 'origin')
     {
-        $select_component = new SelectComponent($name);
+        $select_component = git_select_field(['name' => $name]);
         $select_component->setRequired(true);
         $select_component->attributes->set('target', "selector_route_origin_$this->id");
         $select_component->addOption('Seleccione...', '');
@@ -62,7 +60,7 @@ class SelectorRouteCombine
 
     public function get_destiny_select(string $name = 'destiny')
     {
-        $select_component = new SelectComponent($name);
+        $select_component = git_select_field(['name' => $name]);
         $select_component->setRequired(true);
         $select_component->attributes->set('target', "selector_route_destiny_$this->id");
         $select_component->addOption('Seleccione...', '');
@@ -80,14 +78,14 @@ class SelectorRouteCombine
 
     public function get_time_select(string $name = 'time')
     {
-        $select_component = new SelectComponent($name);
+        $select_component = git_select_field(['name' => $name]);
         $select_component->setRequired(true);
         $select_component->attributes->set('target', "selector_route_time_$this->id");
         $select_component->addOption('Seleccione...', '');
         foreach ($this->get_time_data() as $time) {
             $class = array_map(fn($route) => "show_if_origin_{$route['origin']}_destiny_{$route['destiny']}", $time['routes']);
             $select_component->addOption(
-                git_time_format($time['time']),
+                git_time_create($time['time'])->pretty(),
                 $time['time'],
                 false,
                 ['class' => $class]
@@ -187,13 +185,15 @@ class SelectorRouteCombine
         if (!empty($this->transports)) {
             return $this->transports;
         }
-        if (git_current_user_has_role(UserConstants::OPERATOR)) {
-            $this->transports = (new TransportService)->find(
-                args: ['id_operator' => get_current_user_id()],
-                orderBy: 'nicename',
-            )->getItems();
+        if (git_current_user_has_role(UserRole::OPERATOR)) {
+            $this->transports = git_transports([
+                'id_operator' => get_current_user_id(),
+                'order_by' => 'nicename',
+            ]);
         } else {
-            $this->transports = (new TransportService)->find(orderBy: 'nicename')->getItems();
+            $this->transports = git_transports([
+                'order_by' => 'nicename',
+            ]);
         }
         return $this->transports;
     }

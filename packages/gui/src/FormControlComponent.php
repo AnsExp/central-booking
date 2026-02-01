@@ -24,7 +24,7 @@ abstract class FormControlComponent extends StandaloneComponent
         return $label;
     }
 
-    public function disabled(bool $disabled)
+    public function setDisabled(bool $disabled)
     {
         if ($disabled) {
             $this->attributes->set('disabled', '');

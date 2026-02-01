@@ -27,4 +27,18 @@ final class Date
 	{
 		return new Date();
 	}
+
+	public function pretty(bool $short = false)
+	{
+		$months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+		$months_short = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+		$day = date_format($this->date, 'j');
+		$month_num = (int) date_format($this->date, 'n');
+		$year = date_format($this->date, 'Y');
+		if ($short) {
+			return "{$day} {$months_short[$month_num - 1]}, {$year}";
+		} else {
+			return "{$day} de {$months[$month_num - 1]}, {$year}";
+		}
+	}
 }

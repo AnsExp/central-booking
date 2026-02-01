@@ -13,6 +13,8 @@
 
 namespace CentralBooking\Data;
 
+use Exception;
+
 /**
  * ProofPayment represents a proof of payment document or evidence.
  * 
@@ -76,18 +78,40 @@ final class ProofPayment
     public function __construct(
         /** @var string The original filename of the uploaded proof document */
         public string $filename = '',
-        
+
         /** @var string The accessible URL where the proof document can be viewed/downloaded */
         public string $url = '',
-        
+
         /** @var string The transaction reference code or payment identifier */
         public string $code = '',
-        
+
         /** @var int The payment amount in smallest currency unit (cents) */
         public int $amount = 0,
-        
+
         /** @var Date The date when the payment was executed */
         public Date $date,
     ) {
+    }
+
+    public function saveFile(array $file)
+    {
+        $original_name = $file['name'];
+        $unique_name = $this->generateUniqueFilename($original_name);
+        $upload_dir = wp_upload_dir();
+        $destination = $upload_dir['path'] . '/' . $unique_name;
+        if (move_uploaded_file($file['tmp_name'], $destination) === false) {
+            return false;
+        }
+        $this->url = $upload_dir['url'] . '/' . $unique_name;
+        return true;
+    }
+
+    private function generateUniqueFilename(string $original_name)
+    {
+        $extension = pathinfo($original_name, PATHINFO_EXTENSION);
+        $microtime = microtime(true);
+        $timestamp = date('dHis', intval($microtime));
+        $milliseconds = sprintf('%03d', ($microtime - intval($microtime)) * 1000);
+        return "$timestamp$milliseconds.$extension";
     }
 }

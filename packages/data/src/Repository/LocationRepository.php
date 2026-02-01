@@ -17,15 +17,15 @@ final class LocationRepository
     {
     }
 
-    public function save(Location $entity)
+    public function save(Location $location)
     {
-        $data = ['name' => $entity->name];
+        $data = ['name' => $location->name];
         $formats = ['%s'];
-        if ($this->exists($entity->id)) {
+        if ($this->exists($location->id)) {
             $this->wpdb->update(
                 $this->getTable(),
                 $data,
-                ['id' => $entity->id],
+                ['id' => $location->id],
                 $formats,
                 ['%d']
             );
@@ -35,21 +35,22 @@ final class LocationRepository
                 $data,
                 $formats
             );
-            $entity->id = $this->wpdb->insert_id;
+            $location->id = $this->wpdb->insert_id;
             MetaManager::setMeta(
                 MetaManager::LOCATION,
-                $entity->id,
+                $location->id,
                 'type',
                 'location'
             );
         }
         MetaManager::setMeta(
             MetaManager::LOCATION,
-            $entity->id,
+            $location->id,
             'parent_zone',
-            $entity->getZone()->id
+            $location->getZone()->id
         );
-        return $entity;
+        $location->saveMeta();
+        return $location;
     }
 
     private function getTable()
@@ -65,11 +66,11 @@ final class LocationRepository
     private function exists(int $id): bool
     {
         $tableName = $this->getTable();
-        $sql = "SELECT COUNT(id) from {$tableName} WHERE id = %d";
+        $sql = "SELECT COUNT(id) FROM {$tableName} WHERE id = %d";
         $result = $this->wpdb->get_var(
             $this->wpdb->prepare($sql, $id)
         );
-        return $result !== false;
+        return $result > 0;
     }
 
     /**
@@ -161,10 +162,16 @@ final class LocationRepository
         int $limit = -1,
         int $offset = 0
     ) {
-        $locationsTable = $this->getTable();
         $metaTable = $this->formatTable('git_meta');
+        $locationsTable = $this->formatTable('git_locations');
 
-        $sql = "SELECT l.id AS id, l.name AS name FROM {$locationsTable} l LEFT JOIN {$metaTable} m ON l.id = m.meta_id WHERE m.meta_type = %s AND m.meta_key = %s AND m.meta_value = %s";
+        $sql = "SELECT l.*
+        FROM {$locationsTable} l
+        LEFT JOIN {$metaTable} m ON l.id = m.meta_id
+        WHERE m.meta_type = %s
+        AND m.meta_key = %s
+        AND m.meta_value = %s";
+
         $sql = $this->wpdb->prepare(
             $sql,
             MetaManager::LOCATION,
@@ -221,7 +228,7 @@ final class LocationRepository
             args: $args,
             limit: -1
         );
-        $sql = substr($sql, 33);
+        $sql = substr($sql, 10);
         $sql = "SELECT COUNT(id) {$sql}";
         git_set_setting('sample', $sql);
         $results = $wpdb->get_var($sql);

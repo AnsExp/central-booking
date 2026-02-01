@@ -1,29 +1,50 @@
 <?php
 namespace CentralBooking\Data\Constants;
 
-use CentralBooking\Admin\Setting\SettingsTexts;
+use CentralBooking\Admin\Setting\SettingsKeys;
 
-enum TicketStatus: string
+enum TicketStatus
 {
-    case CANCEL = 'cancel';
-    case PAYMENT = 'payment';
-    case PENDING = 'pending';
-    case PARTIAL = 'partial';
-    case PERORDER = 'perorder';
+    case NONE;
+    case CANCEL;
+    case PAYMENT;
+    case PENDING;
+    case PARTIAL;
+    case PERORDER;
 
     public function label()
     {
-        $text = SettingsTexts::getTextStatus($this);
-        if ($text !== null) {
-            return $text;
-        }
         return match ($this) {
-            self::CANCEL => 'Anulado',
-            self::PAYMENT => 'Pagado',
-            self::PARTIAL => 'Parcial',
-            self::PENDING => 'Pendiente',
-            self::PERORDER => 'Preorden',
-            default => $this->value
+            self::CANCEL => git_get_setting(SettingsKeys::LABEL_TICKET_CANCEL, 'Anulado'),
+            self::PAYMENT => git_get_setting(SettingsKeys::LABEL_TICKET_PAYMENT, 'Pagado'),
+            self::PARTIAL => git_get_setting(SettingsKeys::LABEL_TICKET_PARTIAL, 'Parcial'),
+            self::PENDING => git_get_setting(SettingsKeys::LABEL_TICKET_PENDING, 'Pendiente'),
+            self::PERORDER => git_get_setting(SettingsKeys::LABEL_TICKET_PREORDER, 'Preorden'),
+            default => $this->name
+        };
+    }
+
+    public function slug()
+    {
+        return match ($this) {
+            self::CANCEL => 'cancel',
+            self::PAYMENT => 'payment',
+            self::PARTIAL => 'partial',
+            self::PENDING => 'pending',
+            self::PERORDER => 'preorder',
+            default => $this->name
+        };
+    }
+
+    public static function fromSlug(string $slug)
+    {
+        return match ($slug) {
+            'cancel' => self::CANCEL,
+            'payment' => self::PAYMENT,
+            'partial' => self::PARTIAL,
+            'pending' => self::PENDING,
+            'preorder' => self::PERORDER,
+            default => null
         };
     }
 }

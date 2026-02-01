@@ -35,22 +35,9 @@ final class Time
 		return $this->totalSeconds;
 	}
 
-	public function format(string $format = 'H:i:s'): string
+	public function format(string $format = 'H:i:s')
 	{
-		$absSeconds = abs($this->totalSeconds);
-		$hours = intdiv($absSeconds, 3600);
-		$minutes = intdiv($absSeconds % 3600, 60);
-		$seconds = $absSeconds % 60;
-		$formatted = str_replace(
-			['H', 'i', 's'],
-			[
-				str_pad((string)$hours, 2, '0', STR_PAD_LEFT),
-				str_pad((string)$minutes, 2, '0', STR_PAD_LEFT),
-				str_pad((string)$seconds, 2, '0', STR_PAD_LEFT)
-			],
-			$format
-		);
-		return ($this->totalSeconds < 0 ? '-' : '') . $formatted;
+		return date($format, $this->totalSeconds + 3600 * 24);
 	}
 
 	public function add(int $hours = 0, int $minutes = 0, int $seconds = 0): self
@@ -100,9 +87,9 @@ final class Time
 		if (!ctype_digit($h) || !ctype_digit($m) || !ctype_digit($s)) {
 			throw new \InvalidArgumentException('HH, MM y SS deben ser números enteros no negativos');
 		}
-		$hours = (int)$h; // puede ser >= 24
-		$minutes = (int)$m;
-		$seconds = (int)$s;
+		$hours = (int) $h; // puede ser >= 24
+		$minutes = (int) $m;
+		$seconds = (int) $s;
 		if ($minutes < 0 || $minutes > 59) {
 			throw new \InvalidArgumentException('MM debe estar entre 0 y 59');
 		}
@@ -110,5 +97,10 @@ final class Time
 			throw new \InvalidArgumentException('SS debe estar entre 0 y 59');
 		}
 		return $sign * (($hours * 3600) + ($minutes * 60) + $seconds);
+	}
+
+	public function pretty()
+	{
+		return $this->format('H:i a');
 	}
 }

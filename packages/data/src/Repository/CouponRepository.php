@@ -15,9 +15,6 @@ class CouponRepository
             'coupon_assigned_operator',
             $operator->getUser()->ID
         );
-        // $coupons = $operator->getCoupons();
-        // foreach ($coupons as $existingCoupon) {
-        // }
         return $coupon;
     }
 

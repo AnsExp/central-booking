@@ -148,9 +148,6 @@ class ZoneRepository
         int $limit = 10,
         int $offset = 0
     ) {
-        $limit = absint($limit);
-        $offset = absint($offset);
-
         $metaTable = $this->formatTable(DatabaseTable::TABLE_META->value);
         $locationsTable = $this->formatTable(DatabaseTable::TABLE_LOCATIONS->value);
 
@@ -185,11 +182,18 @@ class ZoneRepository
             $sql .= " ORDER BY {$orders[$orderBy]} {$order}";
         }
 
-        $sql .= $this->wpdb->prepare(
-            " LIMIT %d OFFSET %d",
-            $limit,
-            $offset
-        );
+        if ($limit > 0) {
+            $sql .= $this->wpdb->prepare(
+                " LIMIT %d",
+                $limit,
+            );
+            if ($offset > 0) {
+                $sql .= $this->wpdb->prepare(
+                    " OFFSET %d",
+                    $offset
+                );
+            }
+        }
 
         return $sql;
     }

@@ -1,12 +1,9 @@
 <?php
 namespace CentralBooking\Implementation\GUI;
 
-use CentralBooking\Data\Repository\CouponRepository;
-use CentralBooking\GUI\MultipleSelectComponent;
-use CentralBooking\GUI\SelectComponent;
 use WP_Post;
 
-class CouponSelect
+final class CouponSelect
 {
     /**
      * @var array<WP_Post>
@@ -16,13 +13,13 @@ class CouponSelect
     public function __construct(private string $name = 'coupon', ?int $operator = null)
     {
         if ($operator === null) {
-            $this->coupons = (new CouponRepository)->findAll();
+            $this->coupons = git_coupons();
         } else {
             $operator = git_operator_by_id($operator);
             if ($operator === null) {
                 $this->coupons = [];
             } else {
-                $this->coupons = (new CouponRepository)->findCouponsByOperator($operator);
+                $this->coupons = $operator->getCoupons();
             }
         }
     }
@@ -30,9 +27,7 @@ class CouponSelect
     public function create(bool $multiple = false)
     {
 
-        $selectComponent = $multiple
-            ? new MultipleSelectComponent($this->name)
-            : new SelectComponent($this->name);
+        $selectComponent = $multiple ? git_multiselect_field(['name' => $this->name]) : git_select_field(['name' => $this->name]);
 
         $selectComponent->addOption('Seleccione...', '');
 

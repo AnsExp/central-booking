@@ -167,18 +167,31 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
         ]);
 
         $this->add_placeholder('qr_ticket', function (array $params) {
-            $size = 350;
-            if (str_contains($params['size'] ?? '350', 'px')) {
-                $size = (int) str_replace('px', '', $params['size']);
-            }
-            $url = git_get_ticket_viewer_url($this->passenger->getTicket()->id, $size);
-            if ($url === null) {
+            $size = (int) ($params['size'] ?? 350);
+            $ecc = $params['ecc'] ?? 'low';
+            $color = $params['color'] ?? '#000000';
+            $bg_color = $params['bg_color'] ?? '#FFFFFF';
+
+            $ticket_viewer_page = git_get_ticket_viewer_page();
+
+            if ($ticket_viewer_page === null) {
                 return 'QR no disponible';
             }
-            $img = new StandaloneComponent('img');
-            $img->attributes->set('src', $url);
-            $img->attributes->set('alt', 'Código QR del Ticket');
-            return $img->compact();
+
+            $data = add_query_arg('data', $this->passenger->getTicket()->id, $ticket_viewer_page);
+
+            $img_url = git_qr_code(
+                git_qr_data_url($data),
+                [
+                    'margin' => 0,
+                    'size' => $size,
+                    'ecc' => $ecc,
+                    'color_hex' => $color,
+                    'bg_color_hex' => $bg_color
+                ]
+            );
+
+            return $img_url->compact();
         });
         $this->add_description('qr_ticket', [
             'title' => 'Código QR del Ticket',
@@ -192,7 +205,46 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
                             'description' => 'Tamaño del código QR en píxeles (ej. 350px)'
                         ]
                     ]
-                ]
+                ],
+                [
+                    'param' => 'color',
+                    'values' => [
+                        [
+                            'value' => '#000000',
+                            'description' => 'Color del código QR en formato hexadecimal. Por defecto es negro (#000000).'
+                        ]
+                    ]
+                ],
+                [
+                    'param' => 'bg_color',
+                    'values' => [
+                        [
+                            'value' => '#FFFFFF',
+                            'description' => 'Color de fondo del código QR en formato hexadecimal. Por defecto es blanco (#FFFFFF).'
+                        ]
+                    ]
+                ],
+                [
+                    'param' => 'ecc',
+                    'values' => [
+                        [
+                            'value' => 'low',
+                            'description' => 'Nivel de corrección de errores del código QR bajo (Por defecto).'
+                        ],
+                        [
+                            'value' => 'medium',
+                            'description' => 'Nivel de corrección de errores del código QR medio.'
+                        ],
+                        [
+                            'value' => 'quartile',
+                            'description' => 'Nivel de corrección de errores del código QR cuartil.'
+                        ],
+                        [
+                            'value' => 'high',
+                            'description' => 'Nivel de corrección de errores del código QR alto.'
+                        ],
+                    ]
+                ],
             ],
         ]);
 
@@ -254,7 +306,7 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
             'code' => $this->passenger->getTransport()->code,
             'type' => $this->passenger->getTransport()->type,
             'name' => $this->passenger->getTransport()->nicename,
-            'capacity' => $this->passenger->getTransport()->getMeta('capacity') ?? 0,
+            'capacity' => $this->passenger->getTransport()->getCapacity(),
             'operator_name' => $this->passenger->getTransport()->getOperator()->getUser()->first_name . ' ' . $this->passenger->getTransport()->getOperator()->getUser()->last_name,
             default => '',
         });
@@ -352,11 +404,8 @@ final class PlaceholderEnginePassenger extends PlaceholderEngine
             $format = $params['format'] ?? 'H:i';
 
             return match ($type) {
-                'departure' => $route->departureTime
-                ? date($format, $route->getDepartureTime()->format())
-                : 'Hora de salida no disponible',
-
-                'arrival' => $this->calculate_arrival_time($route, $format),
+                'departure' => $route->departureTime ? $route->getDepartureTime()->format($format) : 'Hora de salida no disponible',
+                'arrival' => $route->departureTime ? $route->getArrivalTime()->format($format) : 'Hora de llegada no disponible',
 
                 'duration' => $route->getArrivalTime()->diff($route->getDepartureTime())
                 ? $this->format_duration($route->getArrivalTime()->format(), $params['duration_format'] ?? 'text')

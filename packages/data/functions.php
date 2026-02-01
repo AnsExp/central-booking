@@ -4,7 +4,7 @@ use CentralBooking\Data\Constants\LogLevel;
 use CentralBooking\Data\Constants\LogSource;
 use CentralBooking\Data\Constants\PassengerConstants;
 use CentralBooking\Data\Constants\TicketStatus;
-use CentralBooking\Data\Constants\TransportConstants;
+use CentralBooking\Data\Constants\TypeOperation;
 use CentralBooking\Data\Constants\TransportCustomeFieldConstants;
 use CentralBooking\Data\Date;
 use CentralBooking\Data\Location;
@@ -13,19 +13,21 @@ use CentralBooking\Data\Operator;
 use CentralBooking\Data\Passenger;
 use CentralBooking\Data\ProofPayment;
 use CentralBooking\Data\Repository\CouponRepository;
-use CentralBooking\Data\Repository\OperatorRepository;
 use CentralBooking\Data\Repository\ResultSet;
 use CentralBooking\Data\Repository\ResultSetInterface;
 use CentralBooking\Data\Route;
+use CentralBooking\Data\SecretKey;
 use CentralBooking\Data\Serializer;
 use CentralBooking\Data\Service;
 use CentralBooking\Data\Services\ErrorService;
 use CentralBooking\Data\Services\LocationService;
 use CentralBooking\Data\Services\LogItem;
 use CentralBooking\Data\Services\LogService;
+use CentralBooking\Data\Services\OperatorService;
 use CentralBooking\Data\Services\PassengerService;
 use CentralBooking\Data\Services\RouteService;
 use CentralBooking\Data\Services\ServiceService;
+use CentralBooking\Data\Services\TemporalService;
 use CentralBooking\Data\Services\TicketService;
 use CentralBooking\Data\Services\TransportService;
 use CentralBooking\Data\Services\ZoneService;
@@ -34,23 +36,58 @@ use CentralBooking\Data\Time;
 use CentralBooking\Data\Transport;
 use CentralBooking\Data\Zone;
 
+function git_temporal_service()
+{
+    if (!isset($GLOBALS['_git_temporal_service']) || !($GLOBALS['_git_temporal_service'] instanceof TemporalService)) {
+        $GLOBALS['_git_temporal_service'] = new TemporalService();
+    }
+    return $GLOBALS['_git_temporal_service'];
+}
+
 function git_assign_coupon_to_operator(Operator $operator, WP_Post $coupon)
 {
     return (new CouponRepository)->assignCouponToOperator($coupon, $operator);
 }
 
+function git_assign_url_brand_media_to_coupon(WP_Post $coupon, string $url_logo)
+{
+    if (filter_var($url_logo, FILTER_VALIDATE_URL)) {
+        MetaManager::setMeta(MetaManager::COUPON, $coupon->ID, 'logo_sale', $url_logo);
+    }
+}
+
+function git_recover_url_brand_media_from_coupon(WP_Post $coupon)
+{
+    $result = MetaManager::getMeta(MetaManager::COUPON, $coupon->ID, 'logo_sale');
+    if ($result === null) {
+        return CENTRAL_BOOKING_URL . '/assets/img/logo-placeholder.png';
+    }
+    return (string) $result;
+}
+
+function git_time_create(string $hhmmss = 'now')
+{
+    return new Time($hhmmss);
+}
+
 function git_operator_by_coupon(WP_Post $coupon)
 {
-    $operator_id = get_post_meta($coupon->ID, 'coupon_assigned_operator', true);
-    if ($operator_id) {
-        return git_operator_by_id((int) $operator_id);
-    }
-    return null;
+    return OperatorService::getInstance()->findByCoupon($coupon);
+}
+
+function git_operators()
+{
+    return OperatorService::getInstance()->findAll();
+}
+
+function git_operator_save(Operator $operator)
+{
+    return OperatorService::getInstance()->save($operator);
 }
 
 function git_operator_by_id(int $id)
 {
-    return (new OperatorRepository)->findById($id);
+    return OperatorService::getInstance()->findById($id);
 }
 
 function git_routes_result_set(array $args = [])
@@ -65,7 +102,7 @@ function git_routes_result_set(array $args = [])
     if (isset($args['offset']) && is_int($args['offset'])) {
         $offset = intval($args['offset']);
     }
-    return (new RouteService)->find($args, $limit, $offset, $orderBy, $order);
+    return RouteService::getInstance()->find($args, $limit, $offset, $orderBy, $order);
 }
 
 function git_routes(array $args = [])
@@ -84,6 +121,15 @@ function git_route_by_id(int $id)
     return null;
 }
 
+function git_route_save(Route|array $data)
+{
+    if (is_array($data)) {
+        $ticket = git_route_create($data);
+        return RouteService::getInstance()->save($ticket);
+    }
+    return RouteService::getInstance()->save($data);
+}
+
 function git_ticket_by_id(int $id)
 {
     $result = git_tickets(['id' => $id]);
@@ -95,21 +141,8 @@ function git_ticket_by_id(int $id)
 
 function git_ticket_save(Ticket|array $data)
 {
-    if (is_array($data)) {
-        $ticket = git_ticket_create($data);
-        return TicketService::getInstance()->save($ticket);
-    }
-    return TicketService::getInstance()->save($data);
-}
-
-function git_ticket_toggle_flexible(Ticket|int $ticket, ?bool $force = null)
-{
-    $ticketObj = is_int($ticket) ? git_ticket_by_id($ticket) : $ticket;
-    if ($ticketObj === null) {
-        return ErrorService::TICKET_NOT_FOUND;
-    }
-    $ticketObj->flexible = $force === null ? !$ticketObj->flexible : $force;
-    return $ticketObj;
+    $ticket = is_array($data) ? git_ticket_create($data) : $data;
+    return TicketService::getInstance()->save($ticket);
 }
 
 function git_zone_by_name(string $name)
@@ -122,7 +155,7 @@ function git_zone_by_name(string $name)
 }
 
 /**
- * @param array{id:int,name:string,zone:Zone|int} $data
+ * @param array{id:int,name:string,zone_id:int,zone:Zone,meta:array<string,mixed>} $data
  * @return Location
  */
 function git_location_create(array $data = [])
@@ -130,15 +163,18 @@ function git_location_create(array $data = [])
     $location = new Location();
     $location->name = sanitize_text_field($data['name'] ?? '');
     $location->id = $data['id'] ?? 0;
-    if (isset($data['zone'])) {
-        if ($data['zone'] instanceof Zone) {
-            $location->setZone($data['zone']);
-        } elseif (is_int($data['zone'])) {
-            $zone = git_zone_by_id($data['zone']);
-            if ($zone !== null) {
-                $location->setZone($zone);
-            }
+
+    if (isset($data['zone_id'])) {
+        $zone = git_zone_by_id($data['zone_id']);
+        if ($zone !== null) {
+            $location->setZone($zone);
         }
+    } elseif (isset($data['zone']) && $data['zone'] instanceof Zone) {
+        $location->setZone($data['zone']);
+    }
+
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $location->setMeta($key, $value);
     }
     return $location;
 }
@@ -227,14 +263,17 @@ function git_zones(array $args = [])
 }
 
 /**
- * @param array{id:int,name:string} $data
+ * @param array{id:int,name:string,meta:array<string,mixed>} $data
  * @return Zone
  */
 function git_zone_create(array $data = [])
 {
     $zone = new Zone();
-    $zone->id = intval($data['id'] ?? '0');
+    $zone->id = (int) ($data['id'] ?? 0);
     $zone->name = sanitize_text_field($data['name'] ?? '');
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $zone->setMeta($key, $value);
+    }
     return $zone;
 }
 
@@ -342,13 +381,14 @@ function git_tickets_result_set(array $args = [])
  * - Sanitizes all input data for security
  * - Validates transport existence when using IDs
  * 
- * @param array{id:int,name:string,icon:string,price:int,transport_ids:int[],transports:array<Transport|array>} $data Service data with the following optional keys:
+ * @param array{id:int,name:string,icon:string,price:int,transport_ids:int[],transports:array<Transport|array>,meta:array<string,mixed>} $data Service data with the following optional keys:
  *   - `id` `(int)`: Service identifier
  *   - `name` `(string)`: Service display name
  *   - `icon` `(string)`: URL to service icon image
  *   - `price` `(int)`: Service base price in cents
  *   - `transport_ids` `(int[])`: Array of existing transport IDs to associate
  *   - `transports` `(Transport[]|array[])`: Array of Transport objects or data arrays for transport creation
+ *  - `meta` `(array<string,mixed>)`: Additional metadata for the service
  * 
  * @return Service The created Service instance with associated transports
  * 
@@ -375,10 +415,10 @@ function git_tickets_result_set(array $args = [])
 function git_service_create(array $data = [])
 {
     $service = new Service();
-    $service->id = (int) ($data['id'] ?? '0');
+    $service->id = (int) ($data['id'] ?? 0);
     $service->name = sanitize_text_field($data['name'] ?? '');
     $service->icon = sanitize_url($data['icon'] ?? '');
-    $service->price = intval($data['price'] ?? '0');
+    $service->price = (int) ($data['price'] ?? 0);
     $transports = [];
 
     if (isset($data['transport_ids']) && is_array($data['transport_ids'])) {
@@ -399,7 +439,13 @@ function git_service_create(array $data = [])
         }
     }
 
-    $service->setTransports($transports);
+    if ($transports !== []) {
+        $service->setTransports($transports);
+    }
+
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $service->setMeta($key, $value);
+    }
 
     return $service;
 }
@@ -421,7 +467,7 @@ function git_service_create(array $data = [])
  * - Validates and converts transport type from string to enum
  * - Ensures location existence when using IDs
  * 
- * @param array{id?:int,departure_time?:string|Time,arrival_time?:string|Time,type?:string|TransportConstants,origin_id?:int,origin?:Location|array,destiny_id?:int,destiny?:Location|array} $data Route data with the following optional keys:
+ * @param array{id?:int,departure_time?:string|Time,arrival_time?:string|Time,type?:string|TypeOperation,origin_id?:int,origin?:Location|array,destiny_id?:int,destiny?:Location|array,transports:array<Transport|array>,transports_id:int[],meta:array<string,mixed>} $data Route data with the following optional keys:
  *   - `id` (int): Route identifier
  *   - `departure_time` (string|Time): Departure time as 'HH:MM:SS' string or Time object
  *   - `arrival_time` (string|Time): Arrival time as 'HH:MM:SS' string or Time object
@@ -430,6 +476,7 @@ function git_service_create(array $data = [])
  *   - `origin` (Location|array): Location object or data array for origin creation
  *   - `destiny_id` (int): ID of existing destiny location  
  *   - `destiny` (Location|array): Location object or data array for destiny creation
+ *   - `meta` (array<string,mixed>): Additional metadata for the route
  * 
  * @return Route The created Route instance with associated locations and configured times
  * 
@@ -478,9 +525,9 @@ function git_route_create(array $data = [])
 
     if (isset($data['type'])) {
         if (is_string($data['type'])) {
-            $route->type = TransportConstants::tryFrom($data['type']) ??
-                TransportConstants::NONE;
-        } elseif ($data['type'] instanceof TransportConstants) {
+            $route->type = TypeOperation::fromSlug($data['type']) ??
+                TypeOperation::NONE;
+        } elseif ($data['type'] instanceof TypeOperation) {
             $route->type = $data['type'];
         }
     }
@@ -513,9 +560,40 @@ function git_route_create(array $data = [])
         }
     }
 
+    $transports = [];
+
+    if (isset($data['transports_id'])) {
+        foreach ($data['transports_id'] as $id) {
+            $transport = git_transport_by_id((int) $id);
+            if ($transport === null) {
+                continue;
+            }
+            $transports[] = $transport;
+        }
+    } elseif (isset($data['transports'])) {
+        foreach ($data['transports'] as $transport) {
+            if (is_array($transport)) {
+                $transports[] = git_transport_create($transport);
+            } elseif ($transport instanceof Transport) {
+                $transports[] = $transport;
+            }
+        }
+    }
+
+    if (($transports === []) === false) {
+        $route->setTransports($transports);
+    }
+
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $route->setMeta($key, $value);
+    }
+
     return $route;
 }
-
+/**
+ * @param array{id:int,code:string,nicename:string,type:string|TypeOperation,capacity:int,photo_url:string,operator_id:int,working_days:array<string>,custom_field:array{field:string|TransportCustomeFieldConstants,content:string},alias:array<string>,crew:array<array{name:string,role:string,contact:string,license:string}>,routes_id:array<int>,routes:array<Route|array>,services_id:array<int>,services:array<Service|array>,meta:array<string,mixed>} $data
+ * @return Transport
+ */
 function git_transport_create(array $data = [])
 {
     $transport = new Transport();
@@ -523,7 +601,7 @@ function git_transport_create(array $data = [])
     $transport->id = intval($data['id'] ?? '0');
     $transport->code = sanitize_text_field($data['code'] ?? '');
     $transport->nicename = $data['nicename'] ?? '';
-    $transport->type = TransportConstants::from($data['type'] ?? TransportConstants::MARINE->value);
+    $transport->type = TypeOperation::fromSlug($data['type'] ?? TypeOperation::NONE->slug());
     $transport->setCapacity(intval($data['capacity'] ?? '0'));
     $transport->setUrlPhoto(sanitize_url($data['photo_url'] ?? ''));
     $operator->setUser(new WP_User(intval($data['operator_id'] ?? '0')));
@@ -561,11 +639,56 @@ function git_transport_create(array $data = [])
         }
         $transport->setCrew($crew);
     }
+
+    $routes = [];
+    if (isset($data['routes_id']) && is_array($data['routes_id'])) {
+        foreach ($data['routes_id'] as $route_id) {
+            $route = git_route_by_id(intval($route_id));
+            if ($route !== null) {
+                $routes[] = $route;
+            }
+        }
+    } elseif (isset($data['routes']) && is_array($data['routes'])) {
+        foreach ($data['routes'] as $route_data) {
+            if ($route_data instanceof Route) {
+                $routes[] = $route_data;
+            } elseif (is_array($route_data)) {
+                $route = git_route_create($route_data);
+                $routes[] = $route;
+            }
+        }
+    }
+    $transport->setRoutes($routes);
+
+    $services = [];
+    if (isset($data['services_id']) && is_array($data['services_id'])) {
+        foreach ($data['services_id'] as $service_id) {
+            $service = git_service_by_id(intval($service_id));
+            if ($service !== null) {
+                $services[] = $service;
+            }
+        }
+    } elseif (isset($data['services']) && is_array($data['services'])) {
+        foreach ($data['services'] as $service_data) {
+            if ($service_data instanceof Service) {
+                $services[] = $service_data;
+            } elseif (is_array($service_data)) {
+                $service = git_service_create($service_data);
+                $services[] = $service;
+            }
+        }
+    }
+    $transport->setServices($services);
+
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $transport->setMeta($key, $value);
+    }
+
     return $transport;
 }
 
 /**
- * @param array{id:int,flexible:bool,total_amount:int,status:string|TicketStatus,order_id:int,order:WC_Order,coupon_id:int,coupon:WP_Post,client_id:int,client:WP_User,passengers:array<Passenger|array>,meta:array} $data
+ * @param array{id:int,flexible:bool,total_amount:int,status:string|TicketStatus,order_id:int,order:WC_Order,coupon_id:int,coupon:WP_Post,client_id:int,client:WP_User,passengers:array<Passenger|array>,meta:array<string,mixed>} $data
  * @return Ticket
  */
 function git_ticket_create(array $data)
@@ -579,8 +702,7 @@ function git_ticket_create(array $data)
         if ($data['status'] instanceof TicketStatus) {
             $ticket->status = $data['status'];
         } elseif (is_string($data['status'])) {
-            $ticket->status = TicketStatus::tryFrom($data['status'])
-                ?? TicketStatus::PENDING;
+            $ticket->status = TicketStatus::fromSlug($data['status']) ?? TicketStatus::PENDING;
         }
     }
 
@@ -624,20 +746,18 @@ function git_ticket_create(array $data)
     }
     $ticket->setPassengers($passengers);
 
-    if (isset($data['meta']) && is_array($data['meta'])) {
-        foreach ($data['meta'] as $key => $value) {
-            $ticket->setMeta($key, $value);
-        }
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $ticket->setMeta($key, $value);
     }
 
     return $ticket;
 }
 
 /**
- * @param array{id:int,name:string,nationality:string,type_document:string,data_document:string,type:string,served:bool,approved:bool,birthday:Date|string,date_trip:Date|string,route_id:int,route:Route,transport_id:int,transport:Transport} $data
+ * @param array{id:int,name:string,nationality:string,type_document:string,data_document:string,type:string,served:bool,approved:bool,birthday:Date|string,date_trip:Date|string,route_id:int,route:Route,transport_id:int,transport:Transport,meta:array<string,mixed>} $data
  * @return Passenger
  */
-function git_passenger_create(array $data)
+function git_passenger_create(array $data = [])
 {
     $passenger = new Passenger();
     $passenger->id = intval($data['id'] ?? 0);
@@ -673,6 +793,10 @@ function git_passenger_create(array $data)
         }
     }
 
+    foreach ($data['meta'] ?? [] as $key => $value) {
+        $passenger->setMeta($key, $value);
+    }
+
     return $passenger;
 }
 
@@ -692,7 +816,7 @@ function git_locations_result_set(array $args = [])
     if (isset($args['offset']) && is_int($args['offset'])) {
         $offset = intval($args['offset']);
     }
-    return (new LocationService)->find($args, $orderBy, $order, $limit, $offset);
+    return LocationService::getInstance()->find($args, $orderBy, $order, $limit, $offset);
 }
 
 function git_locations(array $args = [])
@@ -751,6 +875,21 @@ function git_get_map_setting(string $key, mixed $default = null)
     return $map;
 }
 
+function git_get_secret_key()
+{
+    return SecretKey::getInstance()->get();
+}
+
+function git_set_secret_key(string $key)
+{
+    return SecretKey::getInstance()->set($key);
+}
+
+function git_check_secret_key(string $key)
+{
+    return SecretKey::getInstance()->check($key);
+}
+
 /**
  * Transforma una cadena a cualquier tipo de dato.
  * @param string $value Cadena a parsear.
@@ -773,7 +912,7 @@ function git_serialize(mixed $value): string
 }
 
 /**
- * @param array{filename:string,url:string,code:string,amount:int,date:Date} $data
+ * @param array{filename:string,url:string,code:string,total_amount:int,date:Date} $data
  * @return ProofPayment
  */
 function git_proof_payment_create(array $data = [])
@@ -782,7 +921,7 @@ function git_proof_payment_create(array $data = [])
         filename: sanitize_text_field($data['filename'] ?? ''),
         url: sanitize_url($data['url'] ?? ''),
         code: sanitize_text_field($data['code'] ?? ''),
-        amount: intval($data['amount'] ?? 0),
+        amount: intval($data['total_amount'] ?? 0),
         date: new Date($data['date'] ?? date('Y-m-d')),
     );
     return $proofPayment;
@@ -883,9 +1022,11 @@ function git_transport_check_availability(Transport|int $transport, Route|int $r
 function git_passenger_transfer(Passenger|int $passenger, Route|int $route, Transport|int $transport, Date $date_trip)
 {
     $passengerObj = is_int($passenger) ? git_passenger_by_id($passenger) : $passenger;
+
     if ($passengerObj === null) {
         return ErrorService::PASSENGER_NOT_FOUND;
     }
+
     if ($passengerObj->getTicket()->flexible === false) {
         return ErrorService::TICKET_NOT_FLEXIBLE;
     }
@@ -938,7 +1079,7 @@ function git_location_save(Location|array $data)
 function git_log_create(LogSource $source, int $id_source, string $message, LogLevel $level)
 {
     LogService::create_git_log(
-        source: $source->label(),
+        source: $source->slug(),
         id_source: $id_source,
         message: $message,
         level: $level->label(),
@@ -967,7 +1108,7 @@ function git_log_result_set(array $args = [])
     $offset = $args['offset'] ?? 0;
     $pagination = LogService::get_logs_with_pagination(
         level: isset($args['level']) ? $args['level']->label() : '',
-        source: isset($args['source']) ? $args['source']->label() : '',
+        source: isset($args['source']) ? $args['source']->slug() : '',
         date_from: isset($args['date_from']) ? $args['date_from']->format('Y-m-d') : '',
         date_to: isset($args['date_to']) ? $args['date_to']->format('Y-m-d') : '',
         id_source: $args['id_source'] ?? 0,

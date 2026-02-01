@@ -1,12 +1,13 @@
 <?php
 namespace CentralBooking\Client;
 
+use CentralBooking\Admin\Setting\SettingsKeys;
 use CentralBooking\Data\Ticket;
 use CentralBooking\GUI\ComponentInterface;
 use CentralBooking\GUI\CompositeComponent;
 use CentralBooking\GUI\TextComponent;
-use CentralTickets\Placeholders\PlaceholderEngineTicket;
-use CentralTickets\Placeholders\PlaceholderEnginePassenger;
+use CentralBooking\Placeholders\PlaceholderEnginePassenger;
+use CentralBooking\Placeholders\PlaceholderEngineTicket;
 
 class TicketViewer implements ComponentInterface
 {
@@ -23,10 +24,10 @@ class TicketViewer implements ComponentInterface
             $this->ticket = $ticket;
         }
 
-        $this->ticket_js_template = git_get_map_setting('ticket_viewer.viewer_js', '');
-        $this->ticket_css_template = git_get_map_setting('ticket_viewer.viewer_css', '');
-        $this->ticket_template = git_get_map_setting('ticket_viewer.ticket_viewer_html', '');
-        $this->passenger_template = git_get_map_setting('ticket_viewer.passenger_viewer_html', '');
+        $this->ticket_template = git_get_setting(SettingsKeys::TICKET_VIEWER_HTML, '');
+        $this->ticket_js_template = git_get_setting(SettingsKeys::TICKET_VIEWER_JS, '');
+        $this->ticket_css_template = git_get_setting(SettingsKeys::TICKET_VIEWER_CSS, '');
+        $this->passenger_template = git_get_setting(SettingsKeys::TICKET_VIEWER_PASSENGER_HTML, '');
     }
 
     public function compact()

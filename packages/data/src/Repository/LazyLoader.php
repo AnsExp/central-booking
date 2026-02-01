@@ -227,19 +227,22 @@ final class LazyLoader
         return [];
     }
 
-    public static function loadTransportsByService(Service $transport)
+    public static function loadTransportsByService(Service $service)
     {
+        if ($service <= 0) {
+            return [];
+        }
         global $wpdb;
         $table = DatabaseTable::TABLE_TRANSPORTS_SERVICES->value;
         $sql = "SELECT id_transport FROM {$wpdb->prefix}{$table} WHERE id_service = %d";
-        $sql = $wpdb->prepare($sql, $transport->id);
+        $sql = $wpdb->prepare($sql, $service->id);
         $service_ids = $wpdb->get_col($sql);
         if (!empty($service_ids)) {
             $transports = [];
             foreach ($service_ids as $service_id) {
-                $transport = git_transport_by_id((int) $service_id);
-                if ($transport !== null) {
-                    $transports[] = $transport;
+                $service = git_transport_by_id((int) $service_id);
+                if ($service !== null) {
+                    $transports[] = $service;
                 }
             }
             return $transports;

@@ -68,18 +68,4 @@ final class ServiceService
             offset: $offset
         );
     }
-
-    public function findById(int $id)
-    {
-        $result = $this->serviceRepository->find(
-            orm: $this->serviceORM,
-            args: ['id' => $id],
-            orderBy: 'id',
-            order: 'ASC',
-            limit: 1,
-            offset: 0
-        );
-        $items = $result->getItems();
-        return $result->hasItems() ? $items[0] : null;
-    }
 }

@@ -3,10 +3,12 @@ namespace CentralBooking\Admin\View;
 
 use CentralBooking\Admin\AdminRouter;
 use CentralBooking\Admin\Form\FormLocation;
+use CentralBooking\Admin\Form\FormZone;
 use CentralBooking\Data\Location;
 use CentralBooking\GUI\DisplayerInterface;
-use CentralBooking\Data\Services\LocationService;
-use CentralBooking\GUI\PaginationComponent;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class TableLocations implements DisplayerInterface
 {
@@ -14,10 +16,6 @@ final class TableLocations implements DisplayerInterface
      * @var array<Location>
      */
     private array $locations;
-    private int $total_items;
-    private int $per_page = 10;
-    private int $total_pages;
-    private int $current_page;
 
     public function __construct()
     {
@@ -26,18 +24,10 @@ final class TableLocations implements DisplayerInterface
 
     private function fetchLocations()
     {
-        $page_number = isset($_GET['page_number']) ? (int) $_GET['page_number'] : 1;
-        $service = new LocationService();
-        $result = $service->find(
-            orderBy: $_GET['order_by'] ?? 'id',
-            order: $_GET['order'] ?? 'DESC',
-            offset: ($page_number - 1) * $this->per_page,
-            limit: $this->per_page,
-        );
-        $this->total_items = $result->getTotalItems();
-        $this->total_pages = $result->getTotalPages();
-        $this->current_page = $result->getCurrentPage();
-        return $result->getItems();
+        return git_locations([
+            'order_by' => $_GET['order_by'] ?? 'id',
+            'order' => $_GET['order'] ?? 'DESC',
+        ]);
     }
 
     private function get_current_order_by()
@@ -65,18 +55,7 @@ final class TableLocations implements DisplayerInterface
 
     public function render()
     {
-        $pagination = new PaginationComponent();
-        $pagination->set_data(
-            total_items: $this->total_items,
-            total_pages: $this->total_pages,
-            current_page: $this->current_page
-        );
-        $pagination->set_links(
-            link_first: add_query_arg(['page_number' => 1]),
-            link_prev: add_query_arg(['page_number' => max(1, $this->current_page - 1)]),
-            link_next: add_query_arg(['page_number' => min($this->total_pages, $this->current_page + 1)]),
-            link_last: add_query_arg(['page_number' => $this->total_pages])
-        );
+        $this->showMessage();
         ?>
         <div style="max-width: 500px;">
             <table class="wp-list-table widefat fixed striped">
@@ -108,30 +87,41 @@ final class TableLocations implements DisplayerInterface
                 </thead>
                 <tbody>
                     <?php foreach ($this->locations as $location): ?>
-                        <script>
-                            console.log('<?= git_serialize($location->id) ?>');
-                        </script>
                         <tr>
                             <td>
-                                <span><?= esc_html($location->name) ?></span>
-                                <div class="row-actions visible">
-                                    <span class="edit">
-                                        ID: <?= $location->id ?>
-                                    </span>
-                                    <span> | </span>
-                                    <span class="edit">
-                                        <a
-                                            href="<?= AdminRouter::get_url_for_class(FormLocation::class, ['id' => $location->id]) ?>">Editar</a>
-                                    </span>
-                                </div>
+                                <a href="<?= AdminRouter::get_url_for_class(FormLocation::class, ['id' => $location->id]) ?>">
+                                    <strong>
+                                        <?= esc_html($location->name) ?>
+                                    </strong>
+                                </a>
                             </td>
-                            <td><?= esc_html($location->getZone()->name) ?></td>
+                            <td>
+                                <a href="<?= AdminRouter::get_url_for_class(FormZone::class, ['id' => $location->getZone()->id]) ?>">
+                                    <strong>
+                                        <?= esc_html($location->getZone()->name) ?>
+                                    </strong>
+                                </a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php $pagination->compact() ?>
         </div>
         <?php
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal())->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

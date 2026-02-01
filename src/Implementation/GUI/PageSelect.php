@@ -1,10 +1,7 @@
 <?php
 namespace CentralBooking\Implementation\GUI;
 
-use CentralBooking\GUI\MultipleSelectComponent;
-use CentralBooking\GUI\SelectComponent;
-
-class PageSelect
+final class PageSelect
 {
     private array $pages;
     public function __construct(private string $name = 'page', ?int $operator = null)
@@ -15,9 +12,7 @@ class PageSelect
     public function create(bool $multiple = false)
     {
 
-        $selectComponent = $multiple
-            ? new MultipleSelectComponent($this->name)
-            : new SelectComponent($this->name);
+        $selectComponent = $multiple ? git_multiselect_field(['name' => $this->name]) : git_select_field(['name' => $this->name]);
 
         $selectComponent->addOption('Seleccione...', '');
 

@@ -1,62 +1,47 @@
 <?php
 namespace CentralBooking\GUI;
 
-class TableCellComponent extends StandaloneComponent
+class TableCellComponent implements DisplayerInterface
 {
-    private array $actions;
-
-    public function __construct(private ComponentInterface $content)
-    {
-        parent::__construct('td');
-        $this->actions = [];
+    private function __construct(
+        private readonly ComponentInterface|DisplayerInterface|string $content,
+        private readonly int $colspan = 1,
+        private readonly int $rowspan = 1
+    ) {
     }
 
-    public function addActions(string $action, ?string $url = null, bool $openNewTab = false)
+    public function render()
     {
-        $this->actions[$action] = [
-            'url' => $url ?? '',
-            'openNewTab' => $openNewTab
-        ];
-    }
-
-    private function getPanelActions()
-    {
-        $isFirst = true;
-        $container = new CompositeComponent('div');
-        $container->class_list->add('row-actions', 'visible');
-        foreach ($this->actions as $action => $details) {
-            $labelHtml = $details['url'] === '' ? 'span' : 'a';
-            $actionComponent = new TextComponent($labelHtml);
-            $actionComponent->append($this->content->compact());
-            if (!$isFirst) {
-                $container->addChild($this->getSeparator());
-            }
-            if ($labelHtml === 'a') {
-                $actionComponent->attributes->set('href', $details['url']);
-                if ($details['openNewTab']) {
-                    $actionComponent->attributes->set('target', '_blank');
-                }
-            }
-            $container->addChild($actionComponent);
-            $actionComponent->class_list->add('action');
-            $isFirst = false;
+        $attributes = '';
+        if ($this->colspan > 1) {
+            $attributes .= " colspan=\"{$this->colspan}\"";
         }
-        return $container;
+        if ($this->rowspan > 1) {
+            $attributes .= " rowspan=\"{$this->rowspan}\"";
+        }
+
+        $html = "<td{$attributes}>";
+
+        if (is_string($this->content)) {
+            $html .= $this->content;
+        } elseif ($this->content instanceof DisplayerInterface) {
+            ob_start();
+            $this->content->render();
+            $html .= ob_get_clean() ?? '';
+        } elseif ($this->content instanceof ComponentInterface) {
+            $html .= $this->content->compact();
+        }
+
+        $html .= "</td>";
+
+        echo $html;
     }
 
-    private function getSeparator()
-    {
-        $separator = new TextComponent('span');
-        $separator->append(' | ');
-        return $separator;
-    }
-
-    public function compact()
-    {
-        $html = parent::compact();
-        $html .= $this->content->compact();
-        $html .= $this->getPanelActions()->compact();
-        $html .= "</{$this->tag}>";
-        return $html;
+    public static function instance(
+        ComponentInterface|DisplayerInterface|string $content,
+        int $colspan = 1,
+        int $rowspan = 1
+    ): self {
+        return new self($content, $colspan, $rowspan);
     }
 }

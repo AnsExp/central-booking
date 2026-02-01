@@ -17,39 +17,60 @@ use CentralBooking\Webhook\WebhookStatus;
 use CentralBooking\Webhook\WebhookTopic;
 
 /**
- * Creates a new webhook instance with the provided data.
+ * Creates a new Webhook instance from provided data.
  * 
- * This function instantiates a new Webhook object and populates it with the
- * data provided in the array. It provides default values for optional fields
- * to ensure the webhook is properly configured.
+ * This function initializes a Webhook object using the data provided
+ * in the associative array. It maps the array keys to the corresponding
+ * properties of the Webhook class.
  * 
- * @param array{name:string,topic:WebhookTopic,status:WebhookStatus,delivery_url:string} $data 
- *        Array containing webhook configuration data:
- *        - name: The name/identifier for the webhook
- *        - topic: The webhook topic that determines when it triggers
- *        - status: The current status of the webhook (active/inactive)
- *        - delivery_url: The URL where webhook payloads will be sent
+ * @param array $data Associative array containing webhook data
+ *                    - 'id' (int): The unique identifier of the webhook
+ *                    - 'name' (string): The name of the webhook
+ *                    - 'status' (string|WebhookStatus): The status slug or enum of the webhook
+ *                    - 'topic' (string|WebhookTopic): The topic slug or enum of the webhook
+ *                    - 'delivery_url' (string): The URL to which the webhook will send data
  * 
- * @return Webhook A configured webhook instance ready to be saved
+ * @return Webhook The initialized Webhook instance
  * 
  * @since 1.0.0
  * 
  * @example
  * $webhook_data = [
- *     'name' => 'Booking Created Notification',
- *     'topic' => WebhookTopic::BOOKING_CREATED,
- *     'status' => WebhookStatus::ACTIVE,
- *     'delivery_url' => 'https://example.com/webhook'
+ *     'id' => 1,
+ *     'name' => 'Booking Created Webhook',
+ *     'status' => 'active',
+ *     'topic' => 'booking_created',
+ *     'delivery_url' => 'https://example.com/webhook-endpoint'
  * ];
  * $webhook = git_create_webhook($webhook_data);
  */
-function git_webhook_create(array $data)
+function git_webhook_create(array $data = [])
 {
-    $webhook = new Webhook();
-    $webhook->name = $data['name'] ?? '';
-    $webhook->topic = $data['topic'] ?? WebhookTopic::NONE;
-    $webhook->status = $data['status'] ?? WebhookStatus::ACTIVE;
-    $webhook->url_delivery = $data['delivery_url'] ?? '';
+    $webhook = new Webhook;
+
+    $webhook->id = (int) ($data['id'] ?? 0);
+    $webhook->name = (string) ($data['name'] ?? '');
+
+    if (isset($data['status'])) {
+        if (is_string($data['status'])) {
+            $webhook->status = WebhookStatus::fromSlug($data['status']) ?? WebhookStatus::DISABLED;
+        } elseif ($data['status'] instanceof WebhookStatus) {
+            $webhook->status = $data['status'];
+        }
+    }
+
+    if (isset($data['topic'])) {
+        if (is_string($data['topic'])) {
+            $webhook->topic = WebhookTopic::fromSlug($data['topic']) ?? WebhookTopic::NONE;
+        } elseif ($data['topic'] instanceof WebhookTopic) {
+            $webhook->topic = $data['topic'];
+        }
+    }
+
+    if (filter_var($data['delivery_url'] ?? '', FILTER_VALIDATE_URL)) {
+        $webhook->url_delivery = $data['delivery_url'];
+    }
+
     return $webhook;
 }
 
@@ -107,4 +128,19 @@ function git_webhook_save(Webhook $webhook)
 function git_webhook_trigger(WebhookTopic $topic, array $payload): void
 {
     WebhookManager::getInstance()->trigger($topic, $payload);
+}
+
+function git_webhook_get_by_topic(WebhookTopic $topic): array
+{
+    return WebhookManager::getInstance()->getByTopic($topic);
+}
+
+function git_webhook_get_by_id(int $id): ?Webhook
+{
+    return WebhookManager::getInstance()->get($id);
+}
+
+function git_webhook_get_all(): array
+{
+    return WebhookManager::getInstance()->getAll();
 }

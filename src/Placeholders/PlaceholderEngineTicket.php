@@ -127,9 +127,9 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
             $brand_media_url = git_get_map_setting('ticket_viewer.default_media') ?? '';
             if ($this->ticket->status === TicketStatus::PAYMENT) {
                 if ($this->ticket->getCoupon() === null) {
-                    $brand_media_url = $this->ticket->getPassengers()[0]->getTransport()->getOperator()->brand_media ?: $brand_media_url;
+                    $brand_media_url = $this->ticket->getPassengers()[0]->getTransport()->getOperator()->getBrandMedia() ?: $brand_media_url;
                 } else {
-                    $brand_media_url = get_post_meta($this->ticket->getCoupon()->ID,'brand_media', true) ?: $brand_media_url;
+                    $brand_media_url = get_post_meta($this->ticket->getCoupon()->ID, 'brand_media', true) ?: $brand_media_url;
                 }
             }
             $img->attributes->set('src', $brand_media_url);
@@ -160,18 +160,31 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
             ],
         ]);
         $this->add_placeholder('qr_ticket', function (array $params) {
-            $size = 350;
-            if (str_contains($params['size'] ?? '350', 'px')) {
-                $size = (int) str_replace('px', '', $params['size']);
-            }
-            $url = git_get_ticket_viewer_url($this->ticket->id, $size);
-            if ($url === null) {
+            $size = (int) ($params['size'] ?? 350);
+            $ecc = $params['ecc'] ?? 'low';
+            $color = $params['color'] ?? '#000000';
+            $bg_color = $params['bg_color'] ?? '#FFFFFF';
+
+            $ticket_viewer_page = git_get_ticket_viewer_page();
+
+            if ($ticket_viewer_page === null) {
                 return 'QR no disponible';
             }
-            $img = new StandaloneComponent('img');
-            $img->attributes->set('src', $url);
-            $img->attributes->set('alt', 'Código QR del Ticket');
-            return $img->compact();
+
+            $data = add_query_arg('data', $this->ticket->id, $ticket_viewer_page);
+
+            $img_url = git_qr_code(
+                git_qr_data_url($data),
+                [
+                    'margin' => 0,
+                    'size'=>$size,
+                    'ecc'=>$ecc,
+                    'color_hex'=>$color,
+                    'bg_color_hex'=>$bg_color
+                ]
+            );
+
+            return $img_url->compact();
         });
         $this->add_description('qr_ticket', [
             'title' => 'Código QR del Ticket',
@@ -185,7 +198,46 @@ final class PlaceholderEngineTicket extends PlaceholderEngine
                             'description' => 'Tamaño del código QR en píxeles (ej. 350px)'
                         ]
                     ]
-                ]
+                ],
+                [
+                    'param' => 'color',
+                    'values' => [
+                        [
+                            'value' => '#000000',
+                            'description' => 'Color del código QR en formato hexadecimal. Por defecto es negro (#000000).'
+                        ]
+                    ]
+                ],
+                [
+                    'param' => 'bg_color',
+                    'values' => [
+                        [
+                            'value' => '#FFFFFF',
+                            'description' => 'Color de fondo del código QR en formato hexadecimal. Por defecto es blanco (#FFFFFF).'
+                        ]
+                    ]
+                ],
+                [
+                    'param' => 'ecc',
+                    'values' => [
+                        [
+                            'value' => 'low',
+                            'description' => 'Nivel de corrección de errores del código QR bajo (Por defecto).'
+                        ],
+                        [
+                            'value' => 'medium',
+                            'description' => 'Nivel de corrección de errores del código QR medio.'
+                        ],
+                        [
+                            'value' => 'quartile',
+                            'description' => 'Nivel de corrección de errores del código QR cuartil.'
+                        ],
+                        [
+                            'value' => 'high',
+                            'description' => 'Nivel de corrección de errores del código QR alto.'
+                        ],
+                    ]
+                ],
             ],
         ]);
         $this->add_placeholder('total_amount', function (array $params) {

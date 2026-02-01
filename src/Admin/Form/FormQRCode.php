@@ -2,6 +2,7 @@
 namespace CentralBooking\Admin\Form;
 
 use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\QR\ErrorCorrectionCode;
 
 final class FormQRCode implements DisplayerInterface
 {
@@ -100,10 +101,9 @@ final class FormQRCode implements DisplayerInterface
                         </td>
                         <td>
                             <select name="ecc" id="ecc_qr" style="width: 100%;" required>
-                                <option value="L">Baja (7%)</option>
-                                <option value="M">Media (15%)</option>
-                                <option value="Q">Cuartil (25%)</option>
-                                <option value="H">Alta (30%)</option>
+                                <?php foreach (ErrorCorrectionCode::cases() as $ecc): ?>
+                                    <option value="<?= $ecc->slug() ?>"><?= $ecc->label() ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </td>
                     </tr>

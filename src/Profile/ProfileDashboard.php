@@ -1,18 +1,19 @@
 <?php
 namespace CentralBooking\Profile;
 
-use CentralBooking\Data\Constants\UserConstants;
+use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\GUI\ComponentInterface;
-use CentralBooking\Profile\Panes\ProfilePaneCoupon;
-use CentralBooking\Profile\Panes\ProfilePaneProfile;
-use CentralTickets\Profile\Panes\ProfilePaneInvoice;
-use CentralTickets\Profile\Panes\ProfilePaneNotFound;
-use CentralTickets\Profile\Panes\ProfilePaneOrder;
-use CentralTickets\Profile\Panes\ProfilePanePreorder;
-use CentralTickets\Profile\Panes\ProfilePaneTrip;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Profile\Forms\FormLogin;
+use CentralBooking\Profile\Panes\PaneCoupon;
+use CentralBooking\Profile\Panes\PaneProfile;
+use CentralBooking\Profile\Panes\PaneInvoice;
+use CentralBooking\Profile\Panes\PaneOrders;
+use CentralBooking\Profile\Panes\PanePreorders;
+use CentralBooking\Profile\Panes\PaneTrip;
 use WP_User;
 
-class ProfileDashboard implements ComponentInterface
+final class ProfileDashboard implements ComponentInterface
 {
     private WP_User $current_user;
     private array $user_roles;
@@ -25,130 +26,60 @@ class ProfileDashboard implements ComponentInterface
         $this->current_tab = $_GET['tab'] ?? 'profile';
     }
 
-    public function compact(): string
+    private function loadScripts()
+    {
+        wp_enqueue_style(
+            'operator-dashboard',
+            CENTRAL_BOOKING_URL . 'assets/css/operator-dashboard.css',
+            [],
+            time()
+        );
+    }
+
+    public function compact()
     {
         ob_start();
-        ?>
-        <div class="container">
-            <div class="dashboard-tabs">
-                <ul class="nav nav-tabs" role="tablist">
-                    <?php foreach ($this->get_available_tabs() as $tab_key => $tab_config): ?>
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link <?= $this->current_tab === $tab_key ? 'active' : '' ?>"
-                                href="<?= $this->get_tab_url($tab_key) ?>" role="tab" data-tab="<?= esc_attr($tab_key) ?>">
-                                <?= esc_html($tab_config['label']) ?>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-
-            <div class="dashboard-content">
-                <div class="tab-content">
-                    <?= $this->render_current_tab(); ?>
-                </div>
-            </div>
-        </div>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"
-            integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
-            crossorigin="anonymous"></script>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-        <?php
+        $this->loadScripts();
+        $this->showMessage();
+        if (!is_user_logged_in()) {
+            (new FormLogin)->render();
+        } else {
+            $this->tabPane();
+        }
         return ob_get_clean();
     }
 
-    private function get_available_tabs()
+    private function tabPane()
     {
-        $all_tabs = [
-            'profile' => [
-                'label' => 'Mi Perfil',
-                'roles' => [
-                    UserConstants::CUSTOMER->value,
-                    UserConstants::OPERATOR->value,
-                    UserConstants::ADMINISTRATOR->value,
-                ],
-                'callback' => [new ProfilePaneProfile(), 'compact']
-            ],
-            'orders' => [
-                'label' => 'Mis Pedidos',
-                'roles' => [
-                    UserConstants::CUSTOMER->value,
-                    UserConstants::ADMINISTRATOR->value,
-                ],
-                'callback' => [new ProfilePaneOrder(), 'compact']
-            ],
-            'tickets' => [
-                'label' => 'Tickets',
-                'roles' => [
-                    UserConstants::OPERATOR->value,
-                    UserConstants::ADMINISTRATOR->value,
-                ],
-                'callback' => [new ProfilePanePreorder(), 'compact']
-            ],
-            'coupons' => [
-                'label' => 'Cupones',
-                'roles' => [
-                    UserConstants::OPERATOR->value,
-                    UserConstants::ADMINISTRATOR->value,
-                ],
-                'callback' => [new ProfilePaneCoupon(), 'compact']
-            ],
-            'trips' => [
-                'label' => 'Bitácora de Viajes',
-                'icon' => 'dashicons dashicons-location',
-                'roles' => [
-                    UserConstants::OPERATOR->value,
-                    UserConstants::ADMINISTRATOR->value,
-                ],
-                'callback' => [new ProfilePaneTrip(), 'compact']
-            ],
-            'sales' => [
-                'label' => 'Ventas',
-                'roles' => [
-                    UserConstants::OPERATOR->value,
-                    UserConstants::ADMINISTRATOR->value,
-                ],
-                'callback' => [new ProfilePaneInvoice(), 'compact']
-            ],
-        ];
+        $tabPane = git_tab_stateful_pane();
 
-        $available_tabs = [];
+        $tabPane->addPane('Mi Perfil', new PaneProfile);
 
-        foreach ($all_tabs as $tab_key => $tab_config) {
-            if ($this->user_has_access_to_tab($tab_config['roles'])) {
-                $available_tabs[$tab_key] = $tab_config;
-            }
+        if (git_current_user_has_role([UserRole::CUSTOMER, UserRole::ADMINISTRATOR])) {
+            $tabPane->addPane('Mis Pedidos', new PaneOrders);
         }
 
-        return $available_tabs;
-    }
-
-    private function user_has_access_to_tab(array $required_roles)
-    {
-        if (in_array(UserConstants::ADMINISTRATOR, $this->user_roles)) {
-            return true;
-        }
-        return !empty(array_intersect($this->user_roles, $required_roles));
-    }
-
-    private function get_tab_url(string $tab_key)
-    {
-        return add_query_arg(['tab' => $tab_key], remove_query_arg(['tab', 'action']));
-    }
-
-    private function render_current_tab()
-    {
-        $available_tabs = $this->get_available_tabs();
-
-        if (!isset($available_tabs[$this->current_tab])) {
-            return (new ProfilePaneNotFound())->compact();
+        if (git_current_user_has_role([UserRole::OPERATOR, UserRole::ADMINISTRATOR])) {
+            $tabPane->addPane('Preordenes', new PanePreorders);
         }
 
-        $tab_config = $available_tabs[$this->current_tab];
-        $callback = $tab_config['callback'];
+        if (git_current_user_has_role([UserRole::OPERATOR, UserRole::ADMINISTRATOR])) {
+            $tabPane->addPane('Cupones', new PaneCoupon);
+        }
 
-        return $callback();
+        if (git_current_user_has_role([UserRole::OPERATOR, UserRole::ADMINISTRATOR])) {
+            $tabPane->addPane('Bitácora de Viajes', new PaneTrip);
+        }
+
+        if (git_current_user_has_role([UserRole::OPERATOR, UserRole::ADMINISTRATOR])) {
+            $tabPane->addPane('Ventas', new PaneInvoice);
+        }
+
+        $tabPane->render();
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
     }
 }

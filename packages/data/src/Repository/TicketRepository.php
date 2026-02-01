@@ -1,6 +1,7 @@
 <?php
 namespace CentralBooking\Data\Repository;
 
+use CentralBooking\Data\Constants\TicketStatus;
 use CentralBooking\Data\MetaManager;
 use CentralBooking\Data\ORM\ORMInterface;
 use CentralBooking\Data\Ticket;
@@ -25,7 +26,7 @@ class TicketRepository
     public function save(Ticket $ticket)
     {
         $data = [
-            'status' => $ticket->status->value,
+            'status' => $ticket->status->slug(),
             'flexible' => $ticket->flexible ? 1 : 0,
             'total_amount' => $ticket->total_amount,
         ];
@@ -102,7 +103,6 @@ class TicketRepository
             limit: $limit,
             offset: $offset
         );
-        // echo $sql;
         $results = $this->wpdb->get_results($sql, ARRAY_A);
         if ($results) {
             $items = array_map([$orm, 'mapper'], $results);
@@ -193,6 +193,26 @@ class TicketRepository
             'coupon_code' => "o.post_type = 'shop_coupon' AND om.meta_value = %s",
             'phone_buyer' => "om.meta_key = 'billing_phone' AND om.meta_value = %s",
         ];
+
+        if (isset($args['status'])) {
+            if ($args['status'] instanceof TicketStatus) {
+                $args['status'] = $args['status']->slug();
+            } elseif (is_array($args['status'])) {
+                $placeholder = array_fill(0, count($args['status']), '$s');
+                $placeholderJoin = implode(', ', $placeholder);
+                $filters['status'] = "t.status IN ({$placeholderJoin})";
+            }
+        }
+
+        if (isset($args['status_not'])) {
+            if ($args['status_not'] instanceof TicketStatus) {
+                $args['status_not'] = $args['status_not']->slug();
+            } elseif (is_array($args['status_not'])) {
+                $placeholder = array_fill(0, count($args['status_not']), '$s');
+                $placeholderJoin = implode(', ', $placeholder);
+                $filters['status_not'] = "t.status NOT IN ({$placeholderJoin})";
+            }
+        }
 
         if (!isset($args['date_creation'])) {
             if (isset($args['date_creation_from'], $args['date_creation_to'])) {

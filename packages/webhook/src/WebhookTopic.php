@@ -1,16 +1,16 @@
 <?php
 namespace CentralBooking\Webhook;
 
-enum WebhookTopic: string
+enum WebhookTopic
 {
-    case NONE = 'none';
-    case COUPON_USED = 'coupon_used';
-    case TICKET_CREATE = 'ticket_create';
-    case TICKET_UPDATE = 'ticket_update';
-    case INVOICE_UPLOAD = 'invoice_upload';
-    case PASSENGER_SERVED = 'passenger_served';
-    case PASSENGER_APPROVED = 'passenger_approved';
-    case PASSENGER_TRANSFERRED = 'passenger_transferred';
+    case NONE;
+    case COUPON_USED;
+    case TICKET_CREATE;
+    case TICKET_UPDATE;
+    case INVOICE_UPLOAD;
+    case PASSENGER_SERVED;
+    case PASSENGER_APPROVED;
+    case PASSENGER_TRANSFERRED;
 
     public function label()
     {
@@ -23,6 +23,35 @@ enum WebhookTopic: string
             self::PASSENGER_APPROVED => 'Pasajero aprobado',
             self::PASSENGER_TRANSFERRED => 'Pasajero trasladado',
             default => 'Estado desconocido',
+        };
+    }
+
+    public function slug()
+    {
+        return match ($this) {
+            self::COUPON_USED => 'coupon_used',
+            self::TICKET_CREATE => 'ticket_create',
+            self::INVOICE_UPLOAD => 'invoice_upload',
+            self::TICKET_UPDATE => 'ticket_update',
+            self::PASSENGER_SERVED => 'passenger_served',
+            self::PASSENGER_APPROVED => 'passenger_approved',
+            self::PASSENGER_TRANSFERRED => 'passenger_transferred',
+            default => 'Estado desconocido',
+        };
+    }
+
+    public static function fromSlug(string $slug)
+    {
+        return match ($slug) {
+            'none' => self::NONE,
+            'coupon_used' => self::COUPON_USED,
+            'ticket_create' => self::TICKET_CREATE,
+            'invoice_upload' => self::INVOICE_UPLOAD,
+            'ticket_update' => self::TICKET_UPDATE,
+            'passenger_served' => self::PASSENGER_SERVED,
+            'passenger_approved' => self::PASSENGER_APPROVED,
+            'passenger_transferred' => self::PASSENGER_TRANSFERRED,
+            default => null,
         };
     }
 }

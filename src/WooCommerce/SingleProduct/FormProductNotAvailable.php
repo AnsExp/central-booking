@@ -1,13 +1,12 @@
 <?php
 namespace CentralBooking\WooCommerce\SingleProduct;
 
-use CentralBooking\GUI\ComponentInterface;
+use CentralBooking\GUI\DisplayerInterface;
 
-class FormProductNotAvailable implements ComponentInterface
+class FormProductNotAvailable implements DisplayerInterface
 {
-    public function compact(): string
+    public function render()
     {
-        ob_start();
         ?>
         <div class="product-not-available-form">
             <div class="not-available-message">
@@ -135,7 +134,6 @@ class FormProductNotAvailable implements ComponentInterface
             }
         </style>
         <?php
-        return ob_get_clean();
     }
 
     /**

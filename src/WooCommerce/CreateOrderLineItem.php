@@ -21,7 +21,7 @@ class CreateOrderLineItem
     private function addMetaData(WC_Order_Item $item, CartItemInterface $cartItem)
     {
         $item->add_meta_data('Trayecto', $cartItem->getRoute()->getOrigin()->name . ' » ' . $cartItem->getRoute()->getDestiny()->name, true);
-        $item->add_meta_data('Viaje', git_date_format($cartItem->getDateTrip()->format()) . ' - ' . git_time_format($cartItem->getRoute()->getDepartureTime()->format()));
+        $item->add_meta_data('Viaje', $cartItem->getDateTrip()->pretty() . ' - ' . $cartItem->getRoute()->getDepartureTime()->pretty(), true);
         $item->add_meta_data('Flexible', $cartItem->isFlexible() ? 'Sí' : 'No', true);
         $item->add_meta_data('Transporte', $cartItem->getTransport()->nicename, true);
         if ($cartItem->getPax()[PassengerConstants::STANDARD->value] > 0) {

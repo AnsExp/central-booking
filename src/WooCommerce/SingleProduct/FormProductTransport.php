@@ -3,17 +3,19 @@ namespace CentralBooking\WooCommerce\SingleProduct;
 
 use CentralBooking\Data\Constants\PriceExtraConstants;
 use CentralBooking\Data\Constants\PassengerConstants;
-use CentralBooking\Data\Constants\TypeWayConstants;
+use CentralBooking\Data\Constants\TypeOperation;
+use CentralBooking\Data\Constants\TypeWay;
 use CentralBooking\Data\Service;
 use CentralBooking\Data\Transport;
 use CentralBooking\GUI\ComponentInterface;
 use CentralBooking\GUI\CounterComponent;
+use CentralBooking\GUI\DisplayerInterface;
 use CentralBooking\WooCommerce\CalculateTicketPrice;
-use WC_Product;
+use WC_Product_Operator;
 
-class FormProductTransport implements ComponentInterface
+class FormProductTransport implements DisplayerInterface
 {
-    public function __construct(private WC_Product $product)
+    public function __construct(private WC_Product_Operator $product)
     {
     }
 
@@ -64,7 +66,7 @@ class FormProductTransport implements ComponentInterface
         return $transports;
     }
 
-    public function compact()
+    public function render()
     {
         $calculator = new CalculateTicketPrice();
         $counter_rpm = new CounterComponent();
@@ -72,11 +74,11 @@ class FormProductTransport implements ComponentInterface
         $counter_extra = new CounterComponent();
         $counter_standard = new CounterComponent();
         $prices = $calculator->getPrices($this->product);
-        $type_way = $this->product->get_meta('type_way', true);
-        $type_transport = $this->product->get_meta('type_transport', true);
-        $maximum_extras = intval($this->product->get_meta('maximum_extra', true));
-        $maximum_persons = intval($this->product->get_meta('maximum_person', true));
-        $enable_carousel_transports = $this->product->get_meta('enable_carousel_transports', true) === 'yes';
+        $type_way = $this->product->get_type_way() ?? TypeWay::NONE;
+        $type_transport = $this->product->get_type_operation() ?? TypeOperation::NONE;
+        $maximum_extras = $this->product->get_capacity_extra();
+        $maximum_persons = $this->product->get_capacity_people();
+        $enable_carousel_transports = $this->product->is_carousel_transport();
 
         $id_button_next = 'button_next_' . rand();
         $id_button_prev = 'button_prev_' . rand();
@@ -149,7 +151,6 @@ class FormProductTransport implements ComponentInterface
                 ]
             ]
         );
-        ob_start();
         ?>
         <div id="git-form-product-transport" style="display: none;">
             <div id="<?= $id_transports_container_goes ?>">
@@ -166,7 +167,7 @@ class FormProductTransport implements ComponentInterface
                 <?php endif; ?>
                 <div id="<?= $id_transports_options_container_goes ?>" class="option-container"></div>
             </div>
-            <?php if ($type_way !== TypeWayConstants::ONE_WAY->value): ?>
+            <?php if ($type_way !== TypeWay::ONE_WAY->slug()): ?>
                 <hr>
                 <div id="<?= $id_transports_container_returns ?>">
                     <div class="third-container">
@@ -199,8 +200,8 @@ class FormProductTransport implements ComponentInterface
                     tabindex="0">
                     <?php
                     $this->extra_component(
-                        'Ticket — $' . $prices[PassengerConstants::STANDARD->value],
-                        PassengerConstants::STANDARD->value,
+                        'Ticket — $' . $prices[PassengerConstants::STANDARD->slug()],
+                        PassengerConstants::STANDARD->slug(),
                         $counter_standard
                     );
                     $this->extra_component(
@@ -214,13 +215,13 @@ class FormProductTransport implements ComponentInterface
                     <?php
                     echo git_get_setting('form_message_local', '');
                     $this->extra_component(
-                        'Edad Preferente — $' . $prices[PassengerConstants::KID->value],
-                        PassengerConstants::KID->value,
+                        'Edad Preferente — $' . $prices[PassengerConstants::KID->slug()],
+                        PassengerConstants::KID->slug(),
                         $counter_kid
                     );
                     $this->extra_component(
-                        'Movilidad Reducida — $' . $prices[PassengerConstants::RPM->value],
-                        PassengerConstants::RPM->value,
+                        'Movilidad Reducida — $' . $prices[PassengerConstants::RPM->slug()],
+                        PassengerConstants::RPM->slug(),
                         $counter_rpm
                     );
                     ?>
@@ -257,7 +258,6 @@ class FormProductTransport implements ComponentInterface
             <button id="<?= $id_button_next ?>" type="button" class="btn btn-primary">Continuar Reserva</button>
         </div>
         <?php
-        return ob_get_clean();
     }
 
     private function checkbox_switch(string $name, bool $checked = false): string

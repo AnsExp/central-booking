@@ -2,9 +2,9 @@
 namespace CentralBooking\Admin\Form;
 
 use CentralBooking\GUI\DisplayerInterface;
-use CentralBooking\GUI\InputComponent;
-use CentralBooking\GUI\SelectComponent;
-use CentralBooking\Webhook\WebhookManager;
+use CentralBooking\Implementation\Temp\MessageAlert;
+use CentralBooking\Implementation\Temp\MessageLevel;
+use CentralBooking\Implementation\Temp\MessageTemporal;
 use CentralBooking\Webhook\WebhookStatus;
 use CentralBooking\Webhook\WebhookTopic;
 
@@ -12,41 +12,42 @@ final class FormWebhook implements DisplayerInterface
 {
     public function render()
     {
-        $name_input = new InputComponent('name');
-        $delivery_url_input = new InputComponent('delivery_url');
-        $status_select = new SelectComponent('status');
-        $topic_select = new SelectComponent('topic');
-        $name_input->setRequired(true);
-        $topic_select->setRequired(true);
-        $status_select->setRequired(true);
-        $delivery_url_input->setRequired(true);
+        $webhook = $this->loadData();
+
+        $name_input = git_input_field(['name' => 'name', 'type' => 'text', 'required' => true]);
+        $topic_select = git_select_field(['name' => 'topic', 'type' => 'text', 'required' => true]);
+        $status_select = git_select_field(['name' => 'status', 'type' => 'text', 'required' => true]);
+        $delivery_url_input = git_input_field(['name' => 'url_delivery', 'type' => 'text', 'required' => true]);
+
         $name_input->styles->set('width', '300px');
         $topic_select->styles->set('width', '300px');
         $status_select->styles->set('width', '300px');
         $delivery_url_input->styles->set('width', '300px');
-        $topic_select->setRequired(true);
-        $status_select->setRequired(true);
-        $delivery_url_input->setRequired(true);
+
+
         foreach (WebhookStatus::cases() as $status) {
-            $status_select->addOption($status->label());
+            $status_select->addOption($status->label(), $status->slug());
         }
+
         foreach (WebhookTopic::cases() as $topic) {
-            $topic_select->addOption($topic->label());
+            $topic_select->addOption($topic->label(), $topic->slug());
         }
-        $id = $_GET['id'] ?? '0';
-        $webhook = WebhookManager::getInstance()->get(intval($id));
-        if ($webhook) {
-            $name_input->setValue($webhook->name);
-            $topic_select->setValue($webhook->topic->value);
-            $status_select->setValue($webhook->status->value);
-            $delivery_url_input->setValue($webhook->url_delivery);
-        }
+
+        $name_input->setValue($webhook->name);
+        $topic_select->setValue($webhook->topic->slug());
+        $status_select->setValue($webhook->status->slug());
+        $delivery_url_input->setValue($webhook->url_delivery);
+
+        $action = add_query_arg(
+            ['action' => 'git_edit_webhook'],
+            admin_url('admin-ajax.php')
+        );
+
+        $this->showMessage();
         ?>
-        <form id="git-settings-form"
-            action="<?= esc_url(add_query_arg('action', 'git_settings', admin_url('admin-ajax.php'))) ?>" method="post">
-            <input type="hidden" name="nonce" value="<?= wp_create_nonce('git_settings_nonce') ?>" />
-            <input type="hidden" name="scope" value="webhooks">
-            <input type="hidden" name="id" value="<?= esc_attr($id) ?>">
+        <form action="<?= esc_url($action) ?>" method="post">
+            <?php git_nonce_field() ?>
+            <input type="hidden" name="id" value="<?= esc_attr($webhook->id) ?>">
             <table class="form-table">
                 <tbody>
                     <tr>
@@ -88,5 +89,26 @@ final class FormWebhook implements DisplayerInterface
             </p>
         </form>
         <?php
+    }
+
+    public function loadData()
+    {
+        $id = (int) ($_GET['id'] ?? '0');
+        return git_webhook_get_by_id($id) ?? git_webhook_create();
+    }
+
+    private function showMessage()
+    {
+        MessageAlert::getInstance(self::class)->render();
+    }
+
+    public static function writeMessage(string $message, MessageLevel $level = MessageLevel::INFO, int $expiration_seconds = 30)
+    {
+        (new MessageTemporal)->writeTemporalMessage(
+            $message,
+            self::class,
+            $level,
+            $expiration_seconds
+        );
     }
 }

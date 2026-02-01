@@ -1,282 +1,211 @@
 <?php
 namespace CentralBooking\Preorder;
 
-use CentralBooking\Data\Constants\PassengerConstants;
-use CentralBooking\Data\Constants\RouteConstants;
-use CentralBooking\Data\Services\TransportService;
-use CentralBooking\GUI\ButtonComponent;
-use CentralBooking\GUI\CompositeComponent;
-use CentralBooking\GUI\SelectComponent;
-use CentralBooking\Implementation\GUI\NationalitySelect;
+use CentralBooking\Data\Constants\TicketStatus;
+use CentralBooking\Data\Passenger;
+use CentralBooking\GUI\DisplayerInterface;
+use CentralBooking\GUI\InputComponent;
+use CentralBooking\Implementation\GUI\SelectorRouteCombine;
 use CentralBooking\Implementation\GUI\TypeDocumentSelect;
-use CentralTickets\Preorder\PreorderFormNotData;
-use CentralTickets\Preorder\PreorderFormNotProducts;
-use WP_Query;
 
-final class PreorderForm extends CompositeComponent
+final class PreorderForm implements DisplayerInterface
 {
-    private array $data;
-    private array $products;
-    private PreorderFormNotData $not_data_panel;
-    private PreorderFormNotProducts $not_products_panel;
+    public const NONCE_ACTION = 'central_booking_preorder_form';
 
-    public function __construct(private readonly Preorder $preorder)
+    public function render()
     {
-        parent::__construct('form');
-        $this->init();
-    }
-
-    private function init()
-    {
-        $this->products = $this->get_products();
-        $this->not_data_panel = new PreorderFormNotData();
-        $this->not_products_panel = new PreorderFormNotProducts();
-        $this->attributes->set('method', 'post');
-        $this->attributes->set('action', admin_url('admin-ajax.php') . '?action=preorder_process');
-    }
-
-    private function get_products()
-    {
-        if (empty($this->preorder->get_routes())) {
-            return [];
-        }
-        $args = [
-            'post_type' => 'product',
-            'posts_per_page' => -1,
-            'meta_query' => [
-                [
-                    'key' => 'type_transport',
-                    'value' => $this->preorder->get_routes()[0]->type,
-                ],
-                [
-                    'key' => 'enable_bookeable',
-                    'value' => 'yes',
-                ],
-            ],
-        ];
-        $query = new WP_Query($args);
-        $posts = $query->posts;
-        $products = [];
-        foreach ($posts as $post) {
-            $switch = get_post_meta($post->ID, 'enable_switch_route', true) == 'yes';
-            $type_route = get_post_meta($post->ID, 'type_route', true);
-            $id_zone_origin = get_post_meta($post->ID, 'zone_origin', true);
-            $id_zone_destiny = get_post_meta($post->ID, 'zone_destiny', true);
-            $id_location_origin = get_post_meta($post->ID, 'location_origin', true);
-            $id_location_destiny = get_post_meta($post->ID, 'location_destiny', true);
-            if ($type_route === RouteConstants::BETWEEN_ZONES->value) {
-                foreach ($this->preorder->get_routes() as $route) {
-                    if (!$switch) {
-                        if (
-                            $route->getOrigin()->getZone()->id == $id_zone_origin &&
-                            $route->getDestiny()->getZone()->id == $id_zone_destiny
-                        ) {
-                            $products[] = $post;
-                        }
-                    } else {
-                        if (
-                            ($route->getOrigin()->getZone()->id == $id_zone_origin &&
-                                $route->getDestiny()->getZone()->id == $id_zone_destiny) ||
-                            ($route->getDestiny()->getZone()->id == $id_zone_origin &&
-                                $route->getOrigin()->getZone()->id == $id_zone_destiny)
-                        ) {
-                            $products[] = $post;
-                        }
-                    }
-                }
-            } elseif ($type_route === RouteConstants::BETWEEN_LOCATIONS) {
-                foreach ($this->preorder->get_routes() as $route) {
-                    if (!$switch) {
-                        if (
-                            $route->getOrigin()->id == $id_location_origin &&
-                            $route->getDestiny()->id == $id_location_destiny
-                        ) {
-                            $products[] = $post;
-                        }
-                    } else {
-                        if (
-                            ($route->getOrigin()->id == $id_location_origin &&
-                                $route->getDestiny()->id == $id_location_destiny) ||
-                            ($route->getDestiny()->id == $id_location_origin &&
-                                $route->getOrigin()->id == $id_location_destiny)
-                        ) {
-                            $products[] = $post;
-                        }
-                    }
-                }
-            }
-        }
-        return $products;
-    }
-
-    private function fields()
-    {
-        $transport_select = $this->get_transport_select();
-        $nationality_select = (new NationalitySelect('passenger_nationality'))->create();
-        $type_document_select = (new TypeDocumentSelect('passenger_type_document'))->create();
-        $passegers_info = $this->preorder->passengers_info;
-        if ($this->preorder->get_transport()) {
-            $transport_select->setValue($this->preorder->get_transport()->id);
-        }
-        ob_start();
+        $ticket = $this->loadData();
+        $ajax = add_query_arg(
+            ['action' => 'git_edit_ticket'],
+            admin_url('admin-ajax.php')
+        );
         ?>
-        <h2 class="my-3">Número de preorden #<?= $this->preorder->get_order()->get_id() ?></h2>
-        <input type="hidden" name="product" value="<?= $this->products[0]->ID ?>">
-        <input type="hidden" name="route" value="<?= $this->preorder->get_routes()[0]->id ?>">
-        <input type="hidden" name="preorder" value="<?= $this->preorder->get_order()->get_id() ?>">
-        <input type="hidden" name="date_trip" value="<?= $this->preorder->date_trip->format('Y-m-d') ?>">
+        <h2 class="my-3">Número de preorden #<?= $ticket->id ?></h2>
+        <form action="<?= esc_url($ajax) ?>" method="post">
+            <input type="hidden" name="id" value="<?= $ticket->id ?>">
+            <input type="hidden" name="status" value="<?= TicketStatus::PENDING->slug() ?>">
+            <?php wp_nonce_field(self::NONCE_ACTION); ?>
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <td>
+                            <?php $this->formTrip(); ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <?php foreach ($ticket->getPassengers() as $index => $passenger): ?>
+                                <?= $index === 0 ? '' : '<hr>' ?>
+                                <p class="my-2 fw-bold">Pasajero <?= $index + 1 ?></p>
+                                <?php $this->formPassenger($passenger, $index); ?>
+                            <?php endforeach; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td>Servicios extras</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="input-carga">Carga</label>
+                                        <input id="input-carga" type="number" name="extra[carga]" value="0" min="0">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <label for="input-flexible">Flexible</label>
+                                        <input id="input-flexible" type="checkbox" name="extra[flexible]" checked>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-primary" type="submit">Enviar</button>
+        </form>
+        <?php
+    }
+
+    private function formTrip()
+    {
+        $routeCombine = new SelectorRouteCombine();
+
+        $originSelect = $routeCombine->get_origin_select('origin_id');
+        $destinySelect = $routeCombine->get_destiny_select('destiny_id');
+        $transportSelect = $routeCombine->get_transport_select('transport_id');
+        $departureTimeSelect = $routeCombine->get_time_select('departure_time');
+        $dateTripSelect = git_date_trip_field('date_trip');
+
+        ?>
         <table class="table table-bordered">
             <tbody>
                 <tr>
-                    <td>Trayecto</td>
-                    <td><?= $this->preorder->get_routes()[0]->getOrigin()->name . ' <i class="bi bi-arrow-right"></i> ' . $this->preorder->get_routes()[0]->getDestiny()->name ?>
+                    <td>
+                        <?php $originSelect->getLabel('Origen')->render() ?>
+                    </td>
+                    <td>
+                        <?php $originSelect->render() ?>
                     </td>
                 </tr>
                 <tr>
-                    <td>Viaje</td>
                     <td>
-                        <?= git_date_format($this->preorder->date_trip->format('Y-m-d')) . ' ' . git_time_format($this->preorder->get_routes()[0]->getDepartureTime()->format()) ?>
+                        <?php $destinySelect->getLabel('Destino')->render() ?>
+                    </td>
+                    <td>
+                        <?php $destinySelect->render() ?>
                     </td>
                 </tr>
                 <tr>
-                    <td>Transporte</td>
                     <td>
-                        <?= $transport_select->compact() ?>
+                        <?php $departureTimeSelect->getLabel('Hora de salida')->render() ?>
+                    </td>
+                    <td>
+                        <?php $departureTimeSelect->render() ?>
                     </td>
                 </tr>
                 <tr>
-                    <td>Pasajeros</td>
                     <td>
-                        <?php for ($i = 0; $i < $this->preorder->pax; $i++): ?>
-                            <?= $i === 0 ? '' : '<hr>' ?>
-                            <p class="my-2 fw-bold">Pasajero <?= $i + 1 ?></p>
-                            <input type="hidden" name="passengers[<?= $i ?>][type]"
-                                value="<?= PassengerConstants::STANDARD->value ?>">
-                            <table class="table table-bordered">
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <div class="form-floating">
-                                                <input class="form-control" name="passengers[<?= $i ?>][name]"
-                                                    placeholder="Nombre del pasajero" type="text"
-                                                    value="<?= isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['name'] ?? '') : '' ?>"
-                                                    required>
-                                                <label class="form-label">Nombre del pasajero</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-floating">
-                                                <?php
-                                                $nationality_select->attributes->set('name', "passengers[{$i}][nationality]");
-                                                $nationality_select->setValue(isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['nationality'] ?? '') : '');
-                                                $nationality_select->render();
-                                                ?>
-                                                <label class="form-label">Nacionalidad</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-floating">
-                                                <?php
-                                                $type_document_select->attributes->set('name', "passengers[{$i}][type_document]");
-                                                $type_document_select->setValue(isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['type_document'] ?? '') : '');
-                                                $type_document_select->render();
-                                                ?>
-                                                <label class="form-label">Tipo de documento</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-floating">
-                                                <input class="form-control" name="passengers[<?= $i ?>][data_document]"
-                                                    placeholder="Número de documento" type="text"
-                                                    value="<?= isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['data_document'] ?? '') : '' ?>"
-                                                    required>
-                                                <label class="form-label">Número de documento</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-floating">
-                                                <input class="form-control" name="passengers[<?= $i ?>][birthday]"
-                                                    placeholder="Fecha de nacimiento" type="date"
-                                                    value="<?= isset($passegers_info[$i]) ? esc_attr($passegers_info[$i]['birthday'] ?? '') : '' ?>"
-                                                    required>
-                                                <label class="form-label">Fecha de nacimiento</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        <?php endfor; ?>
+                        <?php $transportSelect->getLabel('Transporte')->render() ?>
+                    </td>
+                    <td>
+                        <?php $transportSelect->render() ?>
                     </td>
                 </tr>
                 <tr>
-                    <td>Servicios extras</td>
                     <td>
-                        <label for="checkbox-flexible">Flexible</label>
-                        <input id="checkbox-flexible" type="checkbox" name="flexible" checked>
+                        <?php $dateTripSelect->getLabel('Fecha de viaje')->render() ?>
                     </td>
-                </tr>
-                <tr>
-                    <td>Productos similares</td>
                     <td>
-                        <ul>
-                            <?php foreach ($this->products as $product): ?>
-                                <li><a href="<?= get_permalink($product->ID) ?>"><?= $product->post_title ?></a></li>
-                            <?php endforeach; ?>
-                        </ul>
+                        <?php $dateTripSelect->render() ?>
                     </td>
                 </tr>
             </tbody>
         </table>
         <?php
-        return ob_get_clean();
     }
 
-    public function get_transport_select()
+    private function formPassenger(Passenger $passenger, int $index)
     {
-        $select = new SelectComponent('transport');
-        $transports = $this->preorder->get_routes()[0]->getTransports();
-        $select->setRequired(true);
-        $select->addOption('Seleccione...', '');
-        foreach ($transports as $transport) {
-            $is_available = git_transport_check_availability(
-                $transport->id,
-                $this->preorder->get_routes()[0]->id,
-                git_date_create($this->preorder->date_trip->format('Y-m-d')),
-                $this->preorder->pax,
-            );
-            if ($is_available) {
-                $select->addOption($transport->nicename, $transport->id);
-            }
+        $nameInput = new InputComponent("passengers[$index][name]", 'text');
+        $dataDocumentInput = new InputComponent("passengers[$index][data_document]");
+        $birthdayInput = new InputComponent("passengers[$index][birthday]", 'date');
+        $nationalityInput = git_country_select_field("passengers[$index][nationality]");
+        $typeDocumentInput = (new TypeDocumentSelect("passengers[$index][type_document]"))->create();
+
+        $nameInput->setRequired(true);
+        $birthdayInput->setRequired(true);
+        $nationalityInput->setRequired(true);
+        $dataDocumentInput->setRequired(true);
+        $typeDocumentInput->setRequired(true);
+
+        $nameInput->setValue($passenger->name);
+        $nationalityInput->setValue($passenger->nationality);
+        $dataDocumentInput->setValue($passenger->dataDocument);
+        $typeDocumentInput->setValue($passenger->typeDocument);
+        $birthdayInput->setValue($passenger->getBirthday()->format('Y-m-d'));
+
+        ?>
+        <input type="hidden" name="passengers[<?= $index ?>][id]" value="<?= $passenger->id ?>">
+        <table class="table table-bordered">
+            <tbody>
+                <tr>
+                    <td>
+                        <?php $nameInput->getLabel('Nombre')->render() ?>
+                    </td>
+                    <td>
+                        <?php $nameInput->render() ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <?php $nationalityInput->getLabel('Nacionalidad')->render() ?>
+                    </td>
+                    <td>
+                        <?php $nationalityInput->render() ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <?php $typeDocumentInput->getLabel('Tipo de documento')->render() ?>
+                    </td>
+                    <td>
+                        <?php $typeDocumentInput->render() ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <?php $dataDocumentInput->getLabel('Número de documento')->render() ?>
+                    </td>
+                    <td>
+                        <?php $dataDocumentInput->render() ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <?php $birthdayInput->getLabel('Fecha de nacimiento')->render() ?>
+                    </td>
+                    <td>
+                        <?php $birthdayInput->render() ?>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <?php
+    }
+
+    private function loadData()
+    {
+        $id = (int) ($_GET['preorder'] ?? -1);
+        $ticket = git_ticket_by_id($id);
+        if ($ticket === null) {
+            PreorderDashboard::writeMessage('No se encontró ningún ticket.');
+            $url = remove_query_arg(['preorder']);
+            wp_safe_redirect($url);
+            exit;
         }
-        return $select;
-    }
-
-    public function compact()
-    {
-        if ($this->preorder === null) {
-            return $this->not_data_panel->compact();
-        } elseif (empty($this->products)) {
-            return $this->not_products_panel->compact();
-        }
-        $this->addChild(git_string_to_component('<div class="container">'));
-        $this->addChild(git_string_to_component($this->fields()));
-        $this->addChild($this->get_submit_button('Confirmar Preorden'));
-        $this->addChild(git_string_to_component('</div>'));
-        return parent::compact();
-    }
-
-    private function get_submit_button(string $text)
-    {
-        $button = new ButtonComponent($text);
-        $button->class_list->add('btn btn-primary my-3');
-        return $button;
+        return $ticket;
     }
 }

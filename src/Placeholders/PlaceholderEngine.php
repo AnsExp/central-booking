@@ -31,7 +31,7 @@ class PlaceholderEngine
         return (string) preg_replace_callback(
             $pattern,
             [$this, 'process_placeholder'],
-            $text
+            stripslashes($text)
         );
     }
 
