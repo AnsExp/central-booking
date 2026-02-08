@@ -73,11 +73,9 @@ final class LazyLoader
     public static function loadZoneByLocation(Location $location)
     {
         global $wpdb;
-        $sql = "SELECT meta_value FROM {$wpdb->prefix}git_meta WHERE meta_type = %s AND meta_key = %s AND meta_id = %d";
+        $sql = "SELECT id_zone FROM {$wpdb->prefix}git_locations WHERE id = %d";
         $sql = $wpdb->prepare(
             $sql,
-            MetaManager::LOCATION,
-            'parent_zone',
             $location->id
         );
         $zone_id = $wpdb->get_var($sql);
@@ -93,11 +91,9 @@ final class LazyLoader
     public static function loadLocationsByZone(Zone $zone)
     {
         global $wpdb;
-        $sql = "SELECT meta_id FROM {$wpdb->prefix}git_meta WHERE meta_type = %s AND meta_key = %s AND meta_value = %d";
+        $sql = "SELECT id FROM {$wpdb->prefix}git_locations WHERE id_zone = %d";
         $sql = $wpdb->prepare(
             $sql,
-            MetaManager::LOCATION,
-            'parent_zone',
             $zone->id
         );
         $location_ids = $wpdb->get_col($sql);

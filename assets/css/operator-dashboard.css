@@ -1,4 +1,5 @@
 :root {
+    --bs-text-color: #212529;
     --bs-primary: #0d6efd;
     --bs-secondary-color: #6c757d;
     --bs-success: #198754;
@@ -288,7 +289,6 @@
 /* Botones */
 .git-btn {
     padding: 10px 20px;
-    border: 1px solid;
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
@@ -321,6 +321,15 @@
     background: #f9fafb;
     color: #374151;
     text-decoration: none;
+}
+
+.git-btn-warning {
+    background-color: var(--bs-warning);
+    color: var(--bs-text-color);
+}
+
+.git-btn-warning:hover {
+    background-color: color-mix(in srgb, var(--bs-warning) 90%, black);
 }
 
 .git-btn-danger {
@@ -545,5 +554,66 @@
 
     .git-btn {
         width: 100%;
+    }
+}
+
+.git-form-control {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+    background: #fff;
+}
+
+.git-form-control:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+textarea.git-form-control {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+@keyframes git-modal-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Modal responsive */
+@media (max-width: 768px) {
+    .git-modal-dialog {
+        width: 95%;
+        max-height: 95vh;
+        margin: 20px;
+    }
+
+    .git-modal-header,
+    .git-modal-body,
+    .git-modal-footer {
+        padding: 16px;
+    }
+
+    .git-modal-footer {
+        flex-direction: column;
+    }
+
+    .git-modal-footer .git-btn {
+        width: 100%;
+    }
+
+    .git-modal-title {
+        font-size: 16px;
     }
 }

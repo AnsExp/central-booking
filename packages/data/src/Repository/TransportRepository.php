@@ -255,9 +255,9 @@ final class TransportRepository
         );
         $sql = substr($sql, 19);
         $sql = "SELECT COUNT(DISTINCT t.id) {$sql}";
-        $results = $wpdb->get_var($sql);
-        if ($results !== null) {
-            return (int) $results;
+        $results = $wpdb->get_col($sql);
+        if ($results) {
+            return count($results);
         }
         return 0;
     }

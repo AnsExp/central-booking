@@ -73,7 +73,7 @@ final class TableTrip implements DisplayerInterface
             $_GET['date_to']
         );
 
-        $this->modal->set_body_component(ComponentBuilder::create(
+        $this->modal->setBody(ComponentBuilder::create(
             $this->modal_table_content($route, $transport)
         ));
 

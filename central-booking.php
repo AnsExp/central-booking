@@ -40,7 +40,8 @@ if (class_exists(\CentralBooking\Bootstrap::class)) {
 }
 
 require_once 'includes/git-functions-utils.php';
-require_once 'includes/git-hooks.php';
+require_once 'includes/git-hooks-core.php';
+require_once 'includes/git-hooks-woocommerce.php';
 
 require_once 'packages/qr/functions.php';
 require_once 'packages/gui/functions.php';

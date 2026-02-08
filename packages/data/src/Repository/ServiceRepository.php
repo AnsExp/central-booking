@@ -158,7 +158,7 @@ class ServiceRepository
         $serviceTable = $this->formatTable(DatabaseTable::TABLE_SERVICES->value);
         $transportServiceTable = $this->formatTable(DatabaseTable::TABLE_TRANSPORTS_SERVICES->value);
 
-        $sql = "SELECT s.* FROM {$serviceTable} s
+        $sql = "SELECT DISTINCT s.* FROM {$serviceTable} s
             LEFT JOIN {$transportServiceTable} ts ON s.id = ts.id_service
             WHERE 1 = 1";
 

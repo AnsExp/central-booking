@@ -6,7 +6,6 @@ use CentralBooking\Admin\View\TableTransports;
 use CentralBooking\Data\Constants\TransportCustomeFieldConstants;
 use CentralBooking\Data\Transport;
 use CentralBooking\GUI\DisplayerInterface;
-use CentralBooking\GUI\InputComponent;
 use CentralBooking\GUI\SelectComponent;
 use CentralBooking\GUI\TextareaComponent;
 use CentralBooking\Implementation\GUI\TypeOperationSelect;
@@ -16,8 +15,6 @@ use CentralBooking\Implementation\Temp\MessageTemporal;
 
 final class FormTransport implements DisplayerInterface
 {
-    public const NONCE_ACTION = 'edit_transport';
-
     public function render()
     {
         $transport = $this->loadData();
@@ -96,7 +93,8 @@ final class FormTransport implements DisplayerInterface
             <?php $this->createFormAlias('{{ID}}') ?>
         </div>
         <form method="post" action="<?= esc_attr($action) ?>">
-            <?php wp_nonce_field(self::NONCE_ACTION) ?>
+            <?php git_nonce_field() ?>
+            <?php git_referer_field() ?>
             <input type="hidden" name="id" value="<?= esc_attr($transport->id) ?>">
             <table class="form-table" role="presentation" style="max-width: 700px;">
                 <tr>
@@ -196,7 +194,7 @@ final class FormTransport implements DisplayerInterface
                         <ul>
                             <?php foreach ($days as $day_value => $day_label): ?>
                                 <li>
-                                    <input id="check_day_<?= $day_value ?>" type="checkbox" name="availability_days[]"
+                                    <input id="check_day_<?= $day_value ?>" type="checkbox" name="working_days[]"
                                         value="<?= esc_attr($day_value) ?>" <?= in_array($day_value, $transport->getWorkingDays()) ? 'checked' : '' ?>>
                                     <label for="check_day_<?= $day_value ?>">
                                         <?= esc_html($day_label) ?>

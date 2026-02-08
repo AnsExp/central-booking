@@ -18,12 +18,12 @@ class SelectComponent extends FormControlComponent
     }
 
     public function addOption(
-        string $key,
+        string $label,
         string|int $value = '',
         bool $selected = false,
         array $attributes = [],
     ) {
-        $option = new TextComponent('option', $key);
+        $option = new TextComponent('option', $label);
         if ($value !== null) {
             $option->attributes->set('value', git_serialize($value));
         }

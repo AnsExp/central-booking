@@ -92,7 +92,7 @@ final class TablePassengers implements DisplayerInterface
             ]
         ]);
         $flexible_filter = git_select_field([
-            'name' => 'ticket_flexible',,
+            'name' => 'ticket_flexible',
             'value' => $_GET['ticket_flexible'] ?? '',
             'options' => [
                 'Seleccione...' => '',
@@ -114,7 +114,7 @@ final class TablePassengers implements DisplayerInterface
 
         ob_start();
         ?>
-        <form method="GET" action="">
+        <form method="GET">
             <input type="hidden" name="page" value="<?= esc_attr($_GET['page'] ?? 'git_passengers') ?>">
             <table class="form-table">
                 <tr>
@@ -416,8 +416,12 @@ final class TablePassengers implements DisplayerInterface
                                     data-parent="#actions-container-<?= $passenger->id ?>">
                                     <div class="git-item">
                                         <div style="padding: 20px; text-align: center;">
-                                            <?php $url = git_get_ticket_viewer_qr_url($passenger->getTicket()->id); ?>
-                                            <?= git_qr_code(git_qr_data_url($url), ['size' => 250])->compact() ?>
+                                            <?php
+                                            $url = git_get_ticket_viewer_qr_url($passenger->getTicket()->id);
+                                            if ($url !== '#') {
+                                                echo git_qr_code(git_qr_data_url($url), ['size' => 250])->compact();
+                                            }
+                                            ?>
                                         </div>
                                         <a href="<?= $url ?>" target="_blank"><?= $url ?></a>
                                     </div>

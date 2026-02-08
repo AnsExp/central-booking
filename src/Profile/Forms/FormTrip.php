@@ -68,7 +68,7 @@ class FormTrip implements DisplayerInterface
                     </h3>
                 </div>
                 <div class="git-profile-card-body">
-                    <form method="get" class="git-search-form">
+                    <form method="get">
                         <input type="hidden" name="tab" value="<?= $_GET['tab'] ?? '' ?>">
                         
                         <!-- Ruta -->
@@ -127,11 +127,9 @@ class FormTrip implements DisplayerInterface
 
                         <div class="git-form-actions">
                             <button type="submit" class="git-btn git-btn-primary">
-                                <i class="dashicons dashicons-search"></i>
                                 Buscar viajes
                             </button>
                             <button type="reset" class="git-btn git-btn-secondary" onclick="this.form.reset(); window.location.href=window.location.pathname+'?page=git_operator_panel&tab=trips';">
-                                <i class="dashicons dashicons-dismiss"></i>
                                 Limpiar filtros
                             </button>
                         </div>
@@ -140,139 +138,6 @@ class FormTrip implements DisplayerInterface
             </div>
         </div>
 
-        <style>
-            .git-form-section {
-                margin-bottom: 32px;
-                padding: 20px;
-                background: #f9fafb;
-                border: 1px solid #e5e7eb;
-                border-radius: 6px;
-            }
-            
-            .git-form-section:last-of-type {
-                margin-bottom: 24px;
-            }
-            
-            .git-form-section-title {
-                margin: 0 0 16px 0;
-                font-size: 16px;
-                font-weight: 600;
-                color: #374151;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            
-            .git-form-section-title .dashicons {
-                color: #3b82f6;
-                font-size: 18px;
-            }
-            
-            .git-form-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 0;
-            }
-            
-            .git-form-group-half {
-                flex: 1;
-                margin-bottom: 0;
-            }
-            
-            .git-form-group select,
-            .git-form-group input[type="date"] {
-                width: 100%;
-                padding: 12px 16px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 14px;
-                transition: all 0.2s ease;
-                box-sizing: border-box;
-                background: #fff;
-            }
-            
-            .git-form-group select:focus,
-            .git-form-group input[type="date"]:focus {
-                outline: none;
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            }
-            
-            .git-form-group label {
-                display: block;
-                margin-bottom: 8px;
-                color: #374151;
-                font-weight: 500;
-                font-size: 14px;
-            }
-            
-            .git-form-actions {
-                display: flex;
-                gap: 12px;
-                margin-top: 24px;
-                justify-content: flex-start;
-            }
-            
-            .git-btn .dashicons {
-                margin-right: 8px;
-                font-size: 16px;
-                text-decoration: none;
-            }
-            
-            .git-card-title .dashicons {
-                margin-right: 10px;
-                color: #3b82f6;
-                font-size: 20px;
-            }
-            
-            /* Estados especiales para campos readonly */
-            .git-form-group input[readonly] {
-                background: #f3f4f6;
-                color: #6b7280;
-                cursor: not-allowed;
-            }
-            
-            @media (max-width: 768px) {
-                .git-form-row {
-                    flex-direction: column;
-                    gap: 0;
-                }
-                
-                .git-form-group-half {
-                    margin-bottom: 20px;
-                }
-                
-                .git-form-section {
-                    padding: 16px;
-                    margin-bottom: 24px;
-                }
-                
-                .git-form-actions {
-                    flex-direction: column;
-                }
-                
-                .git-btn {
-                    width: 100%;
-                }
-            }
-            
-            @media (max-width: 480px) {
-                .git-search-form {
-                    max-width: 100%;
-                }
-                
-                .git-form-section-title {
-                    font-size: 14px;
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 4px;
-                }
-                
-                .git-form-section-title .dashicons {
-                    font-size: 16px;
-                }
-            }
-        </style>
         <?php
     }
 

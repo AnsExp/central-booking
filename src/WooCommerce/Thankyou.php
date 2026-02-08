@@ -2,7 +2,6 @@
 namespace CentralBooking\WooCommerce;
 
 use CentralBooking\Data\Constants\TicketStatus;
-use CentralBooking\Data\Services\TicketService;
 
 class Thankyou
 {
@@ -14,10 +13,10 @@ class Thankyou
 
         $order = wc_get_order($order_id);
         $items = $order->get_items();
-        $data = [];
+        $ticket = [];
 
         foreach ($items as $item) {
-            $data[] = unserialize($item->get_meta('_original_data'));
+            $ticket[] = unserialize($item->get_meta('_original_data'));
         }
 
         $coupon_id = -1;
@@ -26,56 +25,50 @@ class Thankyou
             $coupon_id = wc_get_coupon_id_by_code($coupon->get_code());
         }
 
-        foreach ($data as $ticket) {
-            if (!($ticket instanceof CartItem)) {
-                continue;
-            }
+        foreach ($ticket as $ticketData) {
+            if ($ticketData instanceof CartItem) {
+                $ticket = git_ticket_create([
+                    'flexible' => $ticketData->isFlexible(),
+                    'total_amount' => $ticketData->calculatePrice() * 100,
+                    'status' => $coupon_id === -1 ? TicketStatus::PAYMENT : TicketStatus::PENDING,
+                ]);
 
-            $data = git_ticket_create([
-                'flexible' => $ticket->isFlexible(),
-                'total_amount' => $ticket->calculatePrice() * 100,
-                'status' => $coupon_id === -1 ? TicketStatus::PAYMENT : TicketStatus::PENDING,
-            ]);
+                $ticket->setOrder($order);
 
-            $data->setOrder($order);
+                $coupon = null;
 
-            if ($coupon_id !== -1) {
-                $coupon = get_post($coupon_id);
-                $data->setCoupon($coupon);
-            }
+                if ($coupon_id !== -1) {
+                    $coupon = get_post($coupon_id);
+                    $ticket->setCoupon($coupon);
+                }
 
-            $passengers = [];
-
-            foreach ($ticket->getPassengers() as $passenger) {
-                $passenger_data = git_passenger_create([
+                $ticket->setPassengers(array_map(fn(CartPassenger $passenger) => git_passenger_create([
                     'name' => $passenger->name,
                     'type' => $passenger->type,
                     'served' => false,
-                    'approved' => $coupon_id === -1,
+                    'approved' => $coupon === null,
                     'birthday' => $passenger->birthday,
-                    'date_trip' => $ticket->getDateTrip()->format(),
+                    'date_trip' => $ticketData->getDateTrip()->format('Y-m-d'),
                     'nationality' => $passenger->nationality,
                     'type_document' => $passenger->typeDocument,
                     'data_document' => $passenger->dataDocument,
-                ]);
-                $route = git_route_by_id($ticket->getRoute()->id);
-                $transport = git_transport_by_id($ticket->getTransport()->id);
-                if ($route !== null) {
-                    $passenger_data->setRoute($route);
+                    'route_id' => $ticketData->getRoute()->id,
+                    'transport_id' => $ticketData->getTransport()->id,
+                ]), $ticketData->getPassengers()));
+
+                if ($ticket->save() !== null) {
+                    if ($coupon !== null) {
+                        $operator = git_operator_by_coupon($coupon);
+                        if ($operator !== null) {
+                            $business_plan = $operator->getBusinessPlan();
+                            $operator->setBusinessPlan($business_plan['limit'], $business_plan['counter'] + 1);
+                            $operator->getCoupons();
+                            $operator->save();
+                        }
+                    }
+                    $item->delete_meta_data('_original_data');
+                    $item->save();
                 }
-                if ($transport !== null) {
-                    $passenger_data->setTransport($transport);
-                }
-                $passengers[] = $passenger_data;
-            }
-
-            $data->setPassengers($passengers);
-
-            $response = (new TicketService)->save($data);
-
-            if ($response !== null) {
-                $item->delete_meta_data('_original_data');
-                $item->save();
             }
         }
 

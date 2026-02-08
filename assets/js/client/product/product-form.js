@@ -29,7 +29,7 @@ form.addEventListener('submit', (e) => {
     };
 
     const body = {
-        nonce: form.querySelector('input[name="_gitnonce"]').value,
+        nonce: form.querySelector('input[name="git_nonce"]').value,
         product: form.querySelector('input[name="product"]').value,
         pax: {
             kid: window.CentralTickets.formProduct.getPax().kid,
@@ -66,7 +66,7 @@ form.addEventListener('submit', (e) => {
         </h3>
         `;
 
-    form.appendChild(createInputHidden('_gitnonce', body.nonce));
+    form.appendChild(createInputHidden('git_nonce', body.nonce));
 
     form.appendChild(createInputHidden('product', body.product));
     form.appendChild(createInputHidden('pax[kid]', body.pax.kid));

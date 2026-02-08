@@ -96,6 +96,24 @@ function git_transport_select_field(string $name = 'transport', bool $multiple =
     return $selectComponent;
 }
 
+function git_coupon_select_field(string $name = 'coupon', bool $multiple = false)
+{
+    $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);
+
+    $selectComponent->addOption('Seleccione...', '');
+
+    $args = ['order_by' => 'name'];
+
+    foreach (git_coupons() as $coupon) {
+        $selectComponent->addOption(
+            $coupon->post_title,
+            $coupon->ID
+        );
+    }
+
+    return $selectComponent;
+}
+
 function git_service_select_field(string $name = 'service', bool $multiple = false)
 {
     $selectComponent = $multiple ? git_multiselect_field(['name' => $name]) : git_select_field(['name' => $name]);

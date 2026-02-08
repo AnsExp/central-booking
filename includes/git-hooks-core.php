@@ -39,22 +39,14 @@ use CentralBooking\Implementation\Document\DocumentSallingRequest;
 use CentralBooking\Implementation\Document\DocumentTrip;
 use CentralBooking\Implementation\Temp\MessageTemporal;
 use CentralBooking\PDF\DocumentPdf;
-use CentralBooking\Placeholders\PlaceholderEngineCheckout;
 use CentralBooking\Profile\Forms\FormEditCoupon;
 use CentralBooking\Profile\ProfileDashboard;
 use CentralBooking\QR\ErrorCorrectionCode;
 use CentralBooking\Implementation\Temp\MessageLevel;
 use CentralBooking\Utils\ArrayParser\TransportArray;
 use CentralBooking\Utils\Actions\DownloadInvoiceInfo;
-use CentralBooking\WooCommerce\CreateOrderLineItem;
-use CentralBooking\WooCommerce\ProductForm;
-use CentralBooking\WooCommerce\ProductItemCart;
 use CentralBooking\WooCommerce\ProductSinglePresentation;
-use CentralBooking\WooCommerce\Thankyou;
-use CentralBooking\WooCommerce\SingleProduct\FormProduct;
-use CentralBooking\WooCommerce\SingleProduct\FormProductNotAvailable;
 use CentralBooking\WooCommerce\SingleProduct\FormProductTransport;
-use CentralBooking\WooCommerce\ValidateCoupon;
 use CentralBooking\Profile\Tables\TableTrip;
 
 defined('ABSPATH') || exit;
@@ -65,76 +57,9 @@ add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links)
     return $links;
 }, 1);
 
-add_action('woocommerce_single_product_summary', function () {
-    global $product;
-    if ($product instanceof WC_Product_Operator) {
-        if ($product->is_purchasable()) {
-            (new FormProduct($product))->render();
-        } else {
-            (new FormProductNotAvailable)->render();
-        }
-    }
-}, 25);
-
-add_filter('woocommerce_get_item_data', function ($item_data, $cart_item) {
-    $product_item = new ProductItemCart();
-    $item_data = array_merge($item_data, $product_item->itemCart($cart_item));
-    return $item_data;
-}, 10, 2);
-
-add_action('woocommerce_before_calculate_totals', function ($cart_object) {
-    foreach ($cart_object->get_cart() as $cart_item) {
-        $product = wc_get_product($cart_item['product_id']);
-        if ($product->get_type() !== 'operator') {
-            continue;
-        }
-        $cart_item['data']->set_price($cart_item['cart_ticket']->calculatePrice());
-    }
-});
-
-function git_ajax_validate_coupon(bool $valid, WC_Coupon $coupon)
-{
-    $validator = new ValidateCoupon();
-    return $validator->isValid($coupon) && $valid;
-}
-
-add_filter('woocommerce_coupon_is_valid', 'git_ajax_validate_coupon', 10, 2);
-
-add_filter('woocommerce_thankyou_order_received_text', function ($thank_you_text, WC_Order $order) {
-    $message = git_get_setting('message_checkout', '');
-    $engine = new PlaceholderEngineCheckout($order);
-    $processed_message = $engine->process($message);
-    $thank_you_text = $processed_message;
-    return $thank_you_text;
-}, 10, 2);
-
-add_action('woocommerce_checkout_create_order_line_item', function ($item, $cart_item_key, $values, $order) {
-    $create_order_line_item = new CreateOrderLineItem();
-    $create_order_line_item->add_line_item($item, $values);
-}, 10, 4);
-
-add_action('woocommerce_thankyou', function ($order_id) {
-    $thankyou = new Thankyou();
-    $thankyou->thankyou($order_id);
-}, 10, 1);
-
-add_filter('woocommerce_product_data_tabs', function ($tabs) {
-    return array_merge($tabs, ProductForm::get_tabs());
-});
-
-add_action('woocommerce_product_data_panels', function () {
-    ProductForm::get_general_panel();
-    ProductForm::get_pricing_panel();
-    ProductForm::get_inventory_panel();
-});
-
-add_action('woocommerce_process_product_meta_operator', function ($post_id) {
-    ProductForm::process_form($post_id);
-});
-
 function git_ajax_product_submit()
 {
-    $nonce = $_POST['_gitnonce'] ?? '';
+    $nonce = $_POST['git_nonce'] ?? '';
     if (git_verify_nonce($nonce) === false) {
         return;
     }
@@ -188,15 +113,10 @@ function git_ajax_fetch_tranports()
     $response = new TransportArray();
     $_POST['split_alias'] = isset($_POST['split_alias']) && $_POST['split_alias'] === '1' ? true : false;
     wp_send_json_success(array_map(
-        fn(Transport $transport) => $response->get_array($transport),
+        fn(Transport $transport): array => $response->get_array($transport),
         FormProductTransport::queryTransports($_POST)
     ));
 }
-
-add_action('wp_ajax_git_product_submit', 'git_ajax_product_submit');
-add_action('wp_ajax_git_fetch_transports', 'git_ajax_fetch_tranports');
-add_action('wp_ajax_nopriv_git_product_submit', 'git_ajax_product_submit');
-add_action('wp_ajax_nopriv_git_fetch_transports', 'git_ajax_fetch_tranports');
 
 function git_ajax_edit_ticket_status()
 {
@@ -433,10 +353,10 @@ add_action('wp_ajax_git_edit_toggle_flexible', 'git_ajax_toggle_flexible');
 
 function git_ajax_edit_transport()
 {
-    $redirect = $_POST['_wp_http_referer'] ?? wp_get_referer();
-    $nonce = $_POST['_wpnonce'] ?? '';
+    $redirect = $_POST['git_referer'] ?? wp_get_referer();
+    $nonce = $_POST['git_nonce'] ?? '';
 
-    if (wp_verify_nonce($nonce, FormTransport::NONCE_ACTION) === false) {
+    if (git_verify_nonce($nonce) === false) {
         FormTransport::writeMessage('El identificador del formulario no es válido o ha expirado.', MessageLevel::ERROR);
         wp_safe_redirect($redirect);
         exit;
@@ -1408,3 +1328,9 @@ add_action('wp_ajax_git_import_data', 'git_ajax_import_data');
 
 add_action('wp_ajax_git_login', 'git_ajax_login');
 add_action('wp_ajax_nopriv_git_login', 'git_ajax_login');
+
+
+add_action('wp_ajax_git_product_submit', 'git_ajax_product_submit');
+add_action('wp_ajax_git_fetch_transports', 'git_ajax_fetch_tranports');
+add_action('wp_ajax_nopriv_git_product_submit', 'git_ajax_product_submit');
+add_action('wp_ajax_nopriv_git_fetch_transports', 'git_ajax_fetch_tranports');

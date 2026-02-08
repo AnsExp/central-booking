@@ -36,19 +36,7 @@ final class LocationRepository
                 $formats
             );
             $location->id = $this->wpdb->insert_id;
-            MetaManager::setMeta(
-                MetaManager::LOCATION,
-                $location->id,
-                'type',
-                'location'
-            );
         }
-        MetaManager::setMeta(
-            MetaManager::LOCATION,
-            $location->id,
-            'parent_zone',
-            $location->getZone()->id
-        );
         $location->saveMeta();
         return $location;
     }
@@ -163,31 +151,26 @@ final class LocationRepository
         int $offset = 0
     ) {
         $metaTable = $this->formatTable('git_meta');
+        $zoneTable = $this->formatTable('git_zones');
         $locationsTable = $this->formatTable('git_locations');
 
-        $sql = "SELECT l.*
+        $sql = "SELECT DISTINCT l.*
         FROM {$locationsTable} l
-        LEFT JOIN {$metaTable} m ON l.id = m.meta_id
-        WHERE m.meta_type = %s
-        AND m.meta_key = %s
-        AND m.meta_value = %s";
-
-        $sql = $this->wpdb->prepare(
-            $sql,
-            MetaManager::LOCATION,
-            'type',
-            'location',
-        );
+        LEFT JOIN {$zoneTable} z ON z.id = l.id_zone
+        LEFT JOIN {$metaTable} m ON (l.id = m.meta_id AND m.meta_type = 'location')
+        WHERE 1 = 1";
 
         $filters = [
             'id' => 'l.id = %d',
             'name' => 'l.name = %s',
-            'id_zone' => 'm.parent_zone = %s',
+            'id_zone' => 'l.id_zone = %d',
+            'name_zone' => 'z.name = %s',
         ];
 
         $orders = [
             'id' => 'l.id',
             'name' => 'l.name',
+            'name_zone' => 'z.name',
         ];
 
         foreach ($args as $key => $value) {
@@ -228,9 +211,8 @@ final class LocationRepository
             args: $args,
             limit: -1
         );
-        $sql = substr($sql, 10);
+        $sql = substr($sql, 36);
         $sql = "SELECT COUNT(id) {$sql}";
-        git_set_setting('sample', $sql);
         $results = $wpdb->get_var($sql);
         if ($results !== null) {
             return (int) $results;

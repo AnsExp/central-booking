@@ -50,9 +50,11 @@ final class PaneProfile implements DisplayerInterface
                                 </div>
                             </div>
                             <div class="git-profile-actions">
-                                <a href="<?= wp_logout_url(home_url()) ?>" class="git-btn git-btn-danger">
-                                    Cerrar Sesión
-                                </a>
+                                <button class="git-btn git-btn-danger">
+                                    <a href="<?= wp_logout_url(home_url()) ?>">
+                                        Cerrar Sesión
+                                    </a>
+                                </button>
                             </div>
                         </div>
                     </div>

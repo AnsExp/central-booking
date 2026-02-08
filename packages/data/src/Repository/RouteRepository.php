@@ -151,8 +151,8 @@ final class RouteRepository
         LEFT JOIN {$tableMeta} tm ON (tm.meta_id = r.id AND tm.meta_type = %s)
         LEFT JOIN {$tableLocations} lo ON lo.id = r.id_origin
         LEFT JOIN {$tableLocations} ld ON ld.id = r.id_destiny
-        -- LEFT JOIN {$tableRoutesTransports} rt ON rt.id_route = r.id
-        -- LEFT JOIN {$tablePassengers} p ON p.id_route = r.id
+        LEFT JOIN {$tableRoutesTransports} rt ON rt.id_route = r.id
+        LEFT JOIN {$tablePassengers} p ON p.id_route = r.id
         WHERE 1=1";
         $sql = $this->wpdb->prepare($sql, MetaManager::ROUTE);
         $filters_allowed = [
@@ -216,7 +216,6 @@ final class RouteRepository
         );
         $sql = substr($sql, 10);
         $sql = "SELECT COUNT(DISTINCT r.id) {$sql}";
-        // echo $sql;
         $results = $wpdb->get_var($sql);
         if ($results !== null) {
             return (int) $results;

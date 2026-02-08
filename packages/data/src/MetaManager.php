@@ -6,7 +6,7 @@ namespace CentralBooking\Data;
  */
 final class MetaManager
 {
-    public const ZONE = 'location';
+    public const ZONE = 'zone';
     public const ROUTE = 'route';
     public const COUPON = 'coupon';
     public const TICKET = 'ticket';

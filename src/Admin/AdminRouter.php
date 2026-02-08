@@ -119,12 +119,6 @@ final class AdminRouter
                     'is_tab' => true,
                     'tab_label' => 'Flyer de Comercializador',
                     'target' => TableCoupons::class,
-                    // 'redirects' => [
-                    //     [
-                    //         'label' => 'Asignar Flyer',
-                    //         'to' => FormCoupon::class,
-                    //     ]
-                    // ],
                 ],
                 'edit_coupon' => [
                     'is_tab' => false,

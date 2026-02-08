@@ -1,7 +1,6 @@
 <?php
 namespace CentralBooking\Data\Repository;
 
-use CentralBooking\Data\MetaManager;
 use CentralBooking\Data\ORM\ORMInterface;
 use CentralBooking\Data\Repository\DatabaseTable;
 use CentralBooking\Data\Zone;
@@ -9,7 +8,7 @@ use wpdb;
 
 class ZoneRepository
 {
-    private string $table = "git_locations";
+    private string $table = "git_zones";
 
     public function __construct(private readonly wpdb $wpdb)
     {
@@ -21,7 +20,7 @@ class ZoneRepository
         $formats = ['%s'];
         if ($this->exists($zone->id)) {
             $this->wpdb->update(
-                $this->formatTable(DatabaseTable::TABLE_LOCATIONS->value),
+                $this->formatTable(DatabaseTable::TABLE_ZONES->value),
                 $data,
                 ['id' => $zone->id],
                 $formats,
@@ -29,7 +28,7 @@ class ZoneRepository
             );
         } else {
             $result = $this->wpdb->insert(
-                $this->formatTable(DatabaseTable::TABLE_LOCATIONS->value),
+                $this->formatTable(DatabaseTable::TABLE_ZONES->value),
                 $data,
                 $formats
             );
@@ -37,12 +36,6 @@ class ZoneRepository
                 return null;
             }
             $zone->id = $this->wpdb->insert_id;
-            MetaManager::setMeta(
-                MetaManager::ZONE,
-                $zone->id,
-                'type',
-                'zone'
-            );
         }
         return $zone;
     }
@@ -149,15 +142,9 @@ class ZoneRepository
         int $offset = 0
     ) {
         $metaTable = $this->formatTable(DatabaseTable::TABLE_META->value);
-        $locationsTable = $this->formatTable(DatabaseTable::TABLE_LOCATIONS->value);
+        $locationsTable = $this->formatTable(DatabaseTable::TABLE_ZONES->value);
 
-        $sql = "SELECT l.* FROM {$locationsTable} l LEFT JOIN {$metaTable} m ON l.id = m.meta_id WHERE m.meta_type = %s AND m.meta_key = %s AND m.meta_value = %s";
-        $sql = $this->wpdb->prepare(
-            $sql,
-            MetaManager::ZONE,
-            'type',
-            'zone',
-        );
+        $sql = "SELECT l.* FROM {$locationsTable} l LEFT JOIN {$metaTable} m ON l.id = m.meta_id WHERE 1 = 1";
 
         $filters = [
             'id' => 'l.id = %d',

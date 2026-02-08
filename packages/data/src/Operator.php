@@ -138,6 +138,6 @@ class Operator
 
     public function save()
     {
-        git_operator_save($this);
+        return git_operator_save($this) !== null;
     }
 }

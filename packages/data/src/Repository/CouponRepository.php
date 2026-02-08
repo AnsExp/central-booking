@@ -37,8 +37,9 @@ class CouponRepository
         $table = DatabaseTable::TABLE_META->value;
         $coupon_ids = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT meta_id FROM {$wpdb->prefix}{$table} WHERE meta_type = %s AND meta_key = 'coupon_assigned_operator' AND meta_value = %d",
+                "SELECT meta_id FROM {$wpdb->prefix}{$table} WHERE meta_type = %s AND meta_key = %s AND meta_value = %d",
                 MetaManager::COUPON,
+                'coupon_assigned_operator',
                 $operator->getUser()->ID
             )
         );

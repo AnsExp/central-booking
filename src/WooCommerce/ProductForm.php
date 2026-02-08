@@ -256,6 +256,7 @@ final class ProductForm
             // Configurar precios del producto
             $product->set_sale_price(0);
             $product->set_price($price_standard);
+            $product->set_regular_price($price_standard);
 
             // Guardar precios específicos
             $product->set_price_kid($price_kid);

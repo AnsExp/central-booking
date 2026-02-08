@@ -1,7 +1,6 @@
 <?php
 namespace CentralBooking;
 
-use CentralBooking\Admin\TestPage;
 use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Admin\AdminRouter;
 use CentralBooking\Client\TicketViewer;
@@ -66,7 +65,7 @@ final class Bootstrap
     private function init_admin_shortcuts()
     {
         add_shortcode('git_profile', fn() => (new ProfileDashboard)->compact());
-        add_shortcode('git_ticket_preview', function () {
+        add_shortcode('git_ticket_viewer', function () {
             wp_enqueue_style('bootstrap-css', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
             wp_enqueue_script('bootstrap-js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js', ['jquery'], null, true);
             return (new TicketViewer($_GET['data'] ?? -1))->compact();
@@ -256,16 +255,16 @@ final class Bootstrap
                         );
                     }
                 );
-                add_submenu_page(
-                    AdminRouter::PAGE_CENTRAL_BOOKING,
-                    'Campo de pruebas',
-                    'Campo de pruebas',
-                    'manage_options',
-                    'test_field',
-                    function () {
-                        (new TestPage)->render();
-                    }
-                );
+                // add_submenu_page(
+                //     AdminRouter::PAGE_CENTRAL_BOOKING,
+                //     'Campo de pruebas',
+                //     'Campo de pruebas',
+                //     'manage_options',
+                //     'test_field',
+                //     function () {
+                //         (new VirtualPages)->render();
+                //     }
+                // );
             }
         });
     }

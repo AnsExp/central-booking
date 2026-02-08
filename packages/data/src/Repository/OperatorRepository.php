@@ -3,7 +3,6 @@ namespace CentralBooking\Data\Repository;
 
 use CentralBooking\Data\Constants\UserRole;
 use CentralBooking\Data\Operator;
-use WP_Post;
 use WP_User;
 use WP_User_Query;
 
@@ -24,14 +23,6 @@ class OperatorRepository
         }
         $operator = $this->userToOperator($user);
         return $operator;
-    }
-
-    public function findByCoupon(WP_Post $coupon)
-    {
-        $operator_id = get_post_meta($coupon->ID, 'coupon_assigned_operator', true);
-        if ($operator_id) {
-        }
-        return null;
     }
 
     public function findAll()
