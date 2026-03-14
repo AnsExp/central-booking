@@ -255,16 +255,16 @@ final class Bootstrap
                         );
                     }
                 );
-                // add_submenu_page(
-                //     AdminRouter::PAGE_CENTRAL_BOOKING,
-                //     'Campo de pruebas',
-                //     'Campo de pruebas',
-                //     'manage_options',
-                //     'test_field',
-                //     function () {
-                //         (new VirtualPages)->render();
-                //     }
-                // );
+                add_submenu_page(
+                    AdminRouter::PAGE_CENTRAL_BOOKING,
+                    'Campo de pruebas',
+                    'Campo de pruebas',
+                    'manage_options',
+                    'test_field',
+                    function () {
+                        echo "<div class='wrap'><h1>Campo de pruebas</h1><p>Aquí puedes probar cosas nuevas sin afectar el resto del sistema.</p></div>";
+                    }
+                );
             }
         });
     }

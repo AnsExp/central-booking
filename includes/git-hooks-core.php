@@ -987,7 +987,7 @@ function git_ajax_settings_general()
 function git_ajax_settings_secret_key()
 {
     $redirect_url = AdminRouter::get_url_for_class(SettingsGeneral::class);
-    $nonce = $_POST['_gitnonce'] ?? '';
+    $nonce = $_POST['git_nonce'] ?? '';
 
     if (git_verify_nonce($nonce) === false) {
         SettingsGeneral::writeMessage('Token de seguridad inválido.', MessageLevel::ERROR);

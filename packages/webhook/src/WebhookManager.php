@@ -30,12 +30,14 @@ final class WebhookManager
         ];
         global $wpdb;
         if ($webhook->id > 0) {
+            git_set_setting('sample', 1);
             $wpdb->update(
                 $wpdb->prefix . 'git_webhooks',
                 $data,
                 ['id' => $webhook->id]
             );
         } else {
+            git_set_setting('sample', 2);
             $wpdb->insert(
                 $wpdb->prefix . 'git_webhooks',
                 $data
